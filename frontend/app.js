@@ -1,16 +1,4 @@
-const STORAGE_KEY = "foreman-tasks";
-
-function getTasks() {
-    try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    } catch {
-        return [];
-    }
-}
-
-function saveTasks(tasks) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-}
+import { getTasks, saveTasks } from "./utils/storage.js";
 
 function createTask(title, priority) {
     return {
