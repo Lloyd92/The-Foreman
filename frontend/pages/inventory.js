@@ -3,6 +3,8 @@ import {
     saveInventoryItems
 } from "../utils/inventoryStorage.js";
 
+let editingItemId = null;
+
 function createInventoryItem(formData) {
     return {
         id: crypto.randomUUID(),
@@ -27,6 +29,157 @@ function formatQuantity(item) {
     return `${item.quantity} ${item.unit}`;
 }
 
+function getItemById(itemId) {
+    return getInventoryItems().find(item => item.id === itemId);
+}
+
+function deleteInventoryItem(itemId) {
+    const item = getItemById(itemId);
+
+    if (!item) {
+        return;
+    }
+
+    const confirmed = window.confirm(
+        `Delete "${item.name}" from inventory?`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    const updatedItems = getInventoryItems().filter(
+        inventoryItem => inventoryItem.id !== itemId
+    );
+
+    saveInventoryItems(updatedItems);
+    renderInventory();
+}
+
+function populateInventoryForm(item) {
+    document.getElementById("inventory-name").value =
+        item.name;
+
+    document.getElementById("inventory-category").value =
+        item.category;
+
+    document.getElementById("inventory-location").value =
+        item.location;
+
+    document.getElementById("inventory-quantity").value =
+        item.quantity;
+
+    document.getElementById("inventory-unit").value =
+        item.unit;
+
+    document.getElementById("inventory-minimum").value =
+        item.minimum;
+
+    document.getElementById("inventory-cost").value =
+        item.cost || "";
+
+    document.getElementById("inventory-supplier").value =
+        item.supplier || "";
+
+    document.getElementById("inventory-notes").value =
+        item.notes || "";
+}
+
+function openInventoryDialog(isNewItem = true) {
+    const backdrop = document.getElementById(
+        "inventory-dialog-backdrop"
+    );
+
+    const form = document.getElementById(
+        "inventory-form"
+    );
+
+    const title = document.getElementById(
+        "inventory-dialog-title"
+    );
+
+    const nameInput = document.getElementById(
+        "inventory-name"
+    );
+
+    if (!backdrop) {
+        return;
+    }
+
+    if (isNewItem) {
+        editingItemId = null;
+        form?.reset();
+
+        if (title) {
+            title.textContent = "Add Inventory Item";
+        }
+    }
+
+    backdrop.hidden = false;
+    document.body.classList.add("dialog-open");
+
+    window.setTimeout(() => {
+        nameInput?.focus();
+    }, 0);
+}
+
+function openEditInventoryDialog(itemId) {
+    const item = getItemById(itemId);
+
+    if (!item) {
+        return;
+    }
+
+    editingItemId = itemId;
+
+    const title = document.getElementById(
+        "inventory-dialog-title"
+    );
+
+    if (title) {
+        title.textContent = "Edit Inventory Item";
+    }
+
+    populateInventoryForm(item);
+    openInventoryDialog(false);
+}
+
+function closeInventoryDialog() {
+    const backdrop = document.getElementById(
+        "inventory-dialog-backdrop"
+    );
+
+    const form = document.getElementById(
+        "inventory-form"
+    );
+
+    const errorMessage = document.getElementById(
+        "inventory-form-error"
+    );
+
+    const title = document.getElementById(
+        "inventory-dialog-title"
+    );
+
+    if (!backdrop) {
+        return;
+    }
+
+    backdrop.hidden = true;
+    document.body.classList.remove("dialog-open");
+
+    form?.reset();
+    editingItemId = null;
+
+    if (errorMessage) {
+        errorMessage.textContent = "";
+    }
+
+    if (title) {
+        title.textContent = "Add Inventory Item";
+    }
+}
+
 function renderInventoryRows(items) {
     const tableBody = document.getElementById(
         "inventory-table-body"
@@ -41,7 +194,6 @@ function renderInventoryRows(items) {
     }
 
     tableBody.innerHTML = "";
-
     emptyState.hidden = items.length > 0;
 
     items.forEach(item => {
@@ -75,14 +227,25 @@ function renderInventoryRows(items) {
             </td>
 
             <td class="inventory-actions-cell">
-                <button
-                    class="table-action-button"
-                    type="button"
-                    disabled
-                    title="Editing arrives in v0.5.3"
-                >
-                    Edit
-                </button>
+                <div class="inventory-row-actions">
+                    <button
+                        class="table-action-button"
+                        type="button"
+                        data-action="edit"
+                        data-id="${item.id}"
+                    >
+                        Edit
+                    </button>
+
+                    <button
+                        class="table-action-button delete-inventory-button"
+                        type="button"
+                        data-action="delete"
+                        data-id="${item.id}"
+                    >
+                        Delete
+                    </button>
+                </div>
             </td>
         `;
 
@@ -177,69 +340,62 @@ function updateCategoryFilter(items) {
         filter.appendChild(option);
     });
 
-    if (
-        [...filter.options].some(
-            option => option.value === previousValue
-        )
-    ) {
-        filter.value = previousValue;
-    }
+    const stillExists = [...filter.options].some(
+        option => option.value === previousValue
+    );
+
+    filter.value = stillExists ? previousValue : "all";
+}
+
+function getFilteredInventoryItems(items) {
+    const searchValue = document
+        .getElementById("inventory-search")
+        ?.value.trim()
+        .toLowerCase() || "";
+
+    const categoryValue = document
+        .getElementById("inventory-category-filter")
+        ?.value || "all";
+
+    const stockValue = document
+        .getElementById("inventory-stock-filter")
+        ?.value || "all";
+
+    return items.filter(item => {
+        const searchableSupplier =
+            (item.supplier || "").toLowerCase();
+
+        const matchesSearch =
+            !searchValue ||
+            item.name.toLowerCase().includes(searchValue) ||
+            item.category.toLowerCase().includes(searchValue) ||
+            item.location.toLowerCase().includes(searchValue) ||
+            searchableSupplier.includes(searchValue);
+
+        const matchesCategory =
+            categoryValue === "all" ||
+            item.category === categoryValue;
+
+        const matchesStock =
+            stockValue === "all" ||
+            (stockValue === "low" && isLowStock(item)) ||
+            (stockValue === "available" && !isLowStock(item));
+
+        return (
+            matchesSearch &&
+            matchesCategory &&
+            matchesStock
+        );
+    });
 }
 
 function renderInventory() {
     const items = getInventoryItems();
+    const filteredItems = getFilteredInventoryItems(items);
 
-    renderInventoryRows(items);
+    renderInventoryRows(filteredItems);
     updateInventorySummary(items);
     updateCategoryFilter(items);
-}
-
-function openInventoryDialog() {
-    const backdrop = document.getElementById(
-        "inventory-dialog-backdrop"
-    );
-
-    const nameInput = document.getElementById(
-        "inventory-name"
-    );
-
-    if (!backdrop) {
-        return;
-    }
-
-    backdrop.hidden = false;
-    document.body.classList.add("dialog-open");
-
-    window.setTimeout(() => {
-        nameInput?.focus();
-    }, 0);
-}
-
-function closeInventoryDialog() {
-    const backdrop = document.getElementById(
-        "inventory-dialog-backdrop"
-    );
-
-    const form = document.getElementById(
-        "inventory-form"
-    );
-
-    const errorMessage = document.getElementById(
-        "inventory-form-error"
-    );
-
-    if (!backdrop) {
-        return;
-    }
-
-    backdrop.hidden = true;
-    document.body.classList.remove("dialog-open");
-
-    form?.reset();
-
-    if (errorMessage) {
-        errorMessage.textContent = "";
-    }
 }
 
 function handleInventorySubmit(event) {
@@ -266,14 +422,49 @@ function handleInventorySubmit(event) {
         return;
     }
 
-    const items = getInventoryItems();
-    const newItem = createInventoryItem(formData);
+    let items = getInventoryItems();
 
-    items.push(newItem);
+    if (editingItemId) {
+        const updatedItem = createInventoryItem(formData);
+
+        items = items.map(item =>
+            item.id === editingItemId
+                ? {
+                    ...updatedItem,
+                    id: item.id,
+                    createdAt: item.createdAt,
+                    updatedAt: new Date().toISOString()
+                }
+                : item
+        );
+    } else {
+        items.push(createInventoryItem(formData));
+    }
+
     saveInventoryItems(items);
-
     closeInventoryDialog();
     renderInventory();
+}
+
+function handleInventoryTableAction(event) {
+    const button = event.target.closest(
+        "[data-action][data-id]"
+    );
+
+    if (!button) {
+        return;
+    }
+
+    const action = button.dataset.action;
+    const itemId = button.dataset.id;
+
+    if (action === "edit") {
+        openEditInventoryDialog(itemId);
+    }
+
+    if (action === "delete") {
+        deleteInventoryItem(itemId);
+    }
 }
 
 function handleDialogBackdropClick(event) {
@@ -313,14 +504,30 @@ export function initializeInventoryPage() {
         "inventory-dialog-backdrop"
     );
 
+    const tableBody = document.getElementById(
+        "inventory-table-body"
+    );
+
+    const searchInput = document.getElementById(
+        "inventory-search"
+    );
+
+    const categoryFilter = document.getElementById(
+        "inventory-category-filter"
+    );
+
+    const stockFilter = document.getElementById(
+        "inventory-stock-filter"
+    );
+
     addButton?.addEventListener(
         "click",
-        openInventoryDialog
+        () => openInventoryDialog(true)
     );
 
     emptyStateButton?.addEventListener(
         "click",
-        openInventoryDialog
+        () => openInventoryDialog(true)
     );
 
     closeButton?.addEventListener(
@@ -341,6 +548,26 @@ export function initializeInventoryPage() {
     backdrop?.addEventListener(
         "click",
         handleDialogBackdropClick
+    );
+
+    tableBody?.addEventListener(
+        "click",
+        handleInventoryTableAction
+    );
+
+    searchInput?.addEventListener(
+        "input",
+        renderInventory
+    );
+
+    categoryFilter?.addEventListener(
+        "change",
+        renderInventory
+    );
+
+    stockFilter?.addEventListener(
+        "change",
+        renderInventory
     );
 
     document.addEventListener(

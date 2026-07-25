@@ -788,3 +788,23 @@ footer {
         grid-column: auto;
     }
 }
+
+.inventory-row-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 7px;
+}
+
+.table-action-button {
+    cursor: pointer;
+}
+
+.table-action-button:hover {
+    color: var(--text);
+    border-color: var(--orange);
+}
+
+.delete-inventory-button:hover {
+    color: #ff8a80;
+    border-color: #ff6767;
+}
