@@ -590,3 +590,201 @@ footer {
         grid-template-columns: 1fr;
     }
 }
+
+.dialog-open {
+    overflow: hidden;
+}
+
+.dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    padding: 24px;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.72);
+    overflow-y: auto;
+}
+
+.dialog-backdrop[hidden] {
+    display: none;
+}
+
+.inventory-dialog {
+    width: min(760px, 100%);
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+}
+
+.dialog-header {
+    padding: 20px 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.dialog-header h2 {
+    margin: 4px 0 0;
+}
+
+.icon-button {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.icon-button:hover {
+    color: var(--text);
+    border-color: var(--orange);
+}
+
+.inventory-form {
+    padding: 22px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 17px;
+}
+
+.form-field {
+    min-width: 0;
+    display: grid;
+    gap: 7px;
+}
+
+.form-field-wide {
+    grid-column: 1 / -1;
+}
+
+.form-field label {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+    width: 100%;
+    padding: 10px 11px;
+    color: var(--text);
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font: inherit;
+}
+
+.form-field input,
+.form-field select {
+    min-height: 42px;
+}
+
+.form-field textarea {
+    resize: vertical;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+    outline: 2px solid var(--orange);
+    outline-offset: 1px;
+}
+
+.form-error {
+    min-height: 20px;
+    grid-column: 1 / -1;
+    margin: 0;
+    color: #ff8a80;
+    font-size: 14px;
+}
+
+.dialog-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.inventory-item-name {
+    display: block;
+}
+
+.inventory-item-unit-cost {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.category-badge,
+.stock-badge {
+    display: inline-block;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.category-badge {
+    color: var(--text);
+    background: var(--background);
+    border: 1px solid var(--border);
+}
+
+.stock-badge-available {
+    color: #8bd7a3;
+    background: rgba(85, 200, 120, 0.14);
+}
+
+.stock-badge-low {
+    color: #ff8a80;
+    background: rgba(255, 82, 82, 0.14);
+}
+
+.inventory-actions-cell {
+    text-align: right;
+}
+
+.table-action-button {
+    padding: 6px 9px;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font: inherit;
+}
+
+.table-action-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+@media (max-width: 650px) {
+    .dialog-backdrop {
+        padding: 12px;
+    }
+
+    .inventory-form {
+        grid-template-columns: 1fr;
+    }
+
+    .form-field-wide,
+    .form-error,
+    .dialog-actions {
+        grid-column: auto;
+    }
+}

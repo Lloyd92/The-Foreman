@@ -403,6 +403,229 @@
                 aria-live="polite"
             ></p>
         </section>
+      <div
+    id="inventory-dialog-backdrop"
+    class="dialog-backdrop"
+    hidden
+>
+    <section
+        class="inventory-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="inventory-dialog-title"
+    >
+        <header class="dialog-header">
+            <div>
+                <p class="section-eyebrow">
+                    Workshop Inventory
+                </p>
+
+                <h2 id="inventory-dialog-title">
+                    Add Inventory Item
+                </h2>
+            </div>
+
+            <button
+                id="close-inventory-dialog"
+                class="icon-button"
+                type="button"
+                aria-label="Close inventory form"
+            >
+                ×
+            </button>
+        </header>
+
+        <form id="inventory-form" class="inventory-form">
+            <div class="form-field form-field-wide">
+                <label for="inventory-name">
+                    Item Name
+                </label>
+
+                <input
+                    id="inventory-name"
+                    name="name"
+                    type="text"
+                    maxlength="120"
+                    placeholder='Example: 3/4" Birch Plywood'
+                    autocomplete="off"
+                    required
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="inventory-category">
+                    Category
+                </label>
+
+                <select
+                    id="inventory-category"
+                    name="category"
+                    required
+                >
+                    <option value="">
+                        Select Category
+                    </option>
+
+                    <option value="Lumber">Lumber</option>
+                    <option value="Hardware">Hardware</option>
+                    <option value="Fasteners">Fasteners</option>
+                    <option value="Electrical">Electrical</option>
+                    <option value="Plumbing">Plumbing</option>
+                    <option value="Paint & Finish">
+                        Paint & Finish
+                    </option>
+                    <option value="Adhesives">Adhesives</option>
+                    <option value="CNC Materials">
+                        CNC Materials
+                    </option>
+                    <option value="Mealworm Supplies">
+                        Mealworm Supplies
+                    </option>
+                    <option value="Packaging">Packaging</option>
+                    <option value="Tools">Tools</option>
+                    <option value="Safety">Safety</option>
+                    <option value="Consumables">
+                        Consumables
+                    </option>
+                    <option value="Miscellaneous">
+                        Miscellaneous
+                    </option>
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label for="inventory-location">
+                    Storage Location
+                </label>
+
+                <input
+                    id="inventory-location"
+                    name="location"
+                    type="text"
+                    maxlength="100"
+                    placeholder="Example: Shed Rack A"
+                    autocomplete="off"
+                    required
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="inventory-quantity">
+                    Quantity
+                </label>
+
+                <input
+                    id="inventory-quantity"
+                    name="quantity"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value="0"
+                    required
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="inventory-unit">
+                    Unit
+                </label>
+
+                <input
+                    id="inventory-unit"
+                    name="unit"
+                    type="text"
+                    maxlength="30"
+                    placeholder="pieces, sheets, lb..."
+                    autocomplete="off"
+                    required
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="inventory-minimum">
+                    Minimum Quantity
+                </label>
+
+                <input
+                    id="inventory-minimum"
+                    name="minimum"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value="0"
+                    required
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="inventory-cost">
+                    Unit Cost
+                </label>
+
+                <input
+                    id="inventory-cost"
+                    name="cost"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="inventory-supplier">
+                    Supplier
+                </label>
+
+                <input
+                    id="inventory-supplier"
+                    name="supplier"
+                    type="text"
+                    maxlength="100"
+                    placeholder="Example: Lowe's"
+                    autocomplete="off"
+                >
+            </div>
+
+            <div class="form-field form-field-wide">
+                <label for="inventory-notes">
+                    Notes
+                </label>
+
+                <textarea
+                    id="inventory-notes"
+                    name="notes"
+                    rows="3"
+                    maxlength="500"
+                    placeholder="Optional notes..."
+                ></textarea>
+            </div>
+
+            <p
+                id="inventory-form-error"
+                class="form-error"
+                role="alert"
+            ></p>
+
+            <div class="dialog-actions">
+                <button
+                    id="cancel-inventory-item"
+                    class="secondary-button"
+                    type="button"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    class="primary-button"
+                    type="submit"
+                >
+                    Save Item
+                </button>
+            </div>
+        </form>
+    </section>
+</div>  
     </section>
 </main>
 
