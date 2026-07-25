@@ -57,30 +57,15 @@ function deleteInventoryItem(itemId) {
 }
 
 function populateInventoryForm(item) {
-    document.getElementById("inventory-name").value =
-        item.name;
-
-    document.getElementById("inventory-category").value =
-        item.category;
-
-    document.getElementById("inventory-location").value =
-        item.location;
-
-    document.getElementById("inventory-quantity").value =
-        item.quantity;
-
-    document.getElementById("inventory-unit").value =
-        item.unit;
-
-    document.getElementById("inventory-minimum").value =
-        item.minimum;
-
-    document.getElementById("inventory-cost").value =
-        item.cost || "";
-
+    document.getElementById("inventory-name").value = item.name;
+    document.getElementById("inventory-category").value = item.category;
+    document.getElementById("inventory-location").value = item.location;
+    document.getElementById("inventory-quantity").value = item.quantity;
+    document.getElementById("inventory-unit").value = item.unit;
+    document.getElementById("inventory-minimum").value = item.minimum;
+    document.getElementById("inventory-cost").value = item.cost || "";
     document.getElementById("inventory-supplier").value =
         item.supplier || "";
-
     document.getElementById("inventory-notes").value =
         item.notes || "";
 }
@@ -90,17 +75,9 @@ function openInventoryDialog(isNewItem = true) {
         "inventory-dialog-backdrop"
     );
 
-    const form = document.getElementById(
-        "inventory-form"
-    );
-
-    const title = document.getElementById(
-        "inventory-dialog-title"
-    );
-
-    const nameInput = document.getElementById(
-        "inventory-name"
-    );
+    const form = document.getElementById("inventory-form");
+    const title = document.getElementById("inventory-dialog-title");
+    const nameInput = document.getElementById("inventory-name");
 
     if (!backdrop) {
         return;
@@ -149,9 +126,7 @@ function closeInventoryDialog() {
         "inventory-dialog-backdrop"
     );
 
-    const form = document.getElementById(
-        "inventory-form"
-    );
+    const form = document.getElementById("inventory-form");
 
     const errorMessage = document.getElementById(
         "inventory-form-error"
@@ -249,33 +224,25 @@ function renderInventoryRows(items) {
             </td>
         `;
 
-        row.querySelector(
-            ".inventory-item-name"
-        ).textContent = item.name;
+        row.querySelector(".inventory-item-name").textContent =
+            item.name;
 
-        row.querySelector(
-            ".inventory-item-unit-cost"
-        ).textContent =
+        row.querySelector(".inventory-item-unit-cost").textContent =
             item.cost > 0
                 ? `$${item.cost.toFixed(2)} each`
                 : "";
 
-        row.querySelector(
-            ".category-badge"
-        ).textContent = item.category;
+        row.querySelector(".category-badge").textContent =
+            item.category;
 
-        row.querySelector(
-            ".inventory-quantity"
-        ).textContent = formatQuantity(item);
+        row.querySelector(".inventory-quantity").textContent =
+            formatQuantity(item);
 
-        row.querySelector(
-            ".inventory-minimum"
-        ).textContent =
+        row.querySelector(".inventory-minimum").textContent =
             `${item.minimum} ${item.unit}`;
 
-        row.querySelector(
-            ".inventory-location"
-        ).textContent = item.location;
+        row.querySelector(".inventory-location").textContent =
+            item.location;
 
         tableBody.appendChild(row);
     });
@@ -362,7 +329,7 @@ function getFilteredInventoryItems(items) {
         ?.value || "all";
 
     return items.filter(item => {
-        const searchableSupplier =
+        const supplier =
             (item.supplier || "").toLowerCase();
 
         const matchesSearch =
@@ -370,7 +337,7 @@ function getFilteredInventoryItems(items) {
             item.name.toLowerCase().includes(searchValue) ||
             item.category.toLowerCase().includes(searchValue) ||
             item.location.toLowerCase().includes(searchValue) ||
-            searchableSupplier.includes(searchValue);
+            supplier.includes(searchValue);
 
         const matchesCategory =
             categoryValue === "all" ||
@@ -389,13 +356,76 @@ function getFilteredInventoryItems(items) {
     });
 }
 
+function sortInventoryItems(items) {
+    const sortValue = document
+        .getElementById("inventory-sort")
+        ?.value || "name-asc";
+
+    const sortedItems = [...items];
+
+    switch (sortValue) {
+        case "name-desc":
+            return sortedItems.sort((a, b) =>
+                b.name.localeCompare(a.name)
+            );
+
+        case "quantity-asc":
+            return sortedItems.sort(
+                (a, b) => a.quantity - b.quantity
+            );
+
+        case "quantity-desc":
+            return sortedItems.sort(
+                (a, b) => b.quantity - a.quantity
+            );
+
+        case "category-asc":
+            return sortedItems.sort((a, b) => {
+                const categoryComparison =
+                    a.category.localeCompare(b.category);
+
+                return categoryComparison !== 0
+                    ? categoryComparison
+                    : a.name.localeCompare(b.name);
+            });
+
+        case "stock":
+            return sortedItems.sort((a, b) => {
+                const aLow = isLowStock(a);
+                const bLow = isLowStock(b);
+
+                if (aLow !== bLow) {
+                    return Number(bLow) - Number(aLow);
+                }
+
+                return a.name.localeCompare(b.name);
+            });
+
+        case "name-asc":
+        default:
+            return sortedItems.sort((a, b) =>
+                a.name.localeCompare(b.name)
+            );
+    }
+}
+
+function notifyInventoryUpdated(items) {
+    document.dispatchEvent(
+        new CustomEvent("inventory:updated", {
+            detail: { items }
+        })
+    );
+}
+
 function renderInventory() {
     const items = getInventoryItems();
     const filteredItems = getFilteredInventoryItems(items);
+    const sortedItems = sortInventoryItems(filteredItems);
 
-    renderInventoryRows(filteredItems);
+    renderInventoryRows(sortedItems);
     updateInventorySummary(items);
     updateCategoryFilter(items);
+    notifyInventoryUpdated(items);
 }
 
 function handleInventorySubmit(event) {
@@ -496,9 +526,7 @@ export function initializeInventoryPage() {
         "cancel-inventory-item"
     );
 
-    const form = document.getElementById(
-        "inventory-form"
-    );
+    const form = document.getElementById("inventory-form");
 
     const backdrop = document.getElementById(
         "inventory-dialog-backdrop"
@@ -518,6 +546,10 @@ export function initializeInventoryPage() {
 
     const stockFilter = document.getElementById(
         "inventory-stock-filter"
+    );
+
+    const sortSelect = document.getElementById(
+        "inventory-sort"
     );
 
     addButton?.addEventListener(
@@ -566,6 +598,11 @@ export function initializeInventoryPage() {
     );
 
     stockFilter?.addEventListener(
+        "change",
+        renderInventory
+    );
+
+    sortSelect?.addEventListener(
         "change",
         renderInventory
     );

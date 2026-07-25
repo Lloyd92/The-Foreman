@@ -808,3 +808,65 @@ footer {
     color: #ff8a80;
     border-color: #ff6767;
 }
+
+.inventory-toolbar {
+    grid-template-columns:
+        minmax(220px, 1fr)
+        180px
+        160px
+        180px;
+}
+
+.dashboard-low-stock-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.dashboard-low-stock-item {
+    padding: 9px 11px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 82, 82, 0.08);
+    border: 1px solid rgba(255, 82, 82, 0.25);
+    border-radius: 8px;
+}
+
+.dashboard-low-stock-item strong {
+    overflow-wrap: anywhere;
+}
+
+.dashboard-low-stock-item span {
+    flex-shrink: 0;
+    color: #ff8a80;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.dashboard-low-stock-more {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+@media (max-width: 1050px) {
+    .inventory-toolbar {
+        grid-template-columns:
+            minmax(200px, 1fr)
+            1fr;
+    }
+}
+
+@media (max-width: 650px) {
+    .inventory-toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-low-stock-item {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+

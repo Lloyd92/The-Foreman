@@ -10,7 +10,7 @@ def status():
             "application": "The Foreman",
             "company": "HardHead Works",
             "status": "online",
-            "version": "0.5.3",
+            "version": "0.5.4",
         }
     )
 

@@ -28,24 +28,65 @@
                 <p>The Foreman</p>
             </div>
 
-           <nav class="nav" aria-label="Main navigation">
-    <a href="#dashboard" data-route="dashboard">Dashboard</a>
-    <a href="#tasks" data-route="tasks">Tasks</a>
-    <a href="#inventory" data-route="inventory">Inventory</a>
-    <a href="#projects" data-route="projects">Projects</a>
-    <a href="#mealworms" data-route="mealworms">Mealworms</a>
-    <a href="#budget" data-route="budget">Budget</a>
-</nav> 
+            <nav
+                class="nav"
+                aria-label="Main navigation"
+            >
+                <a
+                    href="#dashboard"
+                    data-route="dashboard"
+                >
+                    Dashboard
+                </a>
+
+                <a
+                    href="#tasks"
+                    data-route="tasks"
+                >
+                    Tasks
+                </a>
+
+                <a
+                    href="#inventory"
+                    data-route="inventory"
+                >
+                    Inventory
+                </a>
+
+                <a
+                    href="#projects"
+                    data-route="projects"
+                >
+                    Projects
+                </a>
+
+                <a
+                    href="#mealworms"
+                    data-route="mealworms"
+                >
+                    Mealworms
+                </a>
+
+                <a
+                    href="#budget"
+                    data-route="budget"
+                >
+                    Budget
+                </a>
+            </nav>
         </aside>
 
-        <!-- Main application area -->
+        <!-- Main application shell -->
         <div class="main">
 
             <!-- Top status bar -->
             <header class="topbar">
                 <div>
                     <h2>Workshop Command Center</h2>
-                    <p>At-a-glance operations for HardHead Works</p>
+
+                    <p>
+                        At-a-glance operations for HardHead Works
+                    </p>
                 </div>
 
                 <div
@@ -63,12 +104,12 @@
                 </div>
             </header>
 
-            <!-- Dashboard content -->
-            <main class="content" 
-                  id="dashboard"
-                  data-page="dashboard">
-
-                <!-- Greeting -->
+            <!-- Dashboard page -->
+            <main
+                class="content page-view"
+                id="dashboard"
+                data-page="dashboard"
+            >
                 <section class="welcome">
                     <h2 id="greeting">
                         Welcome back, Tyler.
@@ -83,14 +124,14 @@
 
                 <section class="dashboard-grid">
 
-                    <!-- Tasks -->
-                    <article
-                        class="card task-card"
-                        id="tasks"
-                    >
+                    <!-- Tasks card -->
+                    <article class="card task-card">
                         <div class="card-heading">
                             <h3>Today's Tasks</h3>
-                            <span id="task-count">0 OPEN</span>
+
+                            <span id="task-count">
+                                0 OPEN
+                            </span>
                         </div>
 
                         <form
@@ -153,31 +194,41 @@
                         ></div>
                     </article>
 
-                    <!-- Inventory -->
-                    <article
-                        class="card"
-                        id="inventory"
-                    >
+                    <!-- Inventory alerts card -->
+                    <article class="card">
                         <div class="card-heading">
-                            <h3>Inventory</h3>
-                            <span>READY</span>
+                            <h3>Inventory Alerts</h3>
+
+                            <span id="dashboard-inventory-status">
+                                READY
+                            </span>
                         </div>
 
-                        <div class="metric">0</div>
+                        <div
+                            class="metric"
+                            id="dashboard-inventory-count"
+                        >
+                            0
+                        </div>
 
-                        <p>
-                            Inventory items currently tracked
+                        <p id="dashboard-inventory-message">
+                            No inventory items are currently tracked.
                         </p>
+
+                        <div
+                            id="dashboard-low-stock-list"
+                            class="dashboard-low-stock-list"
+                        ></div>
                     </article>
 
-                    <!-- Projects -->
-                    <article
-                        class="card"
-                        id="projects"
-                    >
+                    <!-- Projects card -->
+                    <article class="card">
                         <div class="card-heading">
                             <h3>Active Projects</h3>
-                            <span>0 ACTIVE</span>
+
+                            <span>
+                                0 ACTIVE
+                            </span>
                         </div>
 
                         <p>
@@ -185,15 +236,19 @@
                         </p>
                     </article>
 
-                    <!-- System status -->
+                    <!-- System status card -->
                     <article class="card">
                         <div class="card-heading">
                             <h3>System Status</h3>
-                            <span>LIVE</span>
+
+                            <span>
+                                LIVE
+                            </span>
                         </div>
 
                         <div class="status-row">
                             <span>Application</span>
+
                             <strong id="app-status">
                                 Checking
                             </strong>
@@ -201,6 +256,7 @@
 
                         <div class="status-row">
                             <span>Backend API</span>
+
                             <strong id="api-status">
                                 Checking
                             </strong>
@@ -208,18 +264,21 @@
 
                         <div class="status-row">
                             <span>Version</span>
-                            <strong id="version">—</strong>
+
+                            <strong id="version">
+                                —
+                            </strong>
                         </div>
                     </article>
 
-                    <!-- Mealworms -->
-                    <article
-                        class="card"
-                        id="mealworms"
-                    >
+                    <!-- Mealworm card -->
+                    <article class="card">
                         <div class="card-heading">
                             <h3>Mealworm Production</h3>
-                            <span>PLANNED</span>
+
+                            <span>
+                                PLANNED
+                            </span>
                         </div>
 
                         <p>
@@ -228,14 +287,14 @@
                         </p>
                     </article>
 
-                    <!-- Budget -->
-                    <article
-                        class="card"
-                        id="budget"
-                    >
+                    <!-- Budget card -->
+                    <article class="card">
                         <div class="card-heading">
                             <h3>Budget Snapshot</h3>
-                            <span>PLANNED</span>
+
+                            <span>
+                                PLANNED
+                            </span>
                         </div>
 
                         <p>
@@ -246,418 +305,605 @@
 
                 </section>
             </main>
-            
-            <main class="content page-view" data-page="tasks" hidden>
-    <section class="page-heading">
-        <h2>Tasks</h2>
-        <p>Task management will move to this page during v0.4.</p>
-    </section>
-</main>
 
-<main
-    class="content page-view"
-    data-page="inventory"
-    hidden
->
-    <section class="inventory-page">
-        <header class="inventory-header">
-            <div>
-                <p class="section-eyebrow">Workshop Resources</p>
-                <h2>Inventory</h2>
-                <p class="inventory-description">
-                    Track materials, supplies, tools, quantities, and
-                    purchasing needs across HardHead Works.
-                </p>
-            </div>
-
-            <button
-                id="add-inventory-item"
-                class="primary-button"
-                type="button"
+            <!-- Tasks page -->
+            <main
+                class="content page-view"
+                data-page="tasks"
+                hidden
             >
-                + Add Item
-            </button>
-        </header>
-
-        <section
-            class="inventory-summary"
-            aria-label="Inventory summary"
-        >
-            <article class="summary-card">
-                <span class="summary-label">Total Items</span>
-                <strong id="inventory-total-count">0</strong>
-                <span class="summary-detail">items being tracked</span>
-            </article>
-
-            <article class="summary-card">
-                <span class="summary-label">Low Stock</span>
-                <strong id="inventory-low-count">0</strong>
-                <span class="summary-detail">items need attention</span>
-            </article>
-
-            <article class="summary-card">
-                <span class="summary-label">Categories</span>
-                <strong id="inventory-category-count">0</strong>
-                <span class="summary-detail">active categories</span>
-            </article>
-        </section>
-
-        <section class="inventory-workspace">
-            <div class="inventory-toolbar">
-                <label class="inventory-search">
-                    <span class="visually-hidden">
-                        Search inventory
-                    </span>
-
-                    <input
-                        id="inventory-search"
-                        type="search"
-                        placeholder="Search inventory..."
-                        autocomplete="off"
-                    >
-                </label>
-
-                <label>
-                    <span class="visually-hidden">
-                        Filter by category
-                    </span>
-
-                    <select id="inventory-category-filter">
-                        <option value="all">
-                            All Categories
-                        </option>
-                    </select>
-                </label>
-
-                <label>
-                    <span class="visually-hidden">
-                        Filter by stock status
-                    </span>
-
-                    <select id="inventory-stock-filter">
-                        <option value="all">
-                            All Stock Levels
-                        </option>
-
-                        <option value="low">
-                            Low Stock
-                        </option>
-
-                        <option value="available">
-                            In Stock
-                        </option>
-                    </select>
-                </label>
-            </div>
-
-            <div class="inventory-table-wrapper">
-                <table class="inventory-table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Item</th>
-                            <th scope="col">Category</th>
-                            <th scope="col">Quantity</th>
-                            <th scope="col">Minimum</th>
-                            <th scope="col">Location</th>
-                            <th scope="col">Status</th>
-                            <th scope="col">
-                                <span class="visually-hidden">
-                                    Actions
-                                </span>
-                            </th>
-                        </tr>
-                    </thead>
-
-                    <tbody id="inventory-table-body"></tbody>
-                </table>
-
-                <div
-                    id="inventory-empty-state"
-                    class="inventory-empty-state"
-                >
-                    <div class="empty-state-icon" aria-hidden="true">
-                        ▦
-                    </div>
-
-                    <h3>No inventory items yet</h3>
-
-                    <p>
-                        Add your first material, tool, supply, or
-                        consumable to begin tracking workshop inventory.
+                <section class="page-heading">
+                    <p class="section-eyebrow">
+                        Daily Operations
                     </p>
 
-                    <button
-                        id="empty-state-add-item"
-                        class="secondary-button"
-                        type="button"
-                    >
-                        Add First Item
-                    </button>
-                </div>
-            </div>
+                    <h2>Tasks</h2>
 
-            <p
-                id="inventory-page-message"
-                class="inventory-page-message"
-                role="status"
-                aria-live="polite"
-            ></p>
-        </section>
-      <div
-    id="inventory-dialog-backdrop"
-    class="dialog-backdrop"
-    hidden
->
-    <section
-        class="inventory-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="inventory-dialog-title"
-    >
-        <header class="dialog-header">
-            <div>
-                <p class="section-eyebrow">
-                    Workshop Inventory
-                </p>
+                    <p>
+                        The dedicated task workspace will be expanded in a
+                        future release. Task management remains available on
+                        the Dashboard.
+                    </p>
+                </section>
+            </main>
 
-                <h2 id="inventory-dialog-title">
-                    Add Inventory Item
-                </h2>
-            </div>
-
-            <button
-                id="close-inventory-dialog"
-                class="icon-button"
-                type="button"
-                aria-label="Close inventory form"
+            <!-- Inventory page -->
+            <main
+                class="content page-view"
+                data-page="inventory"
+                hidden
             >
-                ×
-            </button>
-        </header>
+                <section class="inventory-page">
 
-        <form id="inventory-form" class="inventory-form">
-            <div class="form-field form-field-wide">
-                <label for="inventory-name">
-                    Item Name
-                </label>
+                    <!-- Inventory heading -->
+                    <header class="inventory-header">
+                        <div>
+                            <p class="section-eyebrow">
+                                Workshop Resources
+                            </p>
 
-                <input
-                    id="inventory-name"
-                    name="name"
-                    type="text"
-                    maxlength="120"
-                    placeholder='Example: 3/4" Birch Plywood'
-                    autocomplete="off"
-                    required
-                >
-            </div>
+                            <h2>Inventory</h2>
 
-            <div class="form-field">
-                <label for="inventory-category">
-                    Category
-                </label>
+                            <p class="inventory-description">
+                                Track materials, supplies, tools, quantities,
+                                and purchasing needs across HardHead Works.
+                            </p>
+                        </div>
 
-                <select
-                    id="inventory-category"
-                    name="category"
-                    required
-                >
-                    <option value="">
-                        Select Category
-                    </option>
+                        <button
+                            id="add-inventory-item"
+                            class="primary-button"
+                            type="button"
+                        >
+                            + Add Item
+                        </button>
+                    </header>
 
-                    <option value="Lumber">Lumber</option>
-                    <option value="Hardware">Hardware</option>
-                    <option value="Fasteners">Fasteners</option>
-                    <option value="Electrical">Electrical</option>
-                    <option value="Plumbing">Plumbing</option>
-                    <option value="Paint & Finish">
-                        Paint & Finish
-                    </option>
-                    <option value="Adhesives">Adhesives</option>
-                    <option value="CNC Materials">
-                        CNC Materials
-                    </option>
-                    <option value="Mealworm Supplies">
-                        Mealworm Supplies
-                    </option>
-                    <option value="Packaging">Packaging</option>
-                    <option value="Tools">Tools</option>
-                    <option value="Safety">Safety</option>
-                    <option value="Consumables">
-                        Consumables
-                    </option>
-                    <option value="Miscellaneous">
-                        Miscellaneous
-                    </option>
-                </select>
-            </div>
+                    <!-- Inventory summary -->
+                    <section
+                        class="inventory-summary"
+                        aria-label="Inventory summary"
+                    >
+                        <article class="summary-card">
+                            <span class="summary-label">
+                                Total Items
+                            </span>
 
-            <div class="form-field">
-                <label for="inventory-location">
-                    Storage Location
-                </label>
+                            <strong id="inventory-total-count">
+                                0
+                            </strong>
 
-                <input
-                    id="inventory-location"
-                    name="location"
-                    type="text"
-                    maxlength="100"
-                    placeholder="Example: Shed Rack A"
-                    autocomplete="off"
-                    required
-                >
-            </div>
+                            <span class="summary-detail">
+                                items being tracked
+                            </span>
+                        </article>
 
-            <div class="form-field">
-                <label for="inventory-quantity">
-                    Quantity
-                </label>
+                        <article class="summary-card">
+                            <span class="summary-label">
+                                Low Stock
+                            </span>
 
-                <input
-                    id="inventory-quantity"
-                    name="quantity"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value="0"
-                    required
-                >
-            </div>
+                            <strong id="inventory-low-count">
+                                0
+                            </strong>
 
-            <div class="form-field">
-                <label for="inventory-unit">
-                    Unit
-                </label>
+                            <span class="summary-detail">
+                                items need attention
+                            </span>
+                        </article>
 
-                <input
-                    id="inventory-unit"
-                    name="unit"
-                    type="text"
-                    maxlength="30"
-                    placeholder="pieces, sheets, lb..."
-                    autocomplete="off"
-                    required
-                >
-            </div>
+                        <article class="summary-card">
+                            <span class="summary-label">
+                                Categories
+                            </span>
 
-            <div class="form-field">
-                <label for="inventory-minimum">
-                    Minimum Quantity
-                </label>
+                            <strong id="inventory-category-count">
+                                0
+                            </strong>
 
-                <input
-                    id="inventory-minimum"
-                    name="minimum"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value="0"
-                    required
-                >
-            </div>
+                            <span class="summary-detail">
+                                active categories
+                            </span>
+                        </article>
+                    </section>
 
-            <div class="form-field">
-                <label for="inventory-cost">
-                    Unit Cost
-                </label>
+                    <!-- Inventory workspace -->
+                    <section class="inventory-workspace">
 
-                <input
-                    id="inventory-cost"
-                    name="cost"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                >
-            </div>
+                        <!-- Inventory toolbar -->
+                        <div class="inventory-toolbar">
+                            <label class="inventory-search">
+                                <span class="visually-hidden">
+                                    Search inventory
+                                </span>
 
-            <div class="form-field">
-                <label for="inventory-supplier">
-                    Supplier
-                </label>
+                                <input
+                                    id="inventory-search"
+                                    type="search"
+                                    placeholder="Search inventory..."
+                                    autocomplete="off"
+                                >
+                            </label>
 
-                <input
-                    id="inventory-supplier"
-                    name="supplier"
-                    type="text"
-                    maxlength="100"
-                    placeholder="Example: Lowe's"
-                    autocomplete="off"
-                >
-            </div>
+                            <label>
+                                <span class="visually-hidden">
+                                    Filter by category
+                                </span>
 
-            <div class="form-field form-field-wide">
-                <label for="inventory-notes">
-                    Notes
-                </label>
+                                <select id="inventory-category-filter">
+                                    <option value="all">
+                                        All Categories
+                                    </option>
+                                </select>
+                            </label>
 
-                <textarea
-                    id="inventory-notes"
-                    name="notes"
-                    rows="3"
-                    maxlength="500"
-                    placeholder="Optional notes..."
-                ></textarea>
-            </div>
+                            <label>
+                                <span class="visually-hidden">
+                                    Filter by stock status
+                                </span>
 
-            <p
-                id="inventory-form-error"
-                class="form-error"
-                role="alert"
-            ></p>
+                                <select id="inventory-stock-filter">
+                                    <option value="all">
+                                        All Stock Levels
+                                    </option>
 
-            <div class="dialog-actions">
-                <button
-                    id="cancel-inventory-item"
-                    class="secondary-button"
-                    type="button"
-                >
-                    Cancel
-                </button>
+                                    <option value="low">
+                                        Low Stock
+                                    </option>
 
-                <button
-                    class="primary-button"
-                    type="submit"
-                >
-                    Save Item
-                </button>
-            </div>
-        </form>
-    </section>
-</div>  
-    </section>
-</main>
+                                    <option value="available">
+                                        In Stock
+                                    </option>
+                                </select>
+                            </label>
 
-<main class="content page-view" data-page="projects" hidden>
-    <section class="page-heading">
-        <h2>Projects</h2>
-        <p>Project tracking will be added in a future release.</p>
-    </section>
-</main>
+                            <label>
+                                <span class="visually-hidden">
+                                    Sort inventory
+                                </span>
 
-<main class="content page-view" data-page="mealworms" hidden>
-    <section class="page-heading">
-        <h2>Mealworm Production</h2>
-        <p>Rack, tub, feeding, and harvest management will live here.</p>
-    </section>
-</main>
+                                <select id="inventory-sort">
+                                    <option value="name-asc">
+                                        Name: A–Z
+                                    </option>
 
-<main class="content page-view" data-page="budget" hidden>
-    <section class="page-heading">
-        <h2>Budget</h2>
-        <p>Business funds, expenses, and purchasing tools will live here.</p>
-    </section>
-</main>
+                                    <option value="name-desc">
+                                        Name: Z–A
+                                    </option>
+
+                                    <option value="quantity-asc">
+                                        Quantity: Low to High
+                                    </option>
+
+                                    <option value="quantity-desc">
+                                        Quantity: High to Low
+                                    </option>
+
+                                    <option value="category-asc">
+                                        Category
+                                    </option>
+
+                                    <option value="stock">
+                                        Low Stock First
+                                    </option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <!-- Inventory table -->
+                        <div class="inventory-table-wrapper">
+                            <table class="inventory-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">
+                                            Item
+                                        </th>
+
+                                        <th scope="col">
+                                            Category
+                                        </th>
+
+                                        <th scope="col">
+                                            Quantity
+                                        </th>
+
+                                        <th scope="col">
+                                            Minimum
+                                        </th>
+
+                                        <th scope="col">
+                                            Location
+                                        </th>
+
+                                        <th scope="col">
+                                            Status
+                                        </th>
+
+                                        <th scope="col">
+                                            <span class="visually-hidden">
+                                                Actions
+                                            </span>
+                                        </th>
+                                    </tr>
+                                </thead>
+
+                                <tbody id="inventory-table-body"></tbody>
+                            </table>
+
+                            <!-- Inventory empty state -->
+                            <div
+                                id="inventory-empty-state"
+                                class="inventory-empty-state"
+                            >
+                                <div
+                                    class="empty-state-icon"
+                                    aria-hidden="true"
+                                >
+                                    ▦
+                                </div>
+
+                                <h3>
+                                    No inventory items yet
+                                </h3>
+
+                                <p>
+                                    Add your first material, tool, supply, or
+                                    consumable to begin tracking workshop
+                                    inventory.
+                                </p>
+
+                                <button
+                                    id="empty-state-add-item"
+                                    class="secondary-button"
+                                    type="button"
+                                >
+                                    Add First Item
+                                </button>
+                            </div>
+                        </div>
+
+                        <p
+                            id="inventory-page-message"
+                            class="inventory-page-message"
+                            role="status"
+                            aria-live="polite"
+                        ></p>
+                    </section>
+
+                    <!-- Inventory dialog -->
+                    <div
+                        id="inventory-dialog-backdrop"
+                        class="dialog-backdrop"
+                        hidden
+                    >
+                        <section
+                            class="inventory-dialog"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="inventory-dialog-title"
+                        >
+                            <header class="dialog-header">
+                                <div>
+                                    <p class="section-eyebrow">
+                                        Workshop Inventory
+                                    </p>
+
+                                    <h2 id="inventory-dialog-title">
+                                        Add Inventory Item
+                                    </h2>
+                                </div>
+
+                                <button
+                                    id="close-inventory-dialog"
+                                    class="icon-button"
+                                    type="button"
+                                    aria-label="Close inventory form"
+                                >
+                                    ×
+                                </button>
+                            </header>
+
+                            <form
+                                id="inventory-form"
+                                class="inventory-form"
+                            >
+                                <div class="form-field form-field-wide">
+                                    <label for="inventory-name">
+                                        Item Name
+                                    </label>
+
+                                    <input
+                                        id="inventory-name"
+                                        name="name"
+                                        type="text"
+                                        maxlength="120"
+                                        placeholder='Example: 3/4" Birch Plywood'
+                                        autocomplete="off"
+                                        required
+                                    >
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="inventory-category">
+                                        Category
+                                    </label>
+
+                                    <select
+                                        id="inventory-category"
+                                        name="category"
+                                        required
+                                    >
+                                        <option value="">
+                                            Select Category
+                                        </option>
+
+                                        <option value="Lumber">
+                                            Lumber
+                                        </option>
+
+                                        <option value="Hardware">
+                                            Hardware
+                                        </option>
+
+                                        <option value="Fasteners">
+                                            Fasteners
+                                        </option>
+
+                                        <option value="Electrical">
+                                            Electrical
+                                        </option>
+
+                                        <option value="Plumbing">
+                                            Plumbing
+                                        </option>
+
+                                        <option value="Paint & Finish">
+                                            Paint & Finish
+                                        </option>
+
+                                        <option value="Adhesives">
+                                            Adhesives
+                                        </option>
+
+                                        <option value="CNC Materials">
+                                            CNC Materials
+                                        </option>
+
+                                        <option value="Mealworm Supplies">
+                                            Mealworm Supplies
+                                        </option>
+
+                                        <option value="Packaging">
+                                            Packaging
+                                        </option>
+
+                                        <option value="Tools">
+                                            Tools
+                                        </option>
+
+                                        <option value="Safety">
+                                            Safety
+                                        </option>
+
+                                        <option value="Consumables">
+                                            Consumables
+                                        </option>
+
+                                        <option value="Miscellaneous">
+                                            Miscellaneous
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="inventory-location">
+                                        Storage Location
+                                    </label>
+
+                                    <input
+                                        id="inventory-location"
+                                        name="location"
+                                        type="text"
+                                        maxlength="100"
+                                        placeholder="Example: Shed Rack A"
+                                        autocomplete="off"
+                                        required
+                                    >
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="inventory-quantity">
+                                        Quantity
+                                    </label>
+
+                                    <input
+                                        id="inventory-quantity"
+                                        name="quantity"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value="0"
+                                        required
+                                    >
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="inventory-unit">
+                                        Unit
+                                    </label>
+
+                                    <input
+                                        id="inventory-unit"
+                                        name="unit"
+                                        type="text"
+                                        maxlength="30"
+                                        placeholder="pieces, sheets, lb..."
+                                        autocomplete="off"
+                                        required
+                                    >
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="inventory-minimum">
+                                        Minimum Quantity
+                                    </label>
+
+                                    <input
+                                        id="inventory-minimum"
+                                        name="minimum"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value="0"
+                                        required
+                                    >
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="inventory-cost">
+                                        Unit Cost
+                                    </label>
+
+                                    <input
+                                        id="inventory-cost"
+                                        name="cost"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                    >
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="inventory-supplier">
+                                        Supplier
+                                    </label>
+
+                                    <input
+                                        id="inventory-supplier"
+                                        name="supplier"
+                                        type="text"
+                                        maxlength="100"
+                                        placeholder="Example: Lowe's"
+                                        autocomplete="off"
+                                    >
+                                </div>
+
+                                <div class="form-field form-field-wide">
+                                    <label for="inventory-notes">
+                                        Notes
+                                    </label>
+
+                                    <textarea
+                                        id="inventory-notes"
+                                        name="notes"
+                                        rows="3"
+                                        maxlength="500"
+                                        placeholder="Optional notes..."
+                                    ></textarea>
+                                </div>
+
+                                <p
+                                    id="inventory-form-error"
+                                    class="form-error"
+                                    role="alert"
+                                ></p>
+
+                                <div class="dialog-actions">
+                                    <button
+                                        id="cancel-inventory-item"
+                                        class="secondary-button"
+                                        type="button"
+                                    >
+                                        Cancel
+                                    </button>
+
+                                    <button
+                                        class="primary-button"
+                                        type="submit"
+                                    >
+                                        Save Item
+                                    </button>
+                                </div>
+                            </form>
+                        </section>
+                    </div>
+                </section>
+            </main>
+
+            <!-- Projects page -->
+            <main
+                class="content page-view"
+                data-page="projects"
+                hidden
+            >
+                <section class="page-heading">
+                    <p class="section-eyebrow">
+                        Workshop Planning
+                    </p>
+
+                    <h2>Projects</h2>
+
+                    <p>
+                        Project creation, progress tracking, materials, and
+                        cost planning are scheduled for v0.6.
+                    </p>
+                </section>
+            </main>
+
+            <!-- Mealworms page -->
+            <main
+                class="content page-view"
+                data-page="mealworms"
+                hidden
+            >
+                <section class="page-heading">
+                    <p class="section-eyebrow">
+                        Insect Husbandry
+                    </p>
+
+                    <h2>Mealworm Production</h2>
+
+                    <p>
+                        Rack, tub, colony, feeding, harvest, and production
+                        management will live here.
+                    </p>
+                </section>
+            </main>
+
+            <!-- Budget page -->
+            <main
+                class="content page-view"
+                data-page="budget"
+                hidden
+            >
+                <section class="page-heading">
+                    <p class="section-eyebrow">
+                        Business Finances
+                    </p>
+
+                    <h2>Budget</h2>
+
+                    <p>
+                        Business funds, expenses, revenue, purchasing, and
+                        project-cost tools will live here.
+                    </p>
+                </section>
+            </main>
+
             <!-- Footer -->
             <footer>
                 The Foreman · HardHead Works · Version
-                <span id="footer-version">0.3.0</span>
+                <span id="footer-version">
+                    0.5.4
+                </span>
             </footer>
-
         </div>
     </div>
 
-    <script type="module" src="app.js"></script>
+    <script
+        type="module"
+        src="app.js"
+    ></script>
 </body>
 </html>

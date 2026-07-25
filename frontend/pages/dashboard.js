@@ -1,3 +1,7 @@
+import {
+    getInventoryItems
+} from "../utils/inventoryStorage.js";
+
 function getGreeting(hour) {
     if (hour < 12) {
         return "Good morning";
@@ -19,12 +23,22 @@ function formatCurrentDate(date) {
     }).format(date);
 }
 
-export function initializeDashboard() {
-    const greetingElement = document.getElementById("greeting");
-    const dateElement = document.getElementById("current-date");
+function isLowStock(item) {
+    return item.quantity <= item.minimum;
+}
+
+function formatQuantity(item) {
+    return `${item.quantity} ${item.unit}`;
+}
+
+function initializeGreeting() {
+    const greetingElement =
+        document.getElementById("greeting");
+
+    const dateElement =
+        document.getElementById("current-date");
 
     if (!greetingElement || !dateElement) {
-        console.warn("Dashboard greeting elements were not found.");
         return;
     }
 
@@ -33,5 +47,103 @@ export function initializeDashboard() {
     greetingElement.textContent =
         `${getGreeting(now.getHours())}, Tyler.`;
 
-    dateElement.textContent = formatCurrentDate(now);
+    dateElement.textContent =
+        formatCurrentDate(now);
+}
+
+function renderDashboardInventory(items) {
+    const countElement = document.getElementById(
+        "dashboard-inventory-count"
+    );
+
+    const statusElement = document.getElementById(
+        "dashboard-inventory-status"
+    );
+
+    const messageElement = document.getElementById(
+        "dashboard-inventory-message"
+    );
+
+    const listElement = document.getElementById(
+        "dashboard-low-stock-list"
+    );
+
+    if (
+        !countElement ||
+        !statusElement ||
+        !messageElement ||
+        !listElement
+    ) {
+        return;
+    }
+
+    const lowStockItems = items
+        .filter(isLowStock)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    countElement.textContent = items.length;
+    listElement.innerHTML = "";
+
+    if (items.length === 0) {
+        statusElement.textContent = "READY";
+        messageElement.textContent =
+            "No inventory items are currently tracked.";
+        return;
+    }
+
+    if (lowStockItems.length === 0) {
+        statusElement.textContent = "ALL STOCKED";
+        messageElement.textContent =
+            `${items.length} items tracked. No purchasing alerts.`;
+        return;
+    }
+
+    statusElement.textContent =
+        `${lowStockItems.length} LOW`;
+
+    messageElement.textContent =
+        "These items need attention:";
+
+    lowStockItems.slice(0, 4).forEach(item => {
+        const alertRow = document.createElement("div");
+
+        alertRow.className = "dashboard-low-stock-item";
+
+        const name = document.createElement("strong");
+        name.textContent = item.name;
+
+        const quantity = document.createElement("span");
+        quantity.textContent =
+            `${formatQuantity(item)} remaining`;
+
+        alertRow.append(name, quantity);
+        listElement.appendChild(alertRow);
+    });
+
+    if (lowStockItems.length > 4) {
+        const remainingMessage =
+            document.createElement("p");
+
+        remainingMessage.className =
+            "dashboard-low-stock-more";
+
+        remainingMessage.textContent =
+            `+${lowStockItems.length - 4} more low-stock items`;
+
+        listElement.appendChild(remainingMessage);
+    }
+}
+
+export function initializeDashboard() {
+    initializeGreeting();
+    renderDashboardInventory(getInventoryItems());
+
+    document.addEventListener(
+        "inventory:updated",
+        event => {
+            renderDashboardInventory(
+                event.detail.items
+            );
+        }
+    );
 }
