@@ -833,23 +833,212 @@
 
             <!-- Projects page -->
             <main
+    class="content page-view"
+    data-page="projects"
+    hidden
+>
+    <section class="projects-page">
+
+        <header class="projects-header">
+            <div>
+                <p class="section-eyebrow">
+                    Workshop Planning
+                </p>
+
+                <h2>Projects</h2>
+
+                <p class="projects-description">
+                    Plan builds, track progress, organize materials,
+                    and keep HardHead Works projects moving.
+                </p>
+            </div>
+
+            <button
+                id="add-project"
+                class="primary-button"
+                type="button"
+            >
+                + Add Project
+            </button>
+        </header>
+
+        <section
+            class="projects-summary"
+            aria-label="Project summary"
+        >
+            <article class="summary-card">
+                <span class="summary-label">
+                    Total Projects
+                </span>
+
+                <strong id="projects-total-count">
+                    0
+                </strong>
+
+                <span class="summary-detail">
+                    projects being tracked
+                </span>
+            </article>
+
+            <article class="summary-card">
+                <span class="summary-label">
+                    Active
+                </span>
+
+                <strong id="projects-active-count">
+                    0
+                </strong>
+
+                <span class="summary-detail">
+                    currently in progress
+                </span>
+            </article>
+
+            <article class="summary-card">
+                <span class="summary-label">
+                    Completed
+                </span>
+
+                <strong id="projects-completed-count">
+                    0
+                </strong>
+
+                <span class="summary-detail">
+                    finished projects
+                </span>
+            </article>
+        </section>
+
+        <section class="projects-workspace">
+            <div class="projects-toolbar">
+                <label>
+                    <span class="visually-hidden">
+                        Search projects
+                    </span>
+
+                    <input
+                        id="projects-search"
+                        type="search"
+                        placeholder="Search projects..."
+                        autocomplete="off"
+                    >
+                </label>
+
+                <label>
+                    <span class="visually-hidden">
+                        Filter projects by status
+                    </span>
+
+                    <select id="projects-status-filter">
+                        <option value="all">
+                            All Statuses
+                        </option>
+
+                        <option value="planning">
+                            Planning
+                        </option>
+
+                        <option value="active">
+                            Active
+                        </option>
+
+                        <option value="on-hold">
+                            On Hold
+                        </option>
+
+                        <option value="completed">
+                            Completed
+                        </option>
+                    </select>
+                </label>
+
+                <label>
+                    <span class="visually-hidden">
+                        Sort projects
+                    </span>
+
+                    <select id="projects-sort">
+                        <option value="name-asc">
+                            Name: A–Z
+                        </option>
+
+                        <option value="name-desc">
+                            Name: Z–A
+                        </option>
+
+                        <option value="progress-desc">
+                            Progress: High to Low
+                        </option>
+
+                        <option value="progress-asc">
+                            Progress: Low to High
+                        </option>
+
+                        <option value="newest">
+                            Newest First
+                        </option>
+                    </select>
+                </label>
+            </div>
+
+            <div
+                id="projects-list"
+                class="projects-list"
+            ></div>
+
+            <div
+                id="projects-empty-state"
+                class="projects-empty-state"
+            >
+                <div
+                    class="empty-state-icon"
+                    aria-hidden="true"
+                >
+                    ◫
+                </div>
+
+                <h3>No projects yet</h3>
+
+                <p>
+                    Add your first build, repair, prototype, or
+                    customer project to begin planning work.
+                </p>
+
+                <button
+                    id="empty-state-add-project"
+                    class="secondary-button"
+                    type="button"
+                >
+                    Add First Project
+                </button>
+            </div>
+
+            <p
+                id="projects-page-message"
+                class="projects-page-message"
+                role="status"
+                aria-live="polite"
+            ></p>
+        </section>
+    </section>
+</main>
+
+            <!-- Mealworms page -->
+            <main
                 class="content page-view"
-                data-page="projects"
+                data-page="mealworms"
                 hidden
             >
                 <section class="page-heading">
                     <p class="section-eyebrow">
-                        Workshop Planning
+                        Insect Husbandry
                     </p>
 
-                    <h2>Projects</h2>
+                    <h2>Mealworm Production</h2>
 
                     <p>
-                        Project creation, progress tracking, materials, and
-                        cost planning are scheduled for v0.6.
-                    </p>
-                </section>
-            </main>
+                        Rack, tub, colony, feeding, harvest, and production
+                   
 
             <!-- Mealworms page -->
             <main

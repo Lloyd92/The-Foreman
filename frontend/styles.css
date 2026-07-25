@@ -870,3 +870,117 @@ footer {
     }
 }
 
+.projects-page {
+    display: grid;
+    gap: 22px;
+}
+
+.projects-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+}
+
+.projects-header h2 {
+    margin: 4px 0 8px;
+    font-size: 30px;
+}
+
+.projects-description {
+    max-width: 680px;
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.projects-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.projects-workspace {
+    overflow: hidden;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.projects-toolbar {
+    padding: 16px;
+    display: grid;
+    grid-template-columns:
+        minmax(240px, 1fr)
+        180px
+        190px;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.projects-toolbar input,
+.projects-toolbar select {
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 11px;
+    color: var(--text);
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font: inherit;
+}
+
+.projects-toolbar input:focus,
+.projects-toolbar select:focus {
+    outline: 2px solid var(--orange);
+    outline-offset: 1px;
+}
+
+.projects-list {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+}
+
+.projects-empty-state {
+    min-height: 340px;
+    padding: 42px 24px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    text-align: center;
+}
+
+.projects-empty-state h3 {
+    margin: 13px 0 7px;
+}
+
+.projects-empty-state p {
+    max-width: 500px;
+    margin: 0 0 20px;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.projects-page-message {
+    min-height: 22px;
+    margin: 0;
+    padding: 0 16px 14px;
+    color: var(--orange);
+    font-size: 14px;
+}
+
+@media (max-width: 850px) {
+    .projects-header {
+        flex-direction: column;
+    }
+
+    .projects-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .projects-toolbar {
+        grid-template-columns: 1fr;
+    }
+}
+
