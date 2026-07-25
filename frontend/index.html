@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Foreman</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="brand">
+                <h1>HardHead Works</h1>
+                <p>The Foreman</p>
+            </div>
+
+            <nav>
+                <a class="active" href="#">Dashboard</a>
+                <a href="#">Tasks</a>
+                <a href="#">Inventory</a>
+                <a href="#">Projects</a>
+                <a href="#">Mealworms</a>
+                <a href="#">Budget</a>
+            </nav>
+        </aside>
+
+        <div class="main">
+            <header class="topbar">
+                <div>
+                    <h2>Workshop Command Center</h2>
+                    <p>At-a-glance operations for HardHead Works</p>
+                </div>
+
+                <div class="system-indicator">
+                    <span id="status-dot"></span>
+                    <span id="system-status">Checking system...</span>
+                </div>
+            </header>
+
+            <main class="content">
+                <section class="welcome">
+                    <h2 id="greeting">Welcome back, Tyler.</h2>
+                    <p id="current-date"></p>
+                    <p>What are we building today?</p>
+                </section>
+
+                <section class="dashboard-grid">
+                    <article class="card task-card">
+    <div class="card-heading">
+        <h3>Today's Tasks</h3>
+        <span id="task-count">0 OPEN</span>
+    </div>
+
+    <form id="task-form" class="task-form">
+        <input
+            id="task-title"
+            type="text"
+            maxlength="120"
+            placeholder="What needs to be done?"
+            autocomplete="off"
+            required
+        >
+
+        <select id="task-priority" aria-label="Task priority">
+            <option value="high">High</option>
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low</option>
+        </select>
+
+        <button type="submit">Add Task</button>
+    </form>
+
+    <div id="task-list" class="task-list"></div>
+</article>
+
+                    <article class="card">
+                        <div class="card-heading">
+                            <h3>Inventory</h3>
+                            <span>READY</span>
+                        </div>
+                        <div class="metric">0</div>
+                        <p>Inventory items currently tracked</p>
+                    </article>
+
+                    <article class="card">
+                        <div class="card-heading">
+                            <h3>Active Projects</h3>
+                            <span>0 ACTIVE</span>
+                        </div>
+                        <p>Prototype and customer projects will appear here.</p>
+                    </article>
+
+                    <article class="card">
+                        <div class="card-heading">
+                            <h3>System Status</h3>
+                            <span>LIVE</span>
+                        </div>
+
+                        <div class="status-row">
+                            <span>Application</span>
+                            <strong id="app-status">Checking</strong>
+                        </div>
+
+                        <div class="status-row">
+                            <span>Backend API</span>
+                            <strong id="api-status">Checking</strong>
+                        </div>
+
+                        <div class="status-row">
+                            <span>Version</span>
+                            <strong id="version">—</strong>
+                        </div>
+                    </article>
+
+                    <article class="card">
+                        <div class="card-heading">
+                            <h3>Mealworm Production</h3>
+                            <span>PLANNED</span>
+                        </div>
+                        <p>Rack, tub, colony, and harvest tracking will live here.</p>
+                    </article>
+
+                    <article class="card">
+                        <div class="card-heading">
+                            <h3>Budget Snapshot</h3>
+                            <span>PLANNED</span>
+                        </div>
+                        <p>Business funds and material costs will appear here.</p>
+                    </article>
+                </section>
+            </main>
+
+            <footer>
+                The Foreman · HardHead Works · Version
+                <span id="footer-version">0.2.0</span>
+            </footer>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
