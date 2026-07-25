@@ -254,10 +254,155 @@
     </section>
 </main>
 
-<main class="content page-view" data-page="inventory" hidden>
-    <section class="page-heading">
-        <h2>Inventory</h2>
-        <p>Inventory tools are planned for v0.5.</p>
+<main
+    class="content page-view"
+    data-page="inventory"
+    hidden
+>
+    <section class="inventory-page">
+        <header class="inventory-header">
+            <div>
+                <p class="section-eyebrow">Workshop Resources</p>
+                <h2>Inventory</h2>
+                <p class="inventory-description">
+                    Track materials, supplies, tools, quantities, and
+                    purchasing needs across HardHead Works.
+                </p>
+            </div>
+
+            <button
+                id="add-inventory-item"
+                class="primary-button"
+                type="button"
+            >
+                + Add Item
+            </button>
+        </header>
+
+        <section
+            class="inventory-summary"
+            aria-label="Inventory summary"
+        >
+            <article class="summary-card">
+                <span class="summary-label">Total Items</span>
+                <strong id="inventory-total-count">0</strong>
+                <span class="summary-detail">items being tracked</span>
+            </article>
+
+            <article class="summary-card">
+                <span class="summary-label">Low Stock</span>
+                <strong id="inventory-low-count">0</strong>
+                <span class="summary-detail">items need attention</span>
+            </article>
+
+            <article class="summary-card">
+                <span class="summary-label">Categories</span>
+                <strong id="inventory-category-count">0</strong>
+                <span class="summary-detail">active categories</span>
+            </article>
+        </section>
+
+        <section class="inventory-workspace">
+            <div class="inventory-toolbar">
+                <label class="inventory-search">
+                    <span class="visually-hidden">
+                        Search inventory
+                    </span>
+
+                    <input
+                        id="inventory-search"
+                        type="search"
+                        placeholder="Search inventory..."
+                        autocomplete="off"
+                    >
+                </label>
+
+                <label>
+                    <span class="visually-hidden">
+                        Filter by category
+                    </span>
+
+                    <select id="inventory-category-filter">
+                        <option value="all">
+                            All Categories
+                        </option>
+                    </select>
+                </label>
+
+                <label>
+                    <span class="visually-hidden">
+                        Filter by stock status
+                    </span>
+
+                    <select id="inventory-stock-filter">
+                        <option value="all">
+                            All Stock Levels
+                        </option>
+
+                        <option value="low">
+                            Low Stock
+                        </option>
+
+                        <option value="available">
+                            In Stock
+                        </option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="inventory-table-wrapper">
+                <table class="inventory-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Item</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Quantity</th>
+                            <th scope="col">Minimum</th>
+                            <th scope="col">Location</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">
+                                <span class="visually-hidden">
+                                    Actions
+                                </span>
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="inventory-table-body"></tbody>
+                </table>
+
+                <div
+                    id="inventory-empty-state"
+                    class="inventory-empty-state"
+                >
+                    <div class="empty-state-icon" aria-hidden="true">
+                        ▦
+                    </div>
+
+                    <h3>No inventory items yet</h3>
+
+                    <p>
+                        Add your first material, tool, supply, or
+                        consumable to begin tracking workshop inventory.
+                    </p>
+
+                    <button
+                        id="empty-state-add-item"
+                        class="secondary-button"
+                        type="button"
+                    >
+                        Add First Item
+                    </button>
+                </div>
+            </div>
+
+            <p
+                id="inventory-page-message"
+                class="inventory-page-message"
+                role="status"
+                aria-live="polite"
+            ></p>
+        </section>
     </section>
 </main>
 
