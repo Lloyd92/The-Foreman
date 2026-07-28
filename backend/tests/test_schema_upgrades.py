@@ -182,6 +182,7 @@ class SchemaUpgradeTests(unittest.TestCase):
 
         table_names = set(inspect(self.engine).get_table_names())
         self.assertIn("project_material_requirements", table_names)
+        self.assertIn("project_migrations", table_names)
         index_names = {
             index["name"]
             for index in inspect(self.engine).get_indexes("projects")
@@ -205,6 +206,19 @@ class SchemaUpgradeTests(unittest.TestCase):
         self.assertIn("type", columns)
         self.assertIn("priority", columns)
         self.assertIn("estimated_cost", columns)
+
+        table_names = set(inspect(self.engine).get_table_names())
+        self.assertIn("project_migrations", table_names)
+        unique_constraints = {
+            constraint["name"]
+            for constraint in inspect(
+                self.engine
+            ).get_unique_constraints("project_migrations")
+        }
+        self.assertIn(
+            "uq_project_migration_source_record",
+            unique_constraints,
+        )
 
     def test_failed_upgrade_retains_version_and_can_resume(self) -> None:
         self.create_legacy_database()
@@ -238,3 +252,69 @@ class SchemaUpgradeTests(unittest.TestCase):
                 get_database_schema_version(connection),
                 CURRENT_DATABASE_SCHEMA_VERSION,
             )
+
+    def test_version_one_database_resumes_missing_migration_table(
+        self,
+    ) -> None:
+        self.create_legacy_database()
+
+        with self.engine.begin() as connection:
+            connection.exec_driver_sql("PRAGMA user_version = 1")
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "Project material requirements table is missing",
+            ):
+                apply_schema_upgrades(connection)
+
+        with self.engine.connect() as connection:
+            self.assertEqual(get_database_schema_version(connection), 1)
+
+        self.run_upgrade()
+        self.run_upgrade()
+
+        with self.engine.connect() as connection:
+            self.assertEqual(
+                get_database_schema_version(connection),
+                CURRENT_DATABASE_SCHEMA_VERSION,
+            )
+        self.assertIn(
+            "project_migrations",
+            inspect(self.engine).get_table_names(),
+        )
+
+    def test_version_one_partial_ddl_failure_resumes_safely(
+        self,
+    ) -> None:
+        self.create_legacy_database()
+        self.run_upgrade()
+
+        with self.engine.begin() as connection:
+            connection.exec_driver_sql("DROP TABLE project_migrations")
+            connection.exec_driver_sql("PRAGMA user_version = 1")
+
+        with self.assertRaises(Exception):
+            with self.engine.begin() as connection:
+                Base.metadata.create_all(bind=connection)
+
+                with patch(
+                    "app.core.schema_upgrades.PROJECT_INDEX_UPGRADES",
+                    ("THIS IS NOT VALID SQL",),
+                ):
+                    apply_schema_upgrades(connection)
+
+        with self.engine.connect() as connection:
+            self.assertEqual(get_database_schema_version(connection), 1)
+
+        # SQLite may retain the table created before the later DDL failure.
+        # A restart must accept that partial state and finish idempotently.
+        self.run_upgrade()
+
+        with self.engine.connect() as connection:
+            self.assertEqual(
+                get_database_schema_version(connection),
+                CURRENT_DATABASE_SCHEMA_VERSION,
+            )
+        self.assertIn(
+            "project_migrations",
+            inspect(self.engine).get_table_names(),
+        )

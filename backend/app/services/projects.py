@@ -172,10 +172,10 @@ def _require_inventory_item(
         raise ValueError("Inventory item not found.")
 
 
-def create_project(
+def build_project(
     session: Session,
     data: ProjectCreate,
-) -> ProjectRead:
+) -> Project:
     for material in data.materials:
         _require_inventory_item(
             session,
@@ -192,6 +192,14 @@ def create_project(
         )
         for material in data.materials
     ]
+    return project
+
+
+def create_project(
+    session: Session,
+    data: ProjectCreate,
+) -> ProjectRead:
+    project = build_project(session, data)
 
     try:
         project_repository.add_project(session, project)

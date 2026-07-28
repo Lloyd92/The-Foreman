@@ -3,6 +3,7 @@
 from app.models.inventory import InventoryItem
 from app.models.inventory_migration import InventoryMigration
 from app.models.project import Project
+from app.models.project_migration import ProjectMigration
 from app.models.project_material_requirement import (
     ProjectMaterialRequirement,
 )
@@ -13,6 +14,7 @@ __all__ = [
     "InventoryItem",
     "InventoryMigration",
     "Project",
+    "ProjectMigration",
     "ProjectMaterialRequirement",
     "Task",
     "TaskMigration",

@@ -1,7 +1,7 @@
 from sqlalchemy import inspect
 from sqlalchemy.engine import Connection
 
-CURRENT_DATABASE_SCHEMA_VERSION = 1
+CURRENT_DATABASE_SCHEMA_VERSION = 2
 
 PROJECT_COLUMN_UPGRADES = {
     "type": (
@@ -85,6 +85,24 @@ def _verify_project_schema(connection: Connection) -> None:
     if "project_material_requirements" not in tables:
         raise RuntimeError(
             "Project material requirements table is missing."
+        )
+
+    if "project_migrations" not in tables:
+        raise RuntimeError("Project migrations table is missing.")
+
+    migration_unique_constraints = {
+        constraint["name"]
+        for constraint in inspect(connection).get_unique_constraints(
+            "project_migrations"
+        )
+    }
+
+    if (
+        "uq_project_migration_source_record"
+        not in migration_unique_constraints
+    ):
+        raise RuntimeError(
+            "Project migration source uniqueness is missing."
         )
 
     index_names = {
