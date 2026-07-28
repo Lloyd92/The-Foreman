@@ -11,6 +11,9 @@ import {
     migrateBrowserTasks,
     reopenBackendTask
 } from "../utils/tasksApi.js";
+import {
+    migrateTasksAfterProjects
+} from "../utils/migrationOrchestrator.js";
 
 let currentTasks = [];
 let backendAvailable = false;
@@ -121,12 +124,16 @@ async function refreshBackendTasks() {
     renderTasks();
 }
 
-async function initializeTaskPersistence() {
+async function initializeTaskPersistence(projectMigration) {
     const browserTasks = getBrowserTasks();
 
     try {
         if (browserTasks.length > 0) {
-            const migration = await migrateBrowserTasks(browserTasks);
+            const migration = await migrateTasksAfterProjects(
+                projectMigration,
+                browserTasks,
+                migrateBrowserTasks
+            );
 
             if (migration.errors.length > 0) {
                 setTaskMessage(
@@ -259,7 +266,11 @@ async function handleTaskAction(event) {
     }
 }
 
-export function initializeTasksPage() {
+export function initializeTasksPage(
+    projectMigration = Promise.resolve({
+        projectIdMappings: {}
+    })
+) {
     const taskForm = document.getElementById("task-form");
     const taskList = document.getElementById("task-list");
 
@@ -271,5 +282,5 @@ export function initializeTasksPage() {
     taskForm.addEventListener("submit", addTask);
     taskList.addEventListener("click", handleTaskAction);
 
-    initializeTaskPersistence();
+    void initializeTaskPersistence(projectMigration);
 }

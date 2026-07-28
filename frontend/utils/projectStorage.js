@@ -1,4 +1,4 @@
-const PROJECT_STORAGE_KEY = "foreman-projects";
+export const PROJECT_STORAGE_KEY = "foreman-projects";
 
 export function getProjects() {
     try {

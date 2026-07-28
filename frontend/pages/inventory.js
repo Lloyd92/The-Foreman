@@ -396,6 +396,13 @@ async function initializePersistence() {
                 "Browser-local records were retained."
             );
         }
+
+        renderInventory();
+        return {
+            status: "complete",
+            migration,
+            items: inventoryItems
+        };
     } catch (error) {
         console.error("Inventory backend unavailable:", error);
         inventoryItems = getInventoryItems();
@@ -413,9 +420,14 @@ async function initializePersistence() {
                 "Backend records were not changed."
             );
         }
-    }
 
-    renderInventory();
+        renderInventory();
+        return {
+            status: "unavailable",
+            error,
+            items: inventoryItems
+        };
+    }
 }
 
 function handleInventoryTableAction(event) {
@@ -473,5 +485,5 @@ export function initializeInventoryPage() {
         }
     });
 
-    void initializePersistence();
+    return initializePersistence();
 }

@@ -1,3 +1,13 @@
+export class BackendApiError extends Error {
+    constructor(message, { status = 0, data = null } = {}) {
+        super(message);
+        this.name = "BackendApiError";
+        this.status = status;
+        this.data = data;
+    }
+}
+
+
 export async function apiRequest(path, options = {}) {
     const requestOptions = { ...options };
     const headers = new Headers(requestOptions.headers || {});
@@ -25,7 +35,10 @@ export async function apiRequest(path, options = {}) {
             ? detail
             : `Backend returned status ${response.status}`;
 
-        throw new Error(message);
+        throw new BackendApiError(message, {
+            status: response.status,
+            data
+        });
     }
 
     return data;
