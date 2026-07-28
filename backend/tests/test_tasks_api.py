@@ -99,6 +99,37 @@ class TaskApiTests(ApiTestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["detail"], "Project not found.")
 
+    async def test_deleting_project_unassigns_related_task(self) -> None:
+        project = await self.create_project(status="active")
+        related = (
+            await self.client.post(
+                "/api/tasks",
+                json={
+                    "title": "Related task",
+                    "projectId": project["id"],
+                },
+            )
+        ).json()
+        unrelated = (
+            await self.client.post(
+                "/api/tasks",
+                json={"title": "Unrelated task"},
+            )
+        ).json()
+
+        deleted = await self.client.delete(
+            f"/api/projects/{project['id']}"
+        )
+        self.assertEqual(deleted.status_code, 204)
+        related_after = (
+            await self.client.get(f"/api/tasks/{related['id']}")
+        ).json()
+        unrelated_after = (
+            await self.client.get(f"/api/tasks/{unrelated['id']}")
+        ).json()
+        self.assertIsNone(related_after["projectId"])
+        self.assertIsNone(unrelated_after["projectId"])
+
     async def test_task_validation_errors_are_clear(self) -> None:
         empty_title = await self.client.post(
             "/api/tasks",

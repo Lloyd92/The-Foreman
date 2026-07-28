@@ -55,3 +55,20 @@ def add_inventory_item(
     session.flush()
     session.refresh(item)
     return item
+
+
+def inventory_names_by_ids(
+    session: Session,
+    inventory_item_ids: set[str],
+) -> dict[str, str]:
+    if not inventory_item_ids:
+        return {}
+
+    statement = select(
+        InventoryItem.id,
+        InventoryItem.name,
+    ).where(InventoryItem.id.in_(inventory_item_ids))
+    return {
+        inventory_item_id: name
+        for inventory_item_id, name in session.execute(statement)
+    }

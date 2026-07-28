@@ -5,6 +5,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import DATABASE_URL
+from app.core.schema_upgrades import apply_schema_upgrades
 from app.models.base import Base
 
 connect_args = (
@@ -40,7 +41,9 @@ def enable_sqlite_foreign_keys(
 def initialize_database() -> None:
     import app.models  # noqa: F401
 
-    Base.metadata.create_all(bind=engine)
+    with engine.begin() as connection:
+        Base.metadata.create_all(bind=connection)
+        apply_schema_upgrades(connection)
 
 
 def get_session() -> Generator[Session, None, None]:

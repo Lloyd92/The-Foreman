@@ -1,7 +1,10 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.project import Project
+from app.models.project_material_requirement import (
+    ProjectMaterialRequirement,
+)
 
 
 def list_projects(
@@ -9,7 +12,11 @@ def list_projects(
     *,
     include_archived: bool = False,
 ) -> list[Project]:
-    statement = select(Project).order_by(Project.created_at.desc())
+    statement = (
+        select(Project)
+        .options(selectinload(Project.material_requirements))
+        .order_by(Project.created_at.desc())
+    )
 
     if not include_archived:
         statement = statement.where(Project.archived_at.is_(None))
@@ -21,7 +28,12 @@ def get_project(
     session: Session,
     project_id: str,
 ) -> Project | None:
-    return session.get(Project, project_id)
+    statement = (
+        select(Project)
+        .options(selectinload(Project.material_requirements))
+        .where(Project.id == project_id)
+    )
+    return session.scalar(statement)
 
 
 def add_project(
@@ -32,6 +44,25 @@ def add_project(
     session.flush()
     session.refresh(project)
     return project
+
+
+def get_material_requirement(
+    session: Session,
+    *,
+    project_id: str,
+    inventory_item_id: str,
+) -> ProjectMaterialRequirement | None:
+    return session.get(
+        ProjectMaterialRequirement,
+        (project_id, inventory_item_id),
+    )
+
+
+def delete_project(
+    session: Session,
+    project: Project,
+) -> None:
+    session.delete(project)
 
 
 def project_status_counts(session: Session) -> dict[str, int]:

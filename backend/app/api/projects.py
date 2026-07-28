@@ -1,12 +1,21 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    Response,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from app.core.database import get_session
 from app.schemas.project import (
     ProjectCreate,
+    ProjectMaterialCreate,
     ProjectRead,
+    ProjectMaterialUpdate,
     ProjectUpdate,
 )
 from app.services import projects as project_service
@@ -51,7 +60,10 @@ def create_project(
     data: ProjectCreate,
     session: SessionDependency,
 ) -> ProjectRead:
-    return project_service.create_project(session, data)
+    try:
+        return project_service.create_project(session, data)
+    except ValueError as error:
+        raise project_error(error) from error
 
 
 @router.get("/{project_id}", response_model=ProjectRead)
@@ -60,7 +72,7 @@ def read_project(
     session: SessionDependency,
 ) -> ProjectRead:
     try:
-        return project_service.require_project(session, project_id)
+        return project_service.read_project(session, project_id)
     except LookupError as error:
         raise project_error(error) from error
 
@@ -81,9 +93,85 @@ def update_project(
         raise project_error(error) from error
 
 
+@router.delete(
+    "/{project_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_project(
+    project_id: str,
+    session: SessionDependency,
+) -> Response:
+    try:
+        project_service.delete_project(session, project_id)
+    except LookupError as error:
+        raise project_error(error) from error
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/{project_id}/materials",
+    response_model=ProjectRead,
+)
+def add_material_requirement(
+    project_id: str,
+    data: ProjectMaterialCreate,
+    session: SessionDependency,
+) -> ProjectRead:
+    try:
+        return project_service.add_material_requirement(
+            session,
+            project_id,
+            data,
+        )
+    except (LookupError, ValueError) as error:
+        raise project_error(error) from error
+
+
+@router.patch(
+    "/{project_id}/materials/{inventory_item_id}",
+    response_model=ProjectRead,
+)
+def update_material_requirement(
+    project_id: str,
+    inventory_item_id: str,
+    data: ProjectMaterialUpdate,
+    session: SessionDependency,
+) -> ProjectRead:
+    try:
+        return project_service.update_material_requirement(
+            session,
+            project_id,
+            inventory_item_id,
+            data,
+        )
+    except (LookupError, ValueError) as error:
+        raise project_error(error) from error
+
+
+@router.delete(
+    "/{project_id}/materials/{inventory_item_id}",
+    response_model=ProjectRead,
+)
+def remove_material_requirement(
+    project_id: str,
+    inventory_item_id: str,
+    session: SessionDependency,
+) -> ProjectRead:
+    try:
+        return project_service.remove_material_requirement(
+            session,
+            project_id,
+            inventory_item_id,
+        )
+    except (LookupError, ValueError) as error:
+        raise project_error(error) from error
+
+
 @router.post(
     "/{project_id}/archive",
     response_model=ProjectRead,
+    deprecated=True,
 )
 def archive_project(
     project_id: str,
