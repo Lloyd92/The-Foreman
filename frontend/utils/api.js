@@ -1,13 +1,38 @@
-async function fetchSystemStatus() {
-    const response = await fetch("/api/status");
+export async function apiRequest(path, options = {}) {
+    const requestOptions = { ...options };
+    const headers = new Headers(requestOptions.headers || {});
 
-    if (!response.ok) {
-        throw new Error(
-            `Backend returned status ${response.status}`
-        );
+    if (
+        requestOptions.body &&
+        !headers.has("Content-Type")
+    ) {
+        headers.set("Content-Type", "application/json");
     }
 
-    return response.json();
+    requestOptions.headers = headers;
+
+    const response = await fetch(path, requestOptions);
+
+    if (response.status === 204) {
+        return null;
+    }
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+        const detail = data?.detail;
+        const message = typeof detail === "string"
+            ? detail
+            : `Backend returned status ${response.status}`;
+
+        throw new Error(message);
+    }
+
+    return data;
+}
+
+async function fetchSystemStatus() {
+    return apiRequest("/api/status");
 }
 
 function setOnlineStatus(data) {

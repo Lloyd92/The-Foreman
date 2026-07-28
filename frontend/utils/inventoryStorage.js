@@ -6,11 +6,26 @@ export function getInventoryItems() {
             INVENTORY_STORAGE_KEY
         );
 
-        return storedItems ? JSON.parse(storedItems) : [];
+        const parsedItems = storedItems
+            ? JSON.parse(storedItems)
+            : [];
+
+        if (!Array.isArray(parsedItems)) {
+            console.error(
+                "Browser-local inventory is malformed and was retained."
+            );
+            return [];
+        }
+
+        return parsedItems;
     } catch (error) {
         console.error("Unable to read inventory:", error);
         return [];
     }
+}
+
+export function getBrowserInventoryRecords() {
+    return getInventoryItems();
 }
 
 export function saveInventoryItems(items) {

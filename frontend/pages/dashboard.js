@@ -1,6 +1,9 @@
 import {
     getInventoryItems
 } from "../utils/inventoryStorage.js";
+import {
+    listInventoryItems
+} from "../utils/inventoryApi.js";
 
 function getGreeting(hour) {
     if (hour < 12) {
@@ -24,7 +27,7 @@ function formatCurrentDate(date) {
 }
 
 function isLowStock(item) {
-    return item.quantity <= item.minimum;
+    return item.isLow ?? item.quantity <= item.minimum;
 }
 
 function formatQuantity(item) {
@@ -134,9 +137,18 @@ function renderDashboardInventory(items) {
     }
 }
 
-export function initializeDashboard() {
+export async function initializeDashboard() {
     initializeGreeting();
-    renderDashboardInventory(getInventoryItems());
+
+    try {
+        renderDashboardInventory(await listInventoryItems());
+    } catch (error) {
+        console.error(
+            "Unable to load backend inventory for Dashboard:",
+            error
+        );
+        renderDashboardInventory(getInventoryItems());
+    }
 
     document.addEventListener(
         "inventory:updated",

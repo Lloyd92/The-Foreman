@@ -1,2 +1,5 @@
-Flask==3.1.1
-gunicorn==23.0.0
+fastapi==0.139.2
+httpx==0.28.1
+pydantic==2.13.4
+SQLAlchemy==2.0.51
+uvicorn==0.51.0

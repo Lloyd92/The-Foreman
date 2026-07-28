@@ -1,13 +1,22 @@
 import {
+    createInventoryItem,
+    deleteInventoryItem,
+    listInventoryItems,
+    migrateBrowserInventory,
+    updateInventoryItem
+} from "../utils/inventoryApi.js";
+import {
+    getBrowserInventoryRecords,
     getInventoryItems,
     saveInventoryItems
 } from "../utils/inventoryStorage.js";
 
 let editingItemId = null;
+let inventoryItems = [];
+let persistenceMode = "initializing";
 
-function createInventoryItem(formData) {
+function formPayload(formData) {
     return {
-        id: crypto.randomUUID(),
         name: formData.get("name").trim(),
         category: formData.get("category"),
         quantity: Number(formData.get("quantity")),
@@ -16,13 +25,20 @@ function createInventoryItem(formData) {
         location: formData.get("location").trim(),
         cost: Number(formData.get("cost") || 0),
         supplier: formData.get("supplier").trim(),
-        notes: formData.get("notes").trim(),
+        notes: formData.get("notes").trim()
+    };
+}
+
+function browserInventoryItem(data) {
+    return {
+        id: crypto.randomUUID(),
+        ...data,
         createdAt: new Date().toISOString()
     };
 }
 
 function isLowStock(item) {
-    return item.quantity <= item.minimum;
+    return item.isLow ?? item.quantity <= item.minimum;
 }
 
 function formatQuantity(item) {
@@ -30,30 +46,45 @@ function formatQuantity(item) {
 }
 
 function getItemById(itemId) {
-    return getInventoryItems().find(item => item.id === itemId);
+    return inventoryItems.find(item => item.id === itemId);
 }
 
-function deleteInventoryItem(itemId) {
+function showPageMessage(message) {
+    const element = document.getElementById("inventory-page-message");
+
+    if (element) {
+        element.textContent = message;
+    }
+}
+
+async function removeInventoryItem(itemId) {
     const item = getItemById(itemId);
 
-    if (!item) {
+    if (!item || !window.confirm(`Delete "${item.name}" from inventory?`)) {
         return;
     }
 
-    const confirmed = window.confirm(
-        `Delete "${item.name}" from inventory?`
-    );
+    try {
+        if (persistenceMode === "backend") {
+            await deleteInventoryItem(itemId);
+        } else if (persistenceMode === "browser") {
+            saveInventoryItems(
+                inventoryItems.filter(current => current.id !== itemId)
+            );
+        } else {
+            throw new Error(
+                "Backend persistence was confirmed but is currently unavailable"
+            );
+        }
 
-    if (!confirmed) {
-        return;
+        inventoryItems = inventoryItems.filter(current => current.id !== itemId);
+        renderInventory();
+    } catch (error) {
+        console.error("Unable to delete inventory item:", error);
+        showPageMessage(
+            "The item was not deleted. Backend data and browser-local data were unchanged."
+        );
     }
-
-    const updatedItems = getInventoryItems().filter(
-        inventoryItem => inventoryItem.id !== itemId
-    );
-
-    saveInventoryItems(updatedItems);
-    renderInventory();
 }
 
 function populateInventoryForm(item) {
@@ -64,17 +95,12 @@ function populateInventoryForm(item) {
     document.getElementById("inventory-unit").value = item.unit;
     document.getElementById("inventory-minimum").value = item.minimum;
     document.getElementById("inventory-cost").value = item.cost || "";
-    document.getElementById("inventory-supplier").value =
-        item.supplier || "";
-    document.getElementById("inventory-notes").value =
-        item.notes || "";
+    document.getElementById("inventory-supplier").value = item.supplier || "";
+    document.getElementById("inventory-notes").value = item.notes || "";
 }
 
 function openInventoryDialog(isNewItem = true) {
-    const backdrop = document.getElementById(
-        "inventory-dialog-backdrop"
-    );
-
+    const backdrop = document.getElementById("inventory-dialog-backdrop");
     const form = document.getElementById("inventory-form");
     const title = document.getElementById("inventory-dialog-title");
     const nameInput = document.getElementById("inventory-name");
@@ -94,10 +120,7 @@ function openInventoryDialog(isNewItem = true) {
 
     backdrop.hidden = false;
     document.body.classList.add("dialog-open");
-
-    window.setTimeout(() => {
-        nameInput?.focus();
-    }, 0);
+    window.setTimeout(() => nameInput?.focus(), 0);
 }
 
 function openEditInventoryDialog(itemId) {
@@ -108,10 +131,7 @@ function openEditInventoryDialog(itemId) {
     }
 
     editingItemId = itemId;
-
-    const title = document.getElementById(
-        "inventory-dialog-title"
-    );
+    const title = document.getElementById("inventory-dialog-title");
 
     if (title) {
         title.textContent = "Edit Inventory Item";
@@ -122,19 +142,7 @@ function openEditInventoryDialog(itemId) {
 }
 
 function closeInventoryDialog() {
-    const backdrop = document.getElementById(
-        "inventory-dialog-backdrop"
-    );
-
-    const form = document.getElementById("inventory-form");
-
-    const errorMessage = document.getElementById(
-        "inventory-form-error"
-    );
-
-    const title = document.getElementById(
-        "inventory-dialog-title"
-    );
+    const backdrop = document.getElementById("inventory-dialog-backdrop");
 
     if (!backdrop) {
         return;
@@ -142,12 +150,14 @@ function closeInventoryDialog() {
 
     backdrop.hidden = true;
     document.body.classList.remove("dialog-open");
-
-    form?.reset();
+    document.getElementById("inventory-form")?.reset();
     editingItemId = null;
 
-    if (errorMessage) {
-        errorMessage.textContent = "";
+    const error = document.getElementById("inventory-form-error");
+    const title = document.getElementById("inventory-dialog-title");
+
+    if (error) {
+        error.textContent = "";
     }
 
     if (title) {
@@ -156,13 +166,8 @@ function closeInventoryDialog() {
 }
 
 function renderInventoryRows(items) {
-    const tableBody = document.getElementById(
-        "inventory-table-body"
-    );
-
-    const emptyState = document.getElementById(
-        "inventory-empty-state"
-    );
+    const tableBody = document.getElementById("inventory-table-body");
+    const emptyState = document.getElementById("inventory-empty-state");
 
     if (!tableBody || !emptyState) {
         return;
@@ -180,437 +185,293 @@ function renderInventoryRows(items) {
                 <strong class="inventory-item-name"></strong>
                 <span class="inventory-item-unit-cost"></span>
             </td>
-
-            <td>
-                <span class="category-badge"></span>
-            </td>
-
+            <td><span class="category-badge"></span></td>
             <td class="inventory-quantity"></td>
             <td class="inventory-minimum"></td>
             <td class="inventory-location"></td>
-
             <td>
-                <span
-                    class="stock-badge ${
-                        lowStock
-                            ? "stock-badge-low"
-                            : "stock-badge-available"
-                    }"
-                >
-                    ${lowStock ? "LOW STOCK" : "IN STOCK"}
-                </span>
+                <span class="stock-badge ${
+                    lowStock ? "stock-badge-low" : "stock-badge-available"
+                }">${lowStock ? "LOW STOCK" : "IN STOCK"}</span>
             </td>
-
             <td class="inventory-actions-cell">
                 <div class="inventory-row-actions">
-                    <button
-                        class="table-action-button"
-                        type="button"
-                        data-action="edit"
-                        data-id="${item.id}"
-                    >
-                        Edit
-                    </button>
-
-                    <button
-                        class="table-action-button delete-inventory-button"
-                        type="button"
-                        data-action="delete"
-                        data-id="${item.id}"
-                    >
-                        Delete
-                    </button>
+                    <button class="table-action-button" type="button"
+                        data-action="edit" data-id="${item.id}">Edit</button>
+                    <button class="table-action-button delete-inventory-button"
+                        type="button" data-action="delete"
+                        data-id="${item.id}">Delete</button>
                 </div>
             </td>
         `;
-
-        row.querySelector(".inventory-item-name").textContent =
-            item.name;
-
+        row.querySelector(".inventory-item-name").textContent = item.name;
         row.querySelector(".inventory-item-unit-cost").textContent =
-            item.cost > 0
-                ? `$${item.cost.toFixed(2)} each`
-                : "";
-
-        row.querySelector(".category-badge").textContent =
-            item.category;
-
+            item.cost > 0 ? `$${item.cost.toFixed(2)} each` : "";
+        row.querySelector(".category-badge").textContent = item.category;
         row.querySelector(".inventory-quantity").textContent =
             formatQuantity(item);
-
         row.querySelector(".inventory-minimum").textContent =
             `${item.minimum} ${item.unit}`;
-
-        row.querySelector(".inventory-location").textContent =
-            item.location;
-
+        row.querySelector(".inventory-location").textContent = item.location;
         tableBody.appendChild(row);
     });
 }
 
 function updateInventorySummary(items) {
-    const totalCount = document.getElementById(
-        "inventory-total-count"
-    );
+    const categories = new Set(items.map(item => item.category));
+    const total = document.getElementById("inventory-total-count");
+    const low = document.getElementById("inventory-low-count");
+    const category = document.getElementById("inventory-category-count");
 
-    const lowCount = document.getElementById(
-        "inventory-low-count"
-    );
-
-    const categoryCount = document.getElementById(
-        "inventory-category-count"
-    );
-
-    const categories = new Set(
-        items.map(item => item.category)
-    );
-
-    if (totalCount) {
-        totalCount.textContent = items.length;
-    }
-
-    if (lowCount) {
-        lowCount.textContent =
-            items.filter(isLowStock).length;
-    }
-
-    if (categoryCount) {
-        categoryCount.textContent = categories.size;
-    }
+    if (total) total.textContent = items.length;
+    if (low) low.textContent = items.filter(isLowStock).length;
+    if (category) category.textContent = categories.size;
 }
 
 function updateCategoryFilter(items) {
-    const filter = document.getElementById(
-        "inventory-category-filter"
-    );
+    const filter = document.getElementById("inventory-category-filter");
 
     if (!filter) {
         return;
     }
 
-    const previousValue = filter.value;
-
-    const categories = [
-        ...new Set(items.map(item => item.category))
-    ].sort();
-
-    filter.innerHTML = `
-        <option value="all">All Categories</option>
-    `;
+    const previous = filter.value;
+    const categories = [...new Set(items.map(item => item.category))].sort();
+    filter.innerHTML = '<option value="all">All Categories</option>';
 
     categories.forEach(category => {
         const option = document.createElement("option");
-
         option.value = category;
         option.textContent = category;
-
         filter.appendChild(option);
     });
 
-    const stillExists = [...filter.options].some(
-        option => option.value === previousValue
-    );
-
-    filter.value = stillExists ? previousValue : "all";
+    filter.value = [...filter.options].some(
+        option => option.value === previous
+    ) ? previous : "all";
 }
 
-function getFilteredInventoryItems(items) {
-    const searchValue = document
-        .getElementById("inventory-search")
-        ?.value.trim()
-        .toLowerCase() || "";
-
-    const categoryValue = document
-        .getElementById("inventory-category-filter")
+function filteredInventory(items) {
+    const search = document.getElementById("inventory-search")
+        ?.value.trim().toLowerCase() || "";
+    const category = document.getElementById("inventory-category-filter")
         ?.value || "all";
-
-    const stockValue = document
-        .getElementById("inventory-stock-filter")
+    const stock = document.getElementById("inventory-stock-filter")
         ?.value || "all";
 
     return items.filter(item => {
-        const supplier =
-            (item.supplier || "").toLowerCase();
-
-        const matchesSearch =
-            !searchValue ||
-            item.name.toLowerCase().includes(searchValue) ||
-            item.category.toLowerCase().includes(searchValue) ||
-            item.location.toLowerCase().includes(searchValue) ||
-            supplier.includes(searchValue);
-
+        const matchesSearch = !search || [
+            item.name,
+            item.category,
+            item.location,
+            item.supplier || ""
+        ].some(value => value.toLowerCase().includes(search));
         const matchesCategory =
-            categoryValue === "all" ||
-            item.category === categoryValue;
-
+            category === "all" || item.category === category;
         const matchesStock =
-            stockValue === "all" ||
-            (stockValue === "low" && isLowStock(item)) ||
-            (stockValue === "available" && !isLowStock(item));
+            stock === "all" ||
+            (stock === "low" && isLowStock(item)) ||
+            (stock === "available" && !isLowStock(item));
 
-        return (
-            matchesSearch &&
-            matchesCategory &&
-            matchesStock
-        );
+        return matchesSearch && matchesCategory && matchesStock;
     });
 }
 
-function sortInventoryItems(items) {
-    const sortValue = document
-        .getElementById("inventory-sort")
+function sortedInventory(items) {
+    const value = document.getElementById("inventory-sort")
         ?.value || "name-asc";
+    const sorted = [...items];
 
-    const sortedItems = [...items];
-
-    switch (sortValue) {
-        case "name-desc":
-            return sortedItems.sort((a, b) =>
-                b.name.localeCompare(a.name)
-            );
-
-        case "quantity-asc":
-            return sortedItems.sort(
-                (a, b) => a.quantity - b.quantity
-            );
-
-        case "quantity-desc":
-            return sortedItems.sort(
-                (a, b) => b.quantity - a.quantity
-            );
-
-        case "category-asc":
-            return sortedItems.sort((a, b) => {
-                const categoryComparison =
-                    a.category.localeCompare(b.category);
-
-                return categoryComparison !== 0
-                    ? categoryComparison
-                    : a.name.localeCompare(b.name);
-            });
-
-        case "stock":
-            return sortedItems.sort((a, b) => {
-                const aLow = isLowStock(a);
-                const bLow = isLowStock(b);
-
-                if (aLow !== bLow) {
-                    return Number(bLow) - Number(aLow);
-                }
-
-                return a.name.localeCompare(b.name);
-            });
-
-        case "name-asc":
-        default:
-            return sortedItems.sort((a, b) =>
-                a.name.localeCompare(b.name)
-            );
+    if (value === "name-desc") {
+        return sorted.sort((a, b) => b.name.localeCompare(a.name));
     }
+    if (value === "quantity-asc") {
+        return sorted.sort((a, b) => a.quantity - b.quantity);
+    }
+    if (value === "quantity-desc") {
+        return sorted.sort((a, b) => b.quantity - a.quantity);
+    }
+    if (value === "category-asc") {
+        return sorted.sort(
+            (a, b) => a.category.localeCompare(b.category) ||
+                a.name.localeCompare(b.name)
+        );
+    }
+    if (value === "stock") {
+        return sorted.sort(
+            (a, b) => Number(isLowStock(b)) - Number(isLowStock(a)) ||
+                a.name.localeCompare(b.name)
+        );
+    }
+    return sorted.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function notifyInventoryUpdated(items) {
     document.dispatchEvent(
-        new CustomEvent("inventory:updated", {
-            detail: { items }
-        })
+        new CustomEvent("inventory:updated", { detail: { items } })
     );
 }
 
 function renderInventory() {
-    const items = getInventoryItems();
-    const filteredItems = getFilteredInventoryItems(items);
-    const sortedItems = sortInventoryItems(filteredItems);
-
-    renderInventoryRows(sortedItems);
-    updateInventorySummary(items);
-    updateCategoryFilter(items);
-    notifyInventoryUpdated(items);
+    renderInventoryRows(sortedInventory(filteredInventory(inventoryItems)));
+    updateInventorySummary(inventoryItems);
+    updateCategoryFilter(inventoryItems);
+    notifyInventoryUpdated(inventoryItems);
 }
 
-function handleInventorySubmit(event) {
+async function handleInventorySubmit(event) {
     event.preventDefault();
-
     const form = event.currentTarget;
-    const formData = new FormData(form);
+    const data = formPayload(new FormData(form));
+    const errorMessage = document.getElementById("inventory-form-error");
 
-    const name = formData.get("name").trim();
-    const category = formData.get("category");
-    const location = formData.get("location").trim();
-    const unit = formData.get("unit").trim();
-
-    const errorMessage = document.getElementById(
-        "inventory-form-error"
-    );
-
-    if (!name || !category || !location || !unit) {
+    if (!data.name || !data.category || !data.location || !data.unit) {
         if (errorMessage) {
-            errorMessage.textContent =
-                "Complete all required fields.";
+            errorMessage.textContent = "Complete all required fields.";
         }
-
         return;
     }
 
-    let items = getInventoryItems();
-
-    if (editingItemId) {
-        const updatedItem = createInventoryItem(formData);
-
-        items = items.map(item =>
-            item.id === editingItemId
+    try {
+        if (persistenceMode === "backend") {
+            const saved = editingItemId
+                ? await updateInventoryItem(editingItemId, data)
+                : await createInventoryItem(data);
+            inventoryItems = editingItemId
+                ? inventoryItems.map(item => item.id === saved.id ? saved : item)
+                : [...inventoryItems, saved];
+        } else if (persistenceMode === "browser") {
+            const saved = editingItemId
                 ? {
-                    ...updatedItem,
-                    id: item.id,
-                    createdAt: item.createdAt,
+                    ...getItemById(editingItemId),
+                    ...data,
                     updatedAt: new Date().toISOString()
                 }
-                : item
-        );
-    } else {
-        items.push(createInventoryItem(formData));
+                : browserInventoryItem(data);
+            inventoryItems = editingItemId
+                ? inventoryItems.map(item => item.id === saved.id ? saved : item)
+                : [...inventoryItems, saved];
+            saveInventoryItems(inventoryItems);
+        } else {
+            throw new Error(
+                "Backend persistence was confirmed but is currently unavailable"
+            );
+        }
+
+        closeInventoryDialog();
+        renderInventory();
+    } catch (error) {
+        console.error("Unable to save inventory item:", error);
+
+        if (errorMessage) {
+            errorMessage.textContent =
+                `${error.message}. No browser-local fallback write was made.`;
+        }
+    }
+}
+
+async function initializePersistence() {
+    const browserRecords = getBrowserInventoryRecords();
+    let backendConfirmed = false;
+
+    try {
+        const migration = await migrateBrowserInventory(browserRecords);
+        backendConfirmed = true;
+        inventoryItems = await listInventoryItems();
+        persistenceMode = "backend";
+
+        if (migration.errors.length) {
+            showPageMessage(
+                `Inventory migration ${migration.status}: ` +
+                `${migration.migrated} migrated, ` +
+                `${migration.alreadyMigrated} previously migrated, ` +
+                `${migration.duplicates} duplicate, ` +
+                `${migration.malformed} malformed. ` +
+                "Browser-local records were retained for review."
+            );
+        } else if (browserRecords.length) {
+            showPageMessage(
+                `Inventory migration successful: ${migration.migrated} migrated, ` +
+                `${migration.alreadyMigrated} previously migrated. ` +
+                "Browser-local records were retained."
+            );
+        }
+    } catch (error) {
+        console.error("Inventory backend unavailable:", error);
+        inventoryItems = getInventoryItems();
+
+        if (backendConfirmed) {
+            persistenceMode = "unavailable";
+            showPageMessage(
+                "Backend persistence was confirmed but Inventory is temporarily " +
+                "unavailable. Browser-local records are shown read-only to avoid conflicts."
+            );
+        } else {
+            persistenceMode = "browser";
+            showPageMessage(
+                "Inventory is using browser-local fallback. " +
+                "Backend records were not changed."
+            );
+        }
     }
 
-    saveInventoryItems(items);
-    closeInventoryDialog();
     renderInventory();
 }
 
 function handleInventoryTableAction(event) {
-    const button = event.target.closest(
-        "[data-action][data-id]"
-    );
+    const button = event.target.closest("[data-action][data-id]");
 
-    if (!button) {
-        return;
-    }
-
-    const action = button.dataset.action;
-    const itemId = button.dataset.id;
-
-    if (action === "edit") {
-        openEditInventoryDialog(itemId);
-    }
-
-    if (action === "delete") {
-        deleteInventoryItem(itemId);
-    }
-}
-
-function handleDialogBackdropClick(event) {
-    if (event.target.id === "inventory-dialog-backdrop") {
-        closeInventoryDialog();
-    }
-}
-
-function handleEscapeKey(event) {
-    if (event.key === "Escape") {
-        closeInventoryDialog();
+    if (button?.dataset.action === "edit") {
+        openEditInventoryDialog(button.dataset.id);
+    } else if (button?.dataset.action === "delete") {
+        void removeInventoryItem(button.dataset.id);
     }
 }
 
 export function initializeInventoryPage() {
-    const addButton = document.getElementById(
-        "add-inventory-item"
-    );
-
-    const emptyStateButton = document.getElementById(
-        "empty-state-add-item"
-    );
-
-    const closeButton = document.getElementById(
-        "close-inventory-dialog"
-    );
-
-    const cancelButton = document.getElementById(
-        "cancel-inventory-item"
-    );
-
-    const form = document.getElementById("inventory-form");
-
-    const backdrop = document.getElementById(
-        "inventory-dialog-backdrop"
-    );
-
-    const tableBody = document.getElementById(
-        "inventory-table-body"
-    );
-
-    const searchInput = document.getElementById(
-        "inventory-search"
-    );
-
-    const categoryFilter = document.getElementById(
-        "inventory-category-filter"
-    );
-
-    const stockFilter = document.getElementById(
-        "inventory-stock-filter"
-    );
-
-    const sortSelect = document.getElementById(
-        "inventory-sort"
-    );
-
-    addButton?.addEventListener(
+    document.getElementById("add-inventory-item")?.addEventListener(
         "click",
         () => openInventoryDialog(true)
     );
-
-    emptyStateButton?.addEventListener(
+    document.getElementById("empty-state-add-item")?.addEventListener(
         "click",
         () => openInventoryDialog(true)
     );
-
-    closeButton?.addEventListener(
+    document.getElementById("close-inventory-dialog")?.addEventListener(
         "click",
         closeInventoryDialog
     );
-
-    cancelButton?.addEventListener(
+    document.getElementById("cancel-inventory-item")?.addEventListener(
         "click",
         closeInventoryDialog
     );
-
-    form?.addEventListener(
+    document.getElementById("inventory-form")?.addEventListener(
         "submit",
-        handleInventorySubmit
+        event => void handleInventorySubmit(event)
     );
-
-    backdrop?.addEventListener(
+    document.getElementById("inventory-dialog-backdrop")?.addEventListener(
         "click",
-        handleDialogBackdropClick
+        event => {
+            if (event.target.id === "inventory-dialog-backdrop") {
+                closeInventoryDialog();
+            }
+        }
     );
-
-    tableBody?.addEventListener(
+    document.getElementById("inventory-table-body")?.addEventListener(
         "click",
         handleInventoryTableAction
     );
 
-    searchInput?.addEventListener(
-        "input",
-        renderInventory
-    );
+    ["inventory-search", "inventory-category-filter",
+        "inventory-stock-filter", "inventory-sort"].forEach(id => {
+        const eventName = id === "inventory-search" ? "input" : "change";
+        document.getElementById(id)?.addEventListener(eventName, renderInventory);
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+            closeInventoryDialog();
+        }
+    });
 
-    categoryFilter?.addEventListener(
-        "change",
-        renderInventory
-    );
-
-    stockFilter?.addEventListener(
-        "change",
-        renderInventory
-    );
-
-    sortSelect?.addEventListener(
-        "change",
-        renderInventory
-    );
-
-    document.addEventListener(
-        "keydown",
-        handleEscapeKey
-    );
-
-    renderInventory();
+    void initializePersistence();
 }

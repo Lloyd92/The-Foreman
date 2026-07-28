@@ -1,6 +1,21 @@
-import { getTasks, saveTasks } from "../utils/storage.js";
+import {
+    getBrowserTasks,
+    saveTasks
+} from "../utils/storage.js";
 
-function createTask(title, priority) {
+import {
+    completeBackendTask,
+    createBackendTask,
+    deleteBackendTask,
+    getBackendTasks,
+    migrateBrowserTasks,
+    reopenBackendTask
+} from "../utils/tasksApi.js";
+
+let currentTasks = [];
+let backendAvailable = false;
+
+function createBrowserTask(title, priority) {
     return {
         id: crypto.randomUUID(),
         title,
@@ -20,15 +35,26 @@ function priorityRank(priority) {
     return ranks[priority] || 4;
 }
 
-function renderTasks() {
+function setTaskMessage(message, isError = false) {
+    const messageElement = document.getElementById(
+        "task-migration-status"
+    );
+
+    if (!messageElement) {
+        return;
+    }
+
+    messageElement.textContent = message;
+    messageElement.classList.toggle("error", isError);
+}
+
+function renderTasks(tasks = currentTasks) {
     const taskList = document.getElementById("task-list");
     const taskCount = document.getElementById("task-count");
 
     if (!taskList || !taskCount) {
         return;
     }
-
-    const tasks = getTasks();
 
     const sortedTasks = [...tasks].sort((a, b) => {
         if (a.completed !== b.completed) {
@@ -90,7 +116,56 @@ function renderTasks() {
     taskCount.textContent = `${openCount} OPEN`;
 }
 
-function addTask(event) {
+async function refreshBackendTasks() {
+    currentTasks = await getBackendTasks();
+    renderTasks();
+}
+
+async function initializeTaskPersistence() {
+    const browserTasks = getBrowserTasks();
+
+    try {
+        if (browserTasks.length > 0) {
+            const migration = await migrateBrowserTasks(browserTasks);
+
+            if (migration.errors.length > 0) {
+                setTaskMessage(
+                    `${migration.migrated} browser task(s) migrated; ` +
+                    `${migration.skipped} need attention. ` +
+                    "Browser data was kept.",
+                    true
+                );
+
+                migration.errors.forEach(error => {
+                    console.error(
+                        "Task migration record was not imported:",
+                        error
+                    );
+                });
+            } else if (migration.migrated > 0) {
+                setTaskMessage(
+                    `${migration.migrated} browser task(s) migrated. ` +
+                    "The browser copy was kept for safety."
+                );
+            }
+        }
+
+        backendAvailable = true;
+        await refreshBackendTasks();
+    } catch (error) {
+        backendAvailable = false;
+        currentTasks = browserTasks;
+        renderTasks();
+        setTaskMessage(
+            "Backend task persistence is unavailable. " +
+            "Browser-local tasks remain active and were not removed.",
+            true
+        );
+        console.error("Unable to initialize task persistence:", error);
+    }
+}
+
+async function addTask(event) {
     event.preventDefault();
 
     const titleInput = document.getElementById("task-title");
@@ -107,19 +182,30 @@ function addTask(event) {
         return;
     }
 
-    const tasks = getTasks();
+    try {
+        if (backendAvailable) {
+            await createBackendTask({
+                title,
+                priority: priorityInput.value
+            });
+            await refreshBackendTasks();
+        } else {
+            currentTasks.push(
+                createBrowserTask(title, priorityInput.value)
+            );
+            saveTasks(currentTasks);
+            renderTasks();
+        }
 
-    tasks.push(createTask(title, priorityInput.value));
-    saveTasks(tasks);
-
-    titleInput.value = "";
-    priorityInput.value = "medium";
-
-    renderTasks();
-    titleInput.focus();
+        titleInput.value = "";
+        priorityInput.value = "medium";
+        titleInput.focus();
+    } catch (error) {
+        setTaskMessage(error.message, true);
+    }
 }
 
-function handleTaskAction(event) {
+async function handleTaskAction(event) {
     const action = event.target.dataset.action;
     const taskId = event.target.dataset.id;
 
@@ -127,22 +213,50 @@ function handleTaskAction(event) {
         return;
     }
 
-    let tasks = getTasks();
+    const task = currentTasks.find(item => item.id === taskId);
 
-    if (action === "toggle") {
-        tasks = tasks.map(task =>
-            task.id === taskId
-                ? { ...task, completed: !task.completed }
-                : task
-        );
+    if (!task) {
+        return;
     }
 
-    if (action === "delete") {
-        tasks = tasks.filter(task => task.id !== taskId);
-    }
+    try {
+        if (backendAvailable) {
+            if (action === "toggle") {
+                if (task.completed) {
+                    await reopenBackendTask(taskId);
+                } else {
+                    await completeBackendTask(taskId);
+                }
+            }
 
-    saveTasks(tasks);
-    renderTasks();
+            if (action === "delete") {
+                await deleteBackendTask(taskId);
+            }
+
+            await refreshBackendTasks();
+            return;
+        }
+
+        if (action === "toggle") {
+            currentTasks = currentTasks.map(item =>
+                item.id === taskId
+                    ? { ...item, completed: !item.completed }
+                    : item
+            );
+        }
+
+        if (action === "delete") {
+            currentTasks = currentTasks.filter(
+                item => item.id !== taskId
+            );
+        }
+
+        saveTasks(currentTasks);
+        renderTasks();
+    } catch (error) {
+        renderTasks();
+        setTaskMessage(error.message, true);
+    }
 }
 
 export function initializeTasksPage() {
@@ -157,5 +271,5 @@ export function initializeTasksPage() {
     taskForm.addEventListener("submit", addTask);
     taskList.addEventListener("click", handleTaskAction);
 
-    renderTasks();
+    initializeTaskPersistence();
 }

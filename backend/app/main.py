@@ -1,19 +1,32 @@
-from flask import Flask, jsonify
+from contextlib import asynccontextmanager
 
-app = Flask(__name__)
+from fastapi import FastAPI
 
-
-@app.get("/api/status")
-def status():
-    return jsonify(
-        {
-            "application": "The Foreman",
-            "company": "HardHead Works",
-            "status": "online",
-            "version": "0.6.1",
-        }
-    )
+from app.api.inventory import router as inventory_router
+from app.api.inventory_migrations import router as inventory_migrations_router
+from app.api.operations import router as operations_router
+from app.api.projects import router as projects_router
+from app.api.system import router as system_router
+from app.api.task_migrations import router as task_migrations_router
+from app.api.tasks import router as tasks_router
+from app.core.database import initialize_database
 
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    initialize_database()
+    yield
+
+
+app = FastAPI(
+    title="The Foreman",
+    version="0.6.2",
+    lifespan=lifespan,
+)
+app.include_router(system_router)
+app.include_router(inventory_router)
+app.include_router(inventory_migrations_router)
+app.include_router(projects_router)
+app.include_router(tasks_router)
+app.include_router(task_migrations_router)
+app.include_router(operations_router)

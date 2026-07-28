@@ -1,0 +1,123 @@
+from test_support import ApiTestCase
+
+
+class TaskApiTests(ApiTestCase):
+    async def test_task_crud_completion_and_reopening(self) -> None:
+        create_response = await self.client.post(
+            "/api/tasks",
+            json={
+                "title": "Cut plywood",
+                "priority": "high",
+            },
+        )
+
+        self.assertEqual(create_response.status_code, 201)
+        task = create_response.json()
+        self.assertIsNone(task["projectId"])
+        self.assertFalse(task["completed"])
+
+        read_response = await self.client.get(
+            f"/api/tasks/{task['id']}"
+        )
+        self.assertEqual(read_response.status_code, 200)
+
+        update_response = await self.client.patch(
+            f"/api/tasks/{task['id']}",
+            json={
+                "title": "Cut birch plywood",
+                "priority": "medium",
+            },
+        )
+        self.assertEqual(update_response.status_code, 200)
+        self.assertEqual(
+            update_response.json()["title"],
+            "Cut birch plywood",
+        )
+        self.assertEqual(update_response.json()["priority"], "medium")
+
+        complete_response = await self.client.post(
+            f"/api/tasks/{task['id']}/complete"
+        )
+        self.assertTrue(complete_response.json()["completed"])
+
+        reopen_response = await self.client.post(
+            f"/api/tasks/{task['id']}/reopen"
+        )
+        self.assertFalse(reopen_response.json()["completed"])
+
+        delete_response = await self.client.delete(
+            f"/api/tasks/{task['id']}"
+        )
+        self.assertEqual(delete_response.status_code, 204)
+
+        missing_response = await self.client.get(
+            f"/api/tasks/{task['id']}"
+        )
+        self.assertEqual(missing_response.status_code, 404)
+
+    async def test_task_can_associate_and_disassociate_project(self) -> None:
+        project = await self.create_project(status="active")
+        create_response = await self.client.post(
+            "/api/tasks",
+            json={
+                "title": "Project task",
+                "priority": "low",
+                "projectId": project["id"],
+            },
+        )
+
+        self.assertEqual(create_response.status_code, 201)
+        task = create_response.json()
+        self.assertEqual(task["projectId"], project["id"])
+
+        disassociate_response = await self.client.patch(
+            f"/api/tasks/{task['id']}",
+            json={"projectId": None},
+        )
+        self.assertEqual(disassociate_response.status_code, 200)
+        self.assertIsNone(disassociate_response.json()["projectId"])
+
+        associate_response = await self.client.patch(
+            f"/api/tasks/{task['id']}",
+            json={"projectId": project["id"]},
+        )
+        self.assertEqual(associate_response.status_code, 200)
+        self.assertEqual(
+            associate_response.json()["projectId"],
+            project["id"],
+        )
+
+    async def test_missing_project_relationship_is_rejected(self) -> None:
+        response = await self.client.post(
+            "/api/tasks",
+            json={
+                "title": "Blocked relationship",
+                "projectId": "missing-project",
+            },
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()["detail"], "Project not found.")
+
+    async def test_task_validation_errors_are_clear(self) -> None:
+        empty_title = await self.client.post(
+            "/api/tasks",
+            json={"title": "", "priority": "high"},
+        )
+        invalid_priority = await self.client.post(
+            "/api/tasks",
+            json={"title": "Invalid", "priority": "urgent"},
+        )
+        whitespace_title = await self.client.post(
+            "/api/tasks",
+            json={"title": "   ", "priority": "medium"},
+        )
+        empty_update = await self.client.patch(
+            "/api/tasks/not-found",
+            json={},
+        )
+
+        self.assertEqual(empty_title.status_code, 422)
+        self.assertEqual(invalid_priority.status_code, 422)
+        self.assertEqual(whitespace_title.status_code, 422)
+        self.assertEqual(empty_update.status_code, 422)

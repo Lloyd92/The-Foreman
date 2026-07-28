@@ -3,7 +3,11 @@ services:
     build:
       context: ./backend
     container_name: foreman-backend
+    environment:
+      FOREMAN_DATABASE_URL: sqlite:////data/foreman.db
     restart: unless-stopped
+    volumes:
+      - foreman-data:/data
 
   frontend:
     build:
@@ -14,3 +18,6 @@ services:
       - backend
     ports:
       - "3000:80"
+
+volumes:
+  foreman-data:

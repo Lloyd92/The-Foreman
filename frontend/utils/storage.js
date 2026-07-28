@@ -11,3 +11,7 @@ export function getTasks() {
 export function saveTasks(tasks) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
 }
+
+export function getBrowserTasks() {
+    return getTasks();
+}
