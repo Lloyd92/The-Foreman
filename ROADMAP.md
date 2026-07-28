@@ -181,11 +181,18 @@ Completed
 - Confirmed permanent project deletion
 - Preservation of project identity and creation timestamps during edits
 
+### v0.6.4
+
+- Browser-local project material requirements linked by Inventory item ID
+- Deterministic available, required, shortage, and readiness calculations
+- Focused Project Materials dialog with confirmed requirement removal
+- Project-card readiness indicators and Dashboard readiness summaries
+- Missing Inventory references remain visible without changing project data
+
 Pending
 
 Objectives
 
-- Material requirements
 - Estimated completion
 - Project templates
 

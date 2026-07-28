@@ -30,6 +30,12 @@ Tasks should remain small, testable, and compatible with a Green Build.
 - [x] Preserve project identity and creation time while recording edit time.
 - [x] Add v0.6.3 confirmed permanent project deletion.
 - [x] Keep project controls, summaries, search, filtering, and sorting in sync.
+- [x] Add v0.6.4 browser-local project material requirements.
+- [x] Link requirements to Inventory records by authoritative item ID.
+- [x] Add deterministic Project readiness and shortage calculations.
+- [x] Add the focused Materials dialog and confirmed requirement removal.
+- [x] Add Project readiness indicators and Dashboard readiness summaries.
+- [x] Preserve missing Inventory references without mutating Project data.
 
 ## Current Feature Work
 
@@ -38,7 +44,7 @@ Current work comes from the approved v0.6 objectives:
 
 - [x] Implement project creation.
 - [x] Implement project persistence.
-- [ ] Implement material requirements.
+- [x] Implement material requirements.
 - [x] Implement progress tracking.
 - [ ] Implement estimated completion.
 - [ ] Implement project templates.

@@ -862,6 +862,30 @@ footer {
     font-size: 12px;
 }
 
+.dashboard-project-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.dashboard-project-metrics div {
+    padding: 12px;
+    display: grid;
+    gap: 8px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+}
+
+.dashboard-project-metrics span {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.dashboard-project-metrics strong {
+    font-size: 26px;
+}
+
 @media (max-width: 1050px) {
     .inventory-toolbar {
         grid-template-columns:
@@ -884,6 +908,196 @@ footer {
 .projects-page {
     display: grid;
     gap: 22px;
+}
+
+.project-readiness-summary {
+    padding-top: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.project-readiness-summary > span {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.project-readiness-summary strong,
+.project-readiness-badge {
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.project-readiness-ready {
+    color: #8bd7a3;
+}
+
+.project-readiness-needs-materials {
+    color: #ff8a80;
+}
+
+.project-readiness-empty {
+    color: var(--muted);
+}
+
+.materials-dialog {
+    width: min(820px, 100%);
+}
+
+.materials-dialog-content {
+    padding: 22px;
+    display: grid;
+    gap: 22px;
+}
+
+.materials-dialog-content h3 {
+    margin: 0 0 12px;
+}
+
+.materials-readiness {
+    padding: 13px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+}
+
+.materials-readiness > span {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.materials-requirements-list {
+    display: grid;
+    gap: 12px;
+}
+
+.material-requirement {
+    padding: 14px;
+    display: grid;
+    gap: 12px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.material-requirement-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.material-requirement-heading > div {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.material-requirement-name {
+    overflow-wrap: anywhere;
+}
+
+.material-requirement-reference {
+    color: var(--muted);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.material-requirement-status {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.material-status-sufficient {
+    color: #8bd7a3;
+}
+
+.material-status-insufficient {
+    color: #ff8a80;
+}
+
+.material-quantities {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.material-quantities div {
+    display: grid;
+    gap: 4px;
+}
+
+.material-quantities dt {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.material-quantities dd {
+    margin: 0;
+    font-weight: bold;
+    overflow-wrap: anywhere;
+}
+
+.material-requirement-note {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.45;
+}
+
+.material-requirement .delete-project-button {
+    justify-self: start;
+}
+
+.add-material-section {
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+.material-requirement-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.materials-inventory-message {
+    min-height: 18px;
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+@media (max-width: 650px) {
+    .dashboard-project-metrics,
+    .material-quantities,
+    .material-requirement-form {
+        grid-template-columns: 1fr;
+    }
+
+    .material-requirement-form .form-field-wide,
+    .material-requirement-form .materials-inventory-message,
+    .material-requirement-form .form-error,
+    .material-requirement-form .dialog-actions {
+        grid-column: auto;
+    }
+
+    .project-readiness-summary,
+    .materials-readiness,
+    .material-requirement-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 }
 
 .projects-header {

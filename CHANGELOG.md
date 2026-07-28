@@ -23,6 +23,24 @@ Each release represents a stable, working version of the application.
 
 ---
 
+# v0.6.4
+
+## Added
+
+- Browser-local project material requirements linked to Inventory item IDs
+- Focused Materials dialog for adding and removing project requirements
+- Deterministic material availability, shortage, and readiness calculations
+- Project-card readiness indicators and Dashboard project-readiness metrics
+- Visible missing-reference handling for deleted Inventory items
+
+## Improved
+
+- Kept material readiness current after Project and Inventory changes
+- Preserved legacy Projects without material requirements
+- Updated application version metadata to 0.6.4
+
+---
+
 # v0.6.3
 
 ## Added

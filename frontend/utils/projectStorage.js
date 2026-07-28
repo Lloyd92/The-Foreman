@@ -71,3 +71,53 @@ export function deleteProjectRecord(projectId) {
         projects.filter(item => item.id !== projectId)
     );
 }
+
+export function updateProjectMaterials(projectId, materials) {
+    const projects = getProjects();
+    const project = projects.find(item => item.id === projectId);
+    const inventoryIds = new Set();
+
+    if (
+        !project ||
+        project.status === "archived" ||
+        !Array.isArray(materials) ||
+        materials.some(requirement => {
+            const inventoryItemId = requirement?.inventoryItemId;
+            const requiredQuantity = Number(
+                requirement?.requiredQuantity
+            );
+            const isInvalid =
+                typeof inventoryItemId !== "string" ||
+                !inventoryItemId ||
+                inventoryIds.has(inventoryItemId) ||
+                !Number.isFinite(requiredQuantity) ||
+                requiredQuantity <= 0;
+
+            inventoryIds.add(inventoryItemId);
+            return isInvalid;
+        })
+    ) {
+        return false;
+    }
+
+    const normalizedMaterials = materials.map(requirement => ({
+        inventoryItemId: requirement.inventoryItemId,
+        requiredQuantity: Number(requirement.requiredQuantity),
+        note: typeof requirement.note === "string"
+            ? requirement.note
+            : ""
+    }));
+    const updatedProjects = projects.map(item =>
+        item.id === projectId
+            ? {
+                ...item,
+                materials: normalizedMaterials,
+                id: item.id,
+                createdAt: item.createdAt,
+                updatedAt: new Date().toISOString()
+            }
+            : item
+    );
+
+    return saveProjects(updatedProjects);
+}

@@ -2,11 +2,34 @@ import {
     deleteProjectRecord,
     getProjects,
     saveProjects,
+    updateProjectMaterials,
     updateProjectRecord
 } from "../utils/projectStorage.js";
+import {
+    evaluateProjectReadiness,
+    getProjectMaterials,
+    PROJECT_READINESS
+} from "../utils/projectReadiness.js";
+import {
+    getInventoryItems
+} from "../utils/inventoryStorage.js";
+import {
+    listInventoryItems
+} from "../utils/inventoryApi.js";
 
 let editingProjectId = null;
+let materialsProjectId = null;
+let inventoryItems = [];
+let inventoryRevision = 0;
 let projects = [];
+
+function notifyProjectsUpdated() {
+    document.dispatchEvent(
+        new CustomEvent("projects:updated", {
+            detail: { projects: getProjects() }
+        })
+    );
+}
 
 function setProjectsMessage(message, isError = false) {
     const messageElement = document.getElementById(
@@ -192,6 +215,24 @@ function formatCost(value) {
     }).format(Number(value) || 0);
 }
 
+function formatQuantity(value) {
+    return new Intl.NumberFormat(undefined, {
+        maximumFractionDigits: 6
+    }).format(Number(value) || 0);
+}
+
+function readinessClass(status) {
+    if (status === PROJECT_READINESS.ready) {
+        return "project-readiness-ready";
+    }
+
+    if (status === PROJECT_READINESS.needsMaterials) {
+        return "project-readiness-needs-materials";
+    }
+
+    return "project-readiness-empty";
+}
+
 function updateProjectSummary() {
     const total = document.getElementById(
         "projects-total-count"
@@ -239,10 +280,22 @@ function renderProjects() {
         const card = document.createElement("article");
         const statusLabel = formatLabel(project.status);
         const priorityLabel = formatLabel(project.priority);
+        const readiness = evaluateProjectReadiness(
+            project,
+            inventoryItems
+        );
         const controls = project.status === "archived"
             ? ""
             : `
                 <div class="project-card-actions">
+                    <button
+                        class="table-action-button"
+                        type="button"
+                        data-action="materials"
+                        data-id="${project.id}"
+                    >
+                        Materials
+                    </button>
                     <button
                         class="table-action-button"
                         type="button"
@@ -307,6 +360,13 @@ function renderProjects() {
             </dl>
 
             <p class="project-description"></p>
+
+            <div class="project-readiness-summary">
+                <span>Material Readiness</span>
+                <strong class="${readinessClass(readiness.status)}">
+                    ${readiness.status}
+                </strong>
+            </div>
         `;
 
         card.querySelector(".project-name").textContent =
@@ -343,6 +403,323 @@ function renderProjects() {
 function refreshProjects() {
     projects = getProjects();
     renderProjects();
+}
+
+function getMaterialsProject() {
+    return projects.find(
+        project => project.id === materialsProjectId
+    ) || null;
+}
+
+function updateMaterialSelector(project) {
+    const selector = document.getElementById(
+        "material-inventory-item"
+    );
+    const emptyMessage = document.getElementById(
+        "materials-inventory-message"
+    );
+    const addButton = document.getElementById(
+        "add-material-requirement"
+    );
+
+    if (!selector || !emptyMessage || !addButton) {
+        return;
+    }
+
+    const existingIds = new Set(
+        getProjectMaterials(project).map(
+            requirement => requirement.inventoryItemId
+        )
+    );
+    const availableItems = inventoryItems
+        .filter(item => !existingIds.has(item.id))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    selector.innerHTML = "";
+
+    availableItems.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.id;
+        option.textContent =
+            `${item.name} — ${formatQuantity(item.quantity)} ${item.unit}`;
+        selector.appendChild(option);
+    });
+
+    const noInventory = inventoryItems.length === 0;
+    const allAlreadyRequired =
+        !noInventory && availableItems.length === 0;
+
+    selector.disabled = availableItems.length === 0;
+    addButton.disabled = availableItems.length === 0;
+    emptyMessage.textContent = noInventory
+        ? "No inventory is available. Add an inventory item before adding a material requirement."
+        : allAlreadyRequired
+            ? "Every available inventory item is already required by this project."
+            : "";
+}
+
+function renderMaterialsDialog() {
+    const project = getMaterialsProject();
+    const title = document.getElementById(
+        "materials-dialog-project-name"
+    );
+    const readinessElement = document.getElementById(
+        "materials-dialog-readiness"
+    );
+    const list = document.getElementById(
+        "materials-requirements-list"
+    );
+    const empty = document.getElementById(
+        "materials-requirements-empty"
+    );
+
+    if (
+        !project ||
+        !title ||
+        !readinessElement ||
+        !list ||
+        !empty
+    ) {
+        return;
+    }
+
+    const readiness = evaluateProjectReadiness(
+        project,
+        inventoryItems
+    );
+
+    title.textContent = project.name;
+    readinessElement.textContent = readiness.status;
+    readinessElement.className =
+        `project-readiness-badge ${readinessClass(readiness.status)}`;
+    list.innerHTML = "";
+    empty.hidden = readiness.requirements.length > 0;
+
+    readiness.requirements.forEach(requirement => {
+        const row = document.createElement("article");
+        const itemName = requirement.inventoryItem
+            ? requirement.inventoryItem.name
+            : "Missing inventory item";
+        const unit = requirement.inventoryItem
+            ? requirement.inventoryItem.unit
+            : "unit unavailable";
+        const status = requirement.isSufficient
+            ? "SUFFICIENT"
+            : "INSUFFICIENT";
+
+        row.className = "material-requirement";
+        row.innerHTML = `
+            <div class="material-requirement-heading">
+                <div>
+                    <strong class="material-requirement-name"></strong>
+                    <span class="material-requirement-reference"></span>
+                </div>
+                <span class="material-requirement-status"></span>
+            </div>
+            <dl class="material-quantities">
+                <div>
+                    <dt>Available</dt>
+                    <dd>${formatQuantity(requirement.availableQuantity)} ${unit}</dd>
+                </div>
+                <div>
+                    <dt>Required</dt>
+                    <dd>${formatQuantity(requirement.requiredQuantity)} ${unit}</dd>
+                </div>
+                <div>
+                    <dt>Shortage</dt>
+                    <dd>${formatQuantity(requirement.shortageQuantity)} ${unit}</dd>
+                </div>
+            </dl>
+            <p class="material-requirement-note"></p>
+            <button
+                class="table-action-button delete-project-button"
+                type="button"
+                data-action="remove-material"
+                data-inventory-id="${requirement.inventoryItemId}"
+            >
+                Remove Material
+            </button>
+        `;
+
+        row.querySelector(".material-requirement-name").textContent =
+            itemName;
+        row.querySelector(".material-requirement-reference").textContent =
+            requirement.isMissingReference
+                ? `Inventory reference: ${requirement.inventoryItemId}`
+                : requirement.inventoryItem.category;
+        const statusElement = row.querySelector(
+            ".material-requirement-status"
+        );
+        statusElement.textContent = status;
+        statusElement.classList.add(
+            requirement.isSufficient
+                ? "material-status-sufficient"
+                : "material-status-insufficient"
+        );
+        row.querySelector(".material-requirement-note").textContent =
+            requirement.note || "No note.";
+        list.appendChild(row);
+    });
+
+    updateMaterialSelector(project);
+}
+
+function openMaterialsDialog(project) {
+    const backdrop = document.getElementById(
+        "materials-dialog-backdrop"
+    );
+
+    if (!backdrop || project.status === "archived") {
+        return;
+    }
+
+    materialsProjectId = project.id;
+    document.getElementById("material-requirement-form")?.reset();
+    renderMaterialsDialog();
+    backdrop.hidden = false;
+    document.body.classList.add("dialog-open");
+}
+
+function closeMaterialsDialog() {
+    const backdrop = document.getElementById(
+        "materials-dialog-backdrop"
+    );
+
+    if (!backdrop) {
+        return;
+    }
+
+    backdrop.hidden = true;
+    document.body.classList.remove("dialog-open");
+    materialsProjectId = null;
+    document.getElementById("material-requirement-form")?.reset();
+
+    const error = document.getElementById(
+        "material-requirement-error"
+    );
+
+    if (error) {
+        error.textContent = "";
+    }
+}
+
+function handleMaterialSubmit(event) {
+    event.preventDefault();
+    const project = getMaterialsProject();
+    const formData = new FormData(event.currentTarget);
+    const inventoryItemId = formData.get("inventoryItemId");
+    const requiredQuantity = Number(
+        formData.get("requiredQuantity")
+    );
+    const error = document.getElementById(
+        "material-requirement-error"
+    );
+
+    if (
+        !project ||
+        !inventoryItems.some(item => item.id === inventoryItemId)
+    ) {
+        if (error) {
+            error.textContent =
+                "Select an available inventory item.";
+        }
+        return;
+    }
+
+    if (
+        !Number.isFinite(requiredQuantity) ||
+        requiredQuantity <= 0
+    ) {
+        if (error) {
+            error.textContent =
+                "Required quantity must be greater than zero.";
+        }
+        return;
+    }
+
+    const materials = getProjectMaterials(project);
+
+    if (materials.some(
+        requirement =>
+            requirement.inventoryItemId === inventoryItemId
+    )) {
+        if (error) {
+            error.textContent =
+                "That inventory item is already required.";
+        }
+        return;
+    }
+
+    const requirement = {
+        inventoryItemId,
+        requiredQuantity,
+        note: formData.get("note").trim()
+    };
+
+    if (!updateProjectMaterials(
+        project.id,
+        [...materials, requirement]
+    )) {
+        if (error) {
+            error.textContent =
+                "The material requirement could not be saved.";
+        }
+        return;
+    }
+
+    event.currentTarget.reset();
+    refreshProjects();
+    notifyProjectsUpdated();
+    renderMaterialsDialog();
+
+    if (error) {
+        error.textContent = "";
+    }
+}
+
+function handleMaterialListAction(event) {
+    const button = event.target.closest(
+        '[data-action="remove-material"][data-inventory-id]'
+    );
+    const project = getMaterialsProject();
+
+    if (!button || !project) {
+        return;
+    }
+
+    const materials = getProjectMaterials(project);
+    const requirement = materials.find(
+        item =>
+            item.inventoryItemId === button.dataset.inventoryId
+    );
+
+    if (
+        !requirement ||
+        !window.confirm(
+            "Remove this material requirement from the project?"
+        )
+    ) {
+        return;
+    }
+
+    if (!updateProjectMaterials(
+        project.id,
+        materials.filter(
+            item =>
+                item.inventoryItemId !==
+                requirement.inventoryItemId
+        )
+    )) {
+        setProjectsMessage(
+            "The material requirement could not be removed.",
+            true
+        );
+        return;
+    }
+
+    refreshProjects();
+    notifyProjectsUpdated();
+    renderMaterialsDialog();
 }
 
 function handleProjectSubmit(event) {
@@ -402,6 +779,7 @@ function handleProjectSubmit(event) {
 
         closeProjectDialog();
         refreshProjects();
+        notifyProjectsUpdated();
         setProjectsMessage("Project updated.");
         return;
     }
@@ -424,6 +802,7 @@ function handleProjectSubmit(event) {
     projects = updatedProjects;
     closeProjectDialog();
     renderProjects();
+    notifyProjectsUpdated();
     setProjectsMessage("Project created.");
 }
 
@@ -449,6 +828,11 @@ function handleProjectAction(event) {
         return;
     }
 
+    if (button.dataset.action === "materials") {
+        openMaterialsDialog(project);
+        return;
+    }
+
     if (button.dataset.action !== "delete") {
         return;
     }
@@ -466,6 +850,7 @@ function handleProjectAction(event) {
     }
 
     refreshProjects();
+    notifyProjectsUpdated();
     setProjectsMessage("Project deleted.");
 }
 
@@ -482,6 +867,34 @@ function handleBackdropClick(event) {
 function handleEscapeKey(event) {
     if (event.key === "Escape") {
         closeProjectDialog();
+        closeMaterialsDialog();
+    }
+}
+
+async function loadProjectInventory() {
+    const startingRevision = inventoryRevision;
+
+    try {
+        const loadedItems = await listInventoryItems();
+
+        if (inventoryRevision === startingRevision) {
+            inventoryItems = loadedItems;
+        }
+    } catch (error) {
+        console.error(
+            "Unable to load backend inventory for Projects:",
+            error
+        );
+
+        if (inventoryRevision === startingRevision) {
+            inventoryItems = getInventoryItems();
+        }
+    }
+
+    renderProjects();
+
+    if (materialsProjectId) {
+        renderMaterialsDialog();
     }
 }
 
@@ -501,6 +914,9 @@ export function initializeProjectsPage() {
         "project-dialog-backdrop"
     );
     const list = document.getElementById("projects-list");
+    const materialsBackdrop = document.getElementById(
+        "materials-dialog-backdrop"
+    );
     const search = document.getElementById("projects-search");
     const statusFilter = document.getElementById(
         "projects-status-filter"
@@ -523,10 +939,37 @@ export function initializeProjectsPage() {
     form?.addEventListener("submit", handleProjectSubmit);
     backdrop?.addEventListener("click", handleBackdropClick);
     list?.addEventListener("click", handleProjectAction);
+    document.getElementById(
+        "close-materials-dialog"
+    )?.addEventListener("click", closeMaterialsDialog);
+    document.getElementById(
+        "done-materials"
+    )?.addEventListener("click", closeMaterialsDialog);
+    document.getElementById(
+        "material-requirement-form"
+    )?.addEventListener("submit", handleMaterialSubmit);
+    document.getElementById(
+        "materials-requirements-list"
+    )?.addEventListener("click", handleMaterialListAction);
+    materialsBackdrop?.addEventListener("click", event => {
+        if (event.target.id === "materials-dialog-backdrop") {
+            closeMaterialsDialog();
+        }
+    });
     search?.addEventListener("input", renderProjects);
     statusFilter?.addEventListener("change", renderProjects);
     sort?.addEventListener("change", renderProjects);
     document.addEventListener("keydown", handleEscapeKey);
+    document.addEventListener("inventory:updated", event => {
+        inventoryRevision += 1;
+        inventoryItems = event.detail.items;
+        renderProjects();
+
+        if (materialsProjectId) {
+            renderMaterialsDialog();
+        }
+    });
 
     refreshProjects();
+    void loadProjectInventory();
 }

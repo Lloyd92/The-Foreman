@@ -4,6 +4,16 @@ import {
 import {
     listInventoryItems
 } from "../utils/inventoryApi.js";
+import {
+    getProjects
+} from "../utils/projectStorage.js";
+import {
+    evaluateProjectReadiness,
+    PROJECT_READINESS
+} from "../utils/projectReadiness.js";
+
+let dashboardInventoryItems = [];
+let dashboardInventoryRevision = 0;
 
 function getGreeting(hour) {
     if (hour < 12) {
@@ -137,25 +147,90 @@ function renderDashboardInventory(items) {
     }
 }
 
+function renderDashboardProjects(projects, inventoryItems) {
+    const active = document.getElementById(
+        "dashboard-active-projects"
+    );
+    const ready = document.getElementById(
+        "dashboard-ready-projects"
+    );
+    const needsMaterials = document.getElementById(
+        "dashboard-projects-needing-materials"
+    );
+
+    if (!active || !ready || !needsMaterials) {
+        return;
+    }
+
+    const readinessProjects = projects.filter(
+        project =>
+            project.status === "planning" ||
+            project.status === "active"
+    );
+
+    active.textContent = projects.filter(
+        project => project.status === "active"
+    ).length;
+    ready.textContent = readinessProjects.filter(
+        project =>
+            evaluateProjectReadiness(project, inventoryItems)
+                .status === PROJECT_READINESS.ready
+    ).length;
+    needsMaterials.textContent = readinessProjects.filter(
+        project =>
+            evaluateProjectReadiness(project, inventoryItems)
+                .status === PROJECT_READINESS.needsMaterials
+    ).length;
+}
+
 export async function initializeDashboard() {
     initializeGreeting();
 
+    document.addEventListener(
+        "inventory:updated",
+        event => {
+            dashboardInventoryRevision += 1;
+            dashboardInventoryItems = event.detail.items;
+            renderDashboardInventory(dashboardInventoryItems);
+            renderDashboardProjects(
+                getProjects(),
+                dashboardInventoryItems
+            );
+        }
+    );
+    document.addEventListener(
+        "projects:updated",
+        event => {
+            renderDashboardProjects(
+                event.detail.projects,
+                dashboardInventoryItems
+            );
+        }
+    );
+
+    const startingRevision = dashboardInventoryRevision;
+
     try {
-        renderDashboardInventory(await listInventoryItems());
+        const loadedItems = await listInventoryItems();
+
+        if (dashboardInventoryRevision === startingRevision) {
+            dashboardInventoryItems = loadedItems;
+        }
     } catch (error) {
         console.error(
             "Unable to load backend inventory for Dashboard:",
             error
         );
-        renderDashboardInventory(getInventoryItems());
+
+        if (dashboardInventoryRevision === startingRevision) {
+            dashboardInventoryItems = getInventoryItems();
+        }
     }
 
-    document.addEventListener(
-        "inventory:updated",
-        event => {
-            renderDashboardInventory(
-                event.detail.items
-            );
-        }
+    renderDashboardInventory(dashboardInventoryItems);
+    renderDashboardProjects(
+        getProjects(),
+        dashboardInventoryItems
     );
+
 }

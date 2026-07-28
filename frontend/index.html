@@ -231,16 +231,37 @@
                     <!-- Projects card -->
                     <article class="card">
                         <div class="card-heading">
-                            <h3>Active Projects</h3>
+                            <h3>Project Readiness</h3>
 
                             <span>
-                                0 ACTIVE
+                                MATERIALS
                             </span>
                         </div>
 
-                        <p>
-                            Prototype and customer projects will appear here.
-                        </p>
+                        <div class="dashboard-project-metrics">
+                            <div>
+                                <span>Active Projects</span>
+                                <strong id="dashboard-active-projects">
+                                    0
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>Ready to Start</span>
+                                <strong id="dashboard-ready-projects">
+                                    0
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>Needs Materials</span>
+                                <strong
+                                    id="dashboard-projects-needing-materials"
+                                >
+                                    0
+                                </strong>
+                            </div>
+                        </div>
                     </article>
 
                     <!-- System status card -->
@@ -1248,6 +1269,157 @@
                 </form>
             </section>
         </div>
+
+        <div
+            id="materials-dialog-backdrop"
+            class="dialog-backdrop"
+            hidden
+        >
+            <section
+                class="inventory-dialog materials-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="materials-dialog-title"
+            >
+                <header class="dialog-header">
+                    <div>
+                        <p class="section-eyebrow">
+                            Project Materials
+                        </p>
+
+                        <h2 id="materials-dialog-title">
+                            Materials for
+                            <span id="materials-dialog-project-name"></span>
+                        </h2>
+                    </div>
+
+                    <button
+                        id="close-materials-dialog"
+                        class="icon-button"
+                        type="button"
+                        aria-label="Close project materials"
+                    >
+                        ×
+                    </button>
+                </header>
+
+                <div class="materials-dialog-content">
+                    <div class="materials-readiness">
+                        <span>Project Readiness</span>
+                        <strong
+                            id="materials-dialog-readiness"
+                            class="project-readiness-badge"
+                        >
+                            NO MATERIALS LISTED
+                        </strong>
+                    </div>
+
+                    <section aria-labelledby="current-materials-heading">
+                        <h3 id="current-materials-heading">
+                            Current Requirements
+                        </h3>
+
+                        <div
+                            id="materials-requirements-list"
+                            class="materials-requirements-list"
+                        ></div>
+
+                        <p
+                            id="materials-requirements-empty"
+                            class="empty-message"
+                        >
+                            No materials are listed for this project.
+                        </p>
+                    </section>
+
+                    <section
+                        class="add-material-section"
+                        aria-labelledby="add-material-heading"
+                    >
+                        <h3 id="add-material-heading">
+                            Add Material
+                        </h3>
+
+                        <form
+                            id="material-requirement-form"
+                            class="material-requirement-form"
+                        >
+                            <div class="form-field form-field-wide">
+                                <label for="material-inventory-item">
+                                    Inventory Item
+                                </label>
+
+                                <select
+                                    id="material-inventory-item"
+                                    name="inventoryItemId"
+                                    required
+                                ></select>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="material-required-quantity">
+                                    Required Quantity
+                                </label>
+
+                                <input
+                                    id="material-required-quantity"
+                                    name="requiredQuantity"
+                                    type="number"
+                                    min="0.000001"
+                                    step="any"
+                                    required
+                                >
+                            </div>
+
+                            <div class="form-field form-field-wide">
+                                <label for="material-note">
+                                    Note
+                                </label>
+
+                                <textarea
+                                    id="material-note"
+                                    name="note"
+                                    rows="2"
+                                    maxlength="500"
+                                ></textarea>
+                            </div>
+
+                            <p
+                                id="materials-inventory-message"
+                                class="materials-inventory-message"
+                                role="status"
+                            ></p>
+
+                            <p
+                                id="material-requirement-error"
+                                class="form-error"
+                                role="alert"
+                            ></p>
+
+                            <div class="dialog-actions">
+                                <button
+                                    id="add-material-requirement"
+                                    class="primary-button"
+                                    type="submit"
+                                >
+                                    Add Material
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <div class="dialog-actions">
+                        <button
+                            id="done-materials"
+                            class="secondary-button"
+                            type="button"
+                        >
+                            Done
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
     </section>
 </main>
 
@@ -1312,7 +1484,7 @@
             <footer>
                 The Foreman · HardHead Works · Version
                 <span id="footer-version">
-                    0.6.3
+                    0.6.4
                 </span>
             </footer>
         </div>

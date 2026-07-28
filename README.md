@@ -16,7 +16,7 @@ The Foreman is designed to replace scattered notebooks, spreadsheets, sticky not
 
 **Current Version**
 
-v0.6.3 (Development)
+v0.6.4 (Development)
 
 Current focus:
 
@@ -135,12 +135,14 @@ Planned capabilities:
 
 # Projects
 
-The v0.6.3 Projects workspace supports browser-local project creation,
+The v0.6.4 Projects workspace supports browser-local project creation,
 editing, confirmed deletion, persistence, project cards, progress tracking,
-summary counts, search, status filtering, and sorting.
+summary counts, search, status filtering, sorting, and material requirements
+linked to current Inventory records. Project cards and the focused Materials
+dialog provide deterministic readiness and shortage calculations without
+deducting or reserving inventory.
 
-Material requirements, project templates, and deeper module integrations
-remain planned work.
+Project templates and deeper module integrations remain planned work.
 
 ---
 
@@ -204,7 +206,7 @@ Development Environment
 - Linux (Xubuntu)
 
 Tasks and Inventory use backend SQLite persistence with migration and fallback
-support for browser-local records. The v0.6.3 Projects workspace remains
+support for browser-local records. The v0.6.4 Projects workspace remains
 browser-local and does not yet use the existing backend Projects API.
 
 The backend currently provides validated APIs for system status, Inventory,
