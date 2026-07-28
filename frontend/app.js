@@ -16,7 +16,7 @@ function initializeApplication() {
         inventoryMigration
     );
     initializeTasksPage(projectMigration);
-    initializeProjectsPage();
+    initializeProjectsPage(projectMigration);
     initializeSystemStatus();
 }
 

@@ -37,6 +37,39 @@ export function deleteProject(projectId) {
     });
 }
 
+export function addProjectMaterial(projectId, requirement) {
+    return apiRequest(
+        `/api/projects/${encodeURIComponent(projectId)}/materials`,
+        {
+            method: "POST",
+            body: JSON.stringify(requirement)
+        }
+    );
+}
+
+
+export function updateProjectMaterial(
+    projectId,
+    inventoryItemId,
+    changes
+) {
+    return apiRequest(
+        `/api/projects/${encodeURIComponent(projectId)}/materials/${encodeURIComponent(inventoryItemId)}`,
+        {
+            method: "PATCH",
+            body: JSON.stringify(changes)
+        }
+    );
+}
+
+
+export function deleteProjectMaterial(projectId, inventoryItemId) {
+    return apiRequest(
+        `/api/projects/${encodeURIComponent(projectId)}/materials/${encodeURIComponent(inventoryItemId)}`,
+        { method: "DELETE" }
+    );
+}
+
 
 export function migrateBrowserProject(project) {
     return apiRequest("/api/project-migrations/browser", {

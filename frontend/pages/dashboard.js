@@ -4,9 +4,7 @@ import {
 import {
     listInventoryItems
 } from "../utils/inventoryApi.js";
-import {
-    getProjects
-} from "../utils/projectStorage.js";
+import { listProjects } from "../utils/projectsApi.js";
 import {
     evaluateProjectReadiness,
     PROJECT_READINESS
@@ -14,6 +12,8 @@ import {
 
 let dashboardInventoryItems = [];
 let dashboardInventoryRevision = 0;
+let dashboardProjects = [];
+let dashboardProjectRevision = 0;
 
 function getGreeting(hour) {
     if (hour < 12) {
@@ -193,7 +193,7 @@ export async function initializeDashboard() {
             dashboardInventoryItems = event.detail.items;
             renderDashboardInventory(dashboardInventoryItems);
             renderDashboardProjects(
-                getProjects(),
+                dashboardProjects,
                 dashboardInventoryItems
             );
         }
@@ -201,8 +201,10 @@ export async function initializeDashboard() {
     document.addEventListener(
         "projects:updated",
         event => {
+            dashboardProjectRevision += 1;
+            dashboardProjects = event.detail.projects;
             renderDashboardProjects(
-                event.detail.projects,
+                dashboardProjects,
                 dashboardInventoryItems
             );
         }
@@ -227,9 +229,27 @@ export async function initializeDashboard() {
         }
     }
 
+    const startingProjectRevision = dashboardProjectRevision;
+
+    try {
+        const loadedProjects = await listProjects();
+
+        if (
+            dashboardProjectRevision === startingProjectRevision &&
+            Array.isArray(loadedProjects)
+        ) {
+            dashboardProjects = loadedProjects;
+        }
+    } catch (error) {
+        console.error(
+            "Unable to load backend Projects for Dashboard:",
+            error
+        );
+    }
+
     renderDashboardInventory(dashboardInventoryItems);
     renderDashboardProjects(
-        getProjects(),
+        dashboardProjects,
         dashboardInventoryItems
     );
 
