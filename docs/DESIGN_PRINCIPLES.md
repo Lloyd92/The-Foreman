@@ -1,282 +1,321 @@
-# The Foreman Design Principles
-
-Version: 1.0
-
----
-
-# Purpose
-
-The Foreman is designed to help builders, makers, craftsmen, and small business owners organize their work without getting in the way of it.
-
-Every design decision should make the software easier to understand, easier to maintain, and easier to use in a real workshop.
-
-These principles guide every feature added to The Foreman.
+# Design Principles
+## The Foreman
+### Version 1.0
 
 ---
 
-# 1. Build for the Workshop First
+# Introduction
 
-The Foreman exists to solve real problems encountered inside HardHead Works.
+The Foreman is not designed to impress.
 
-Features should solve actual workshop problems before considering broader audiences.
+It is designed to help.
 
-If it works well in HardHead Works, it can later be generalized for everyone else.
+Every design decision should reduce unnecessary mental effort and increase confidence.
 
----
+Good design should feel natural.
 
-# 2. Simplicity Over Complexity
+The user should spend their time accomplishing work—not learning how to use the software.
 
-The simplest solution that solves the problem is usually the correct one.
-
-Avoid unnecessary complexity.
-
-Avoid unnecessary dependencies.
-
-Avoid unnecessary configuration.
+The best interface is the one that quietly disappears.
 
 ---
 
-# 3. Reliability Over Flashiness
+# Principle 1
+## Calm Over Chaos
 
-The Foreman is a workshop tool.
+The Foreman should create a feeling of control.
 
-Users should trust it more than admire it.
+It should never overwhelm its user with unnecessary information.
 
-Fast.
+When multiple pieces of information compete for attention, prioritize only what is immediately useful.
 
-Stable.
-
-Predictable.
-
-Professional.
-
-Fancy animations and visual effects should never interfere with productivity.
+The interface should reduce stress rather than increase it.
 
 ---
 
-# 4. Every Feature Must Have a Purpose
+# Principle 2
+## The Morning Briefing Comes First
 
-No feature should exist simply because it is technically interesting.
+The Dashboard is the application shell.
 
-Every feature should answer one question:
+The Morning Briefing is the Dashboard's default workspace and the primary
+daily experience of The Foreman.
 
-"What real problem does this solve?"
+Every module exists to improve it.
 
-If that question cannot be answered, the feature should not exist.
+Every element presented through the Dashboard should support the Morning
+Briefing rather than compete with it for attention.
+
+Capacity must evaluate whether work is realistically achievable before it is
+scheduled or recommended. Scheduling displays must never imply that work is
+feasible until Capacity has evaluated it.
+
+When deciding whether a feature belongs in Version 1.0 ask:
+
+> Does this improve today's briefing?
+
+If not...
+
+It probably belongs somewhere else.
 
 ---
 
-# 5. Modular Everything
+# Principle 3
+## Information Should Have Purpose
 
-Every system should be independent.
-
-Tasks should not depend on Inventory.
-
-Inventory should not depend on Budget.
-
-Budget should not depend on Mealworms.
-
-Modules communicate through well-defined interfaces.
-
-This allows new systems to be added without rewriting existing ones.
-
----
-
-# 6. Separation of Responsibilities
-
-Each file should have a single responsibility.
+Every screen should answer a question.
 
 Examples:
 
-Pages render pages.
+Morning Briefing
 
-Storage stores data.
+> What should I do today?
 
-API communicates with the backend.
+Projects
 
-Router changes views.
+> What is my next step?
 
-Business logic belongs in modules—not inside HTML.
+Inventory
 
----
+> What materials am I running low on?
 
-# 7. Human Readability Wins
+Finance
 
-Code is written for people first.
+> Can I afford this purchase?
 
-Future developers should understand the code without needing clever tricks.
+Notes
 
-Clear names.
+> What information do I need later?
 
-Consistent formatting.
-
-Meaningful comments.
-
-Readable functions.
-
-Maintainability is more valuable than saving a few lines of code.
+If a page exists without answering an important question, reconsider its purpose.
 
 ---
 
-# 8. Preserve User Data
+# Principle 4
+## Reduce Cognitive Load
 
-User information should never be lost without deliberate migration.
+Never make the user remember something the software can remember.
 
-Updates should preserve existing projects, inventory, budgets, and settings whenever possible.
+Never require unnecessary clicks.
 
-Backward compatibility is preferred.
+Never force users to search for important information.
 
----
-
-# 9. Automate Repetitive Work
-
-Whenever users repeat the same task multiple times, ask:
-
-"Can The Foreman do this automatically?"
-
-Automation should reduce workload—not remove user control.
-
-The Foreman assists the craftsman.
-
-It does not replace the craftsman.
+The Foreman should remember details so its user can focus on thinking.
 
 ---
 
-# 10. Performance Matters
+# Principle 5
+## Progressive Complexity
 
-The Foreman should feel responsive on modest hardware.
+Show only what is needed now.
 
-It is expected to run on older workshop computers like the HardHead server.
+Advanced information should remain available...
 
-Optimize for responsiveness before optimization for scale.
+But not immediately visible.
 
----
+Beginners should feel comfortable.
 
-# 11. Offline First
-
-A workshop should continue operating without Internet access.
-
-The Foreman should function locally whenever possible.
-
-Cloud features are optional—not required.
+Power users should never feel limited.
 
 ---
 
-# 12. Data Before Appearance
-
-Good information is more important than beautiful graphics.
-
-Users should immediately know:
-
-• What needs attention
-• What is low
-• What is overdue
-• What should be built next
-
-The interface should communicate information clearly.
-
----
-
-# 13. Consistency
+# Principle 6
+## Consistency Creates Confidence
 
 Buttons should behave consistently.
 
-Dialogs should behave consistently.
+Navigation should remain predictable.
 
-Navigation should behave consistently.
+Colors should retain their meaning.
 
-Keyboard shortcuts should behave consistently.
+Terminology should remain consistent throughout the application.
 
-Users should never have to guess how something works.
-
----
-
-# 14. Version Everything
-
-Every meaningful change should be tracked.
-
-Git commits.
-
-Git tags.
-
-Release notes.
-
-Documentation.
-
-Nothing important should exist only in memory.
+The user should never wonder what something does.
 
 ---
 
-# 15. Document Decisions
+# Principle 7
+## Explain Before Asking for Trust
 
-When architecture changes, update:
+Recommendations should include reasoning whenever practical.
 
-ARCHITECTURE.md
+Instead of:
 
-When functionality changes, update:
+> Buy more plywood.
 
-CHANGELOG.md
+Prefer:
 
-When future direction changes, update:
+> Current inventory supports one remaining project.
+> Two future projects require additional plywood.
 
-ROADMAP.md
+Users should understand recommendations.
 
-Good documentation is part of the software.
-
----
-
-# 16. AI is a Tool, Not the Product
-
-AI assists development.
-
-AI assists planning.
-
-AI assists automation.
-
-AI should never reduce the user's understanding or control of their own workshop.
-
-The Foreman should always remain transparent in its decisions.
+Trust grows through explanation.
 
 ---
 
-# 17. Grow With the Business
+# Principle 8
+## One Screen. One Purpose.
 
-The Foreman should scale naturally.
+Avoid combining unrelated functions.
 
-A hobby workshop.
+Each screen should focus on solving one primary problem.
 
-A small business.
-
-A commercial shop.
-
-Multiple buildings.
-
-Multiple employees.
-
-The architecture should support growth without requiring complete redesign.
+Simple screens reduce decision fatigue.
 
 ---
 
-# 18. Build Things That Last
+# Principle 9
+## Respect Attention
 
-Temporary shortcuts become permanent problems.
+Notifications should exist only when they provide value.
 
-Choose solutions that future developers will appreciate.
+Interruptions should be meaningful.
 
-Every release should leave the project in a better state than it was before.
+The Foreman should never compete for attention.
+
+It should quietly wait until it has something important to say.
 
 ---
 
-# Final Principle
+# Principle 10
+## Build for Daily Use
 
-The Foreman serves the craftsman.
+Every feature should assume the application will be opened every day.
 
-Software exists to help people build things.
+Frequently used actions should require minimal effort.
 
-It should remove friction.
+The software should become part of a daily routine.
 
-It should increase confidence.
+---
 
-It should organize work.
+# Principle 11
+## Mobile Is an Extension
 
-It should never become the work itself.
+The phone application is not a smaller desktop.
+
+It is a companion.
+
+Mobile should emphasize:
+
+- Morning Briefing
+- Quick capture
+- Inventory lookup
+- Notifications
+- Project status
+
+Detailed planning belongs on larger screens.
+
+---
+
+# Principle 12
+## Steam Deck Is a Workshop Companion
+
+The Steam Deck should function as a portable Foreman terminal.
+
+Its interface should prioritize:
+
+- Large touch targets
+- Quick navigation
+- Inventory
+- Checklists
+- Project progress
+- Shop reference information
+
+It should remain fully usable while standing in the workshop.
+
+---
+
+# Principle 13
+## The Workspace Should Feel Familiar
+
+Preferred design language:
+
+- Rounded corners
+- Comfortable spacing
+- Gunmetal gray
+- Black
+- Orange highlights
+
+Avoid visual clutter.
+
+Avoid excessive gradients.
+
+Avoid unnecessary animation.
+
+The interface should feel industrial, modern, and dependable.
+
+---
+
+# Principle 14
+## Silence Has Value
+
+The Foreman should never rely on sound.
+
+Notifications should be visual.
+
+Animations should remain subtle.
+
+Silence helps users maintain focus.
+
+---
+
+# Principle 15
+## Build Confidence
+
+Every interaction should leave the user feeling more organized than before they opened the application.
+
+The Foreman succeeds when users close it with greater confidence than when they opened it.
+
+---
+
+# Accessibility
+
+Design should prioritize:
+
+- Readable typography
+- High contrast
+- Keyboard accessibility
+- Touch-friendly controls
+- Responsive layouts
+- Clear spacing
+
+The interface should remain usable by everyone.
+
+---
+
+# Every Screen Should Answer
+
+Every screen should clearly answer one important question.
+
+Every click should move work forward.
+
+Every recommendation should reduce uncertainty.
+
+Every feature should strengthen the person using it.
+
+---
+
+# Final Thought
+
+The Foreman should never feel like software that demands attention.
+
+It should feel like a dependable partner standing quietly beside its owner.
+
+Calm.
+
+Organized.
+
+Prepared.
+
+Always ready to answer the same question:
+
+> Given everything I know...
+
+> What is the best thing to do next?
+
+If the design accomplishes that...
+
+Then it has succeeded.
+
+Keep the work moving.

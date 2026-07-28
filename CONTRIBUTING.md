@@ -6,15 +6,31 @@ Whether you are a developer, designer, tester, technical writer, or AI coding as
 
 **Help build software that helps people build things.**
 
-Before contributing, please read:
+Before contributing, read these documents in order:
 
-- README.md
-- ROADMAP.md
-- ARCHITECTURE.md
-- docs/FOUNDERS_LETTER.md
-- docs/DESIGN_PRINCIPLES.md
+1. `docs/CONSTITUTION.md`
+2. `docs/FOUNDERS_LETTER.md`
+3. `docs/ENGINEERING_PRINCIPLES.md`
+4. `docs/DESIGN_PRINCIPLES.md`
+5. `ARCHITECTURE.md`
+6. `docs/AGENTS.md`
+7. `README.md`
+8. `ROADMAP.md`
+9. `CHANGELOG.md`
+10. `docs/TASKS.md`
+11. `CONTRIBUTING.md`
 
 These documents define the project's purpose and engineering philosophy.
+
+The Constitution is the highest authority. The Founder's Letter defines
+project intent, Engineering Principles define development behavior, Design
+Principles define the user experience, and Architecture defines the Version
+1.0 target architecture.
+
+When documentation and implementation disagree, do not assume the
+implementation is correct. Determine whether the discrepancy represents
+incomplete implementation, outdated documentation, or an architectural
+decision requiring founder approval.
 
 ---
 
@@ -56,8 +72,17 @@ Before implementing a feature:
 - Review existing modules.
 - Avoid duplicate functionality.
 - Keep responsibilities separated.
+- Identify whether the change affects the current implementation, the Version
+  1.0 target architecture, or both.
+- Confirm that the Dashboard remains the application shell and the Morning
+  Briefing remains its default workspace.
+- Confirm that capacity is evaluated before scheduling or recommendation.
 
 Follow the architecture described in `ARCHITECTURE.md`.
+
+Architecture describes the Version 1.0 target and may not match every part of
+the current implementation. Do not treat an implementation difference as an
+implicit architecture change.
 
 ---
 
@@ -100,7 +125,7 @@ Documentation is considered part of the feature.
 
 ## 6. Version Control
 
-After testing:
+After testing and with project-owner approval:
 
 ```bash
 git add .
@@ -114,6 +139,9 @@ Every release should have:
 - A commit
 - A Git tag
 - Updated documentation
+
+Contributors and AI assistants must not commit, tag, merge, or push unless the
+project owner explicitly instructs them to do so.
 
 ---
 

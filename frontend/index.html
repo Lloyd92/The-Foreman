@@ -1027,6 +1027,226 @@
                 aria-live="polite"
             ></p>
         </section>
+
+        <div
+            id="project-dialog-backdrop"
+            class="dialog-backdrop"
+            hidden
+        >
+            <section
+                class="inventory-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="project-dialog-title"
+            >
+                <header class="dialog-header">
+                    <div>
+                        <p class="section-eyebrow">
+                            Workshop Project
+                        </p>
+
+                        <h2 id="project-dialog-title">
+                            Add Project
+                        </h2>
+                    </div>
+
+                    <button
+                        id="close-project-dialog"
+                        class="icon-button"
+                        type="button"
+                        aria-label="Close project form"
+                    >
+                        ×
+                    </button>
+                </header>
+
+                <form
+                    id="project-form"
+                    class="inventory-form"
+                >
+                    <div class="form-field form-field-wide">
+                        <label for="project-name">
+                            Project Name
+                        </label>
+
+                        <input
+                            id="project-name"
+                            name="name"
+                            type="text"
+                            maxlength="120"
+                            autocomplete="off"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-field">
+                        <label for="project-type">
+                            Type
+                        </label>
+
+                        <select
+                            id="project-type"
+                            name="type"
+                        >
+                            <option value="build">Build</option>
+                            <option value="repair">Repair</option>
+                            <option value="prototype">Prototype</option>
+                            <option value="customer">Customer</option>
+                            <option value="internal">Internal</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="project-status">
+                            Status
+                        </label>
+
+                        <select
+                            id="project-status"
+                            name="status"
+                        >
+                            <option value="planning">
+                                Planning
+                            </option>
+
+                            <option value="active">
+                                Active
+                            </option>
+
+                            <option value="on-hold">
+                                On Hold
+                            </option>
+
+                            <option value="completed">
+                                Completed
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="project-priority">
+                            Priority
+                        </label>
+
+                        <select
+                            id="project-priority"
+                            name="priority"
+                        >
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="project-progress">
+                            Progress
+                        </label>
+
+                        <input
+                            id="project-progress"
+                            name="progress"
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="1"
+                            value="0"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-field">
+                        <label for="project-start-date">
+                            Start Date
+                        </label>
+
+                        <input
+                            id="project-start-date"
+                            name="startDate"
+                            type="date"
+                        >
+                    </div>
+
+                    <div class="form-field">
+                        <label for="project-target-date">
+                            Target Date
+                        </label>
+
+                        <input
+                            id="project-target-date"
+                            name="targetDate"
+                            type="date"
+                        >
+                    </div>
+
+                    <div class="form-field form-field-wide">
+                        <label for="project-estimated-cost">
+                            Estimated Cost
+                        </label>
+
+                        <input
+                            id="project-estimated-cost"
+                            name="estimatedCost"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value="0"
+                        >
+                    </div>
+
+                    <div class="form-field form-field-wide">
+                        <label for="project-description">
+                            Description
+                        </label>
+
+                        <textarea
+                            id="project-description"
+                            name="description"
+                            rows="3"
+                            maxlength="2000"
+                        ></textarea>
+                    </div>
+
+                    <div class="form-field form-field-wide">
+                        <label for="project-notes">
+                            Notes
+                        </label>
+
+                        <textarea
+                            id="project-notes"
+                            name="notes"
+                            rows="4"
+                            maxlength="2000"
+                        ></textarea>
+                    </div>
+
+                    <p
+                        id="project-form-error"
+                        class="form-error"
+                        role="alert"
+                    ></p>
+
+                    <div class="dialog-actions">
+                        <button
+                            id="cancel-project"
+                            class="secondary-button"
+                            type="button"
+                        >
+                            Cancel
+                        </button>
+
+                        <button
+                            class="primary-button"
+                            type="submit"
+                        >
+                            Save Project
+                        </button>
+                    </div>
+                </form>
+            </section>
+        </div>
     </section>
 </main>
 
@@ -1091,7 +1311,7 @@
             <footer>
                 The Foreman · HardHead Works · Version
                 <span id="footer-version">
-                    0.5.4
+                    0.6.2
                 </span>
             </footer>
         </div>

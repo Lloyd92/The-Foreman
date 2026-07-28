@@ -40,7 +40,7 @@ Goals:
 Major accomplishments:
 
 - Docker Compose
-- FastAPI backend
+- Flask backend
 - Nginx frontend
 - Development workflow established
 
@@ -102,9 +102,9 @@ Major accomplishments:
 
 ---
 
-## v0.5 — Inventory System 🚧
+## v0.5 — Inventory System ✅
 
-Status: In Progress
+Status: Complete
 
 Completed
 
@@ -138,7 +138,9 @@ Completed
 - Dashboard inventory alerts
 - Dashboard integration
 
-Future v0.5 work may include:
+Status: Complete
+
+Deferred inventory ideas:
 
 - CSV import/export
 - Barcode support
@@ -147,18 +149,42 @@ Future v0.5 work may include:
 
 ---
 
-# Planned Releases
+# Active Release
 
-## v0.6 — Projects
+## v0.6 — Projects 🚧
+
+Status: In Progress
+
+Completed
+
+### v0.6.1
+
+- Projects workspace shell
+- Project summary cards
+- Search controls
+- Status filtering
+- Sorting controls
+- Add-project placeholder behavior
+- Navigation integration
+
+### v0.6.2
+
+- Browser-local project creation and persistence
+- Project details, descriptions, notes, dates, costs, priorities, and progress
+- Functional project search, status filtering, and sorting
+- Persistent project cards and live project summary counts
+
+Pending
 
 Objectives
 
-- Project management
 - Material requirements
-- Progress tracking
 - Estimated completion
 - Project templates
-- Project notes
+
+The visible Projects workspace does not make the Projects module complete.
+Required project-management behavior remains pending until it is implemented
+and verified.
 
 Future integrations
 
@@ -168,6 +194,8 @@ Future integrations
 - Purchasing
 
 ---
+
+# Planned Releases
 
 ## v0.7 — Mealworm Management
 
@@ -224,6 +252,15 @@ Goals
 
 Deliver a reliable workshop operating system suitable for daily use.
 
+Constitutional foundations:
+
+- The Dashboard is the application shell.
+- The Morning Briefing is the Dashboard's default workspace.
+- Capacity evaluation occurs before scheduling or recommendation.
+- Priority ranks work only after Capacity determines realistic eligibility.
+- Recommendations are explainable.
+- Core operation remains useful without Artificial Intelligence.
+
 Core modules:
 
 - Dashboard
@@ -239,8 +276,13 @@ Additional goals:
 - Stable API
 - Tested release
 - Installation guide
+- SQLite database
 - Backup and restore
 - Release notes
+
+Visible user interface alone does not make a feature complete when required
+behavior is missing. Completion requires implemented behavior, verification,
+and current documentation.
 
 ---
 
@@ -250,7 +292,8 @@ Additional goals:
 
 Potential additions:
 
-- PostgreSQL database
+- PostgreSQL database as a later consideration after the Version 1.0 SQLite
+  foundation
 - User accounts
 - Multi-user support
 - Mobile companion app

@@ -59,6 +59,28 @@ The craftsman spends time building instead of searching.
 
 ---
 
+# The Morning Briefing
+
+The Morning Briefing is the central daily experience of The Foreman.
+
+It is presented through the Dashboard, which serves as the application shell.
+The Morning Briefing is the Dashboard's default workspace.
+
+Every operational module contributes relevant facts to the Morning Briefing.
+Those facts become useful daily guidance through a clear decision flow:
+
+1. Capacity evaluates reality before recommendations are generated.
+2. Priority ranks only work that is realistically achievable.
+3. The Morning Briefing presents what is possible, what matters most, and what
+   the owner needs to know before beginning.
+
+Recommendations should remain explainable so the owner understands why work is
+being surfaced. By organizing operational facts and reducing unnecessary
+decisions, the Morning Briefing reduces cognitive load without replacing human
+judgment.
+
+---
+
 # A Workshop Operating System
 
 The Foreman is designed to become the central operating system for HardHead Works.

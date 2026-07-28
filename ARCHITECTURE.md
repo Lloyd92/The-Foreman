@@ -1,549 +1,561 @@
-# The Foreman Architecture
+# Architecture
 
-Version: 1.0
+## The Foreman
 
----
+### Version 1.0 Target Architecture
 
-# Purpose
+This document defines the Version 1.0 target architecture for The Foreman.
+It also records the current implementation so contributors can distinguish
+what exists today from what the project is building toward.
 
-This document describes the architecture of The Foreman.
-
-Its purpose is to help contributors understand how the application is organized before modifying the codebase.
-
-The Foreman is intentionally designed around a modular architecture so that new features can be added without disrupting existing functionality.
-
----
-
-# Architectural Goals
-
-The architecture is designed to be:
-
-- Modular
-- Maintainable
-- Predictable
-- Testable
-- Scalable
-- Local-first
-
-Every module should have a clearly defined responsibility.
+The target architecture may evolve alongside the project, but it must remain
+consistent with the Constitution, Founder's Letter, Engineering Principles,
+and Design Principles. The Constitution is the highest authority.
 
 ---
 
-# High-Level Architecture
+# 1. Purpose
 
-```
-                   Browser
-                       │
-             HTML / CSS / JavaScript
-                       │
-                  Application Router
-                       │
-        ┌──────────────┼──────────────┐
-        │              │              │
-   Dashboard        Tasks        Inventory
-        │              │              │
-        └──────────────┼──────────────┘
-                       │
-                  Shared Utilities
-                       │
-                Local Storage / API
-                       │
-             FastAPI Backend (future)
-                       │
-          PostgreSQL Database (planned)
-```
+The Foreman is a local-first business operating system whose primary
+responsibility is to transform scattered operational information into clear,
+actionable decisions.
+
+The architecture is designed around four core goals:
+
+- Reliability
+- Modularity
+- Explainability
+- Simplicity
+
+Every technical decision should ultimately improve the Morning Briefing.
+
+The Dashboard is the application shell.
+
+The Morning Briefing is the Dashboard's default workspace and the primary
+experience of The Foreman.
 
 ---
 
-# Technology Stack
+# 2. Current Implementation
 
-Frontend
+The current implementation is an early working foundation. It does not yet
+implement every layer or capability described in the Version 1.0 target.
 
-- HTML5
-- CSS3
-- JavaScript (ES Modules)
+## 2.1 Current Technology
 
-Backend
+Backend:
 
 - Python
 - FastAPI
+- Pydantic
+- SQLAlchemy
+- Uvicorn
+- Validated APIs for system status, Inventory, Projects, Tasks, browser-data
+  migration, and operational facts
 
-Infrastructure
+Frontend:
+
+- Static HTML
+- CSS
+- JavaScript using ES modules
+- Nginx
+
+Deployment:
 
 - Docker
 - Docker Compose
-- Nginx
+- `compose.yaml`
 
-Version Control
+Persistence:
 
-- Git
+- The backend persists Inventory, Projects, Tasks, and browser-migration
+  records in SQLite through SQLAlchemy.
+- The Inventory and Tasks frontends retain browser-local compatibility and
+  include migration paths to backend persistence.
+- The v0.6.2 Projects frontend uses browser `localStorage` and does not
+  currently use the backend Projects API.
+- The browser-local Projects fields and backend Project schema do not yet
+  match; browser-local Projects are therefore absent from backend operational
+  facts.
 
-Development Environment
+## 2.2 Current Workspaces
 
-- Linux (Xubuntu)
+Dashboard:
 
----
+- Provides the application shell.
+- Displays a greeting, date, system status, Tasks workspace, inventory alerts,
+  and module status summaries.
+- Does not yet implement the complete capacity-aware Morning Briefing.
 
-# Folder Structure
+Tasks:
 
-```
+- Supports task creation, priority selection, completion, deletion, and
+  backend persistence with migration of browser-local records.
+- Currently appears within the Dashboard; the dedicated Tasks page remains a
+  placeholder.
+
+Inventory:
+
+- Supports creation, editing, deletion, search, filtering, sorting, low-stock
+  detection, dashboard alerts, backend persistence, and migration of
+  browser-local records.
+
+Projects:
+
+- Provides the v0.6.2 Projects workspace, browser-local project creation and
+  persistence, project cards, progress tracking, summary cards, search,
+  filtering, sorting controls, and empty state.
+- Material requirements, project templates, and deeper module integrations
+  are not yet implemented.
+
+Budget and Mealworms:
+
+- Exist as placeholder workspaces.
+- Their operational modules are not yet implemented.
+
+## 2.3 Layers and Capabilities Not Yet Implemented
+
+The current implementation does not yet include:
+
+- Capacity Engine
+- Priority Engine
+- Morning Briefing assembly logic
+- Backup
+- Restore and restore verification
+- Testing Mode
+
+These are incomplete Version 1.0 target capabilities, not evidence that the
+target architecture has changed.
+
+The implemented backend foundation currently includes:
+
+- FastAPI routes as the validated HTTP boundary
+- Pydantic request and response schemas
+- Services for business rules and transaction coordination
+- Repositories for SQLAlchemy database access
+- SQLAlchemy persistence models
+- SQLite application persistence
+- Automated backend API tests
+- Operational-facts aggregation across backend Inventory, Projects, and Tasks
+
+## 2.4 Current Repository Structure
+
+```text
 Foreman/
-
-backend/
-frontend/
-docs/
-
-README.md
-ROADMAP.md
-ARCHITECTURE.md
-CHANGELOG.md
-CONTRIBUTING.md
-AGENTS.md
-TASKS.md
-docker-compose.yml
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── core/
+│   │   ├── models/
+│   │   ├── repositories/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   └── main.py
+│   ├── tests/
+│   ├── Dockerfile
+│   └── requirements.txt
+├── database/
+│   └── .gitkeep
+├── docker/
+│   └── .gitkeep
+├── docs/
+│   ├── AGENTS.md
+│   ├── CONSTITUTION.md
+│   ├── DESIGN_PRINCIPLES.md
+│   ├── ENGINEERING_PRINCIPLES.md
+│   ├── FOUNDERS_LETTER.md
+│   ├── FUTURE_IDEAS.md
+│   ├── PROJECT_VISION.md
+│   └── TASKS.md
+├── frontend/
+│   ├── pages/
+│   ├── utils/
+│   ├── Dockerfile
+│   ├── app.js
+│   ├── default.conf
+│   ├── index.html
+│   └── styles.css
+├── ARCHITECTURE.md
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── README.md
+├── ROADMAP.md
+└── compose.yaml
 ```
+
+The `database/` and `docker/` directories are currently placeholders. The
+SQLite database is stored in the Docker-managed `/data` volume. The repository
+does not yet contain an operational `scripts/` directory.
+
+## 2.5 Current Backend Flow
+
+Current database-backed requests follow this implemented flow:
+
+```text
+FastAPI route
+      │
+      ▼
+Pydantic request validation
+      │
+      ▼
+Service business rules and transaction coordination
+      │
+      ▼
+Repository SQLAlchemy queries
+      │
+      ▼
+SQLAlchemy models
+      │
+      ▼
+SQLite in the Docker-managed /data volume
+      │
+      ▼
+Pydantic response serialization
+```
+
+FastAPI dependencies provide one SQLAlchemy session per request. Services
+commit successful mutations and roll back failed mutations; repositories
+remain responsible for database queries and record access. Application startup
+creates missing tables from SQLAlchemy metadata. Versioned database migrations
+are not yet implemented.
+
+The `/api/operational-facts` endpoint currently aggregates backend Inventory,
+Projects, and Tasks through their services and repositories. It is an early
+module-fact boundary, not the Morning Briefing, Capacity Engine, or Priority
+Engine. Because v0.6.2 Projects remain browser-local, those Projects do not
+appear in this backend aggregation.
 
 ---
 
-## Frontend
+# 3. Version 1.0 Target
 
-```
-frontend/
+## 3.1 Core System Flow
 
-index.html
-
-styles.css
-
-app.js
-
-pages/
-
-utils/
-
-assets/
-```
-
----
-
-### pages/
-
-Each file is responsible for one application page.
-
-Example:
-
-```
-dashboard.js
-
-tasks.js
-
-inventory.js
-```
-
-Responsibilities:
-
-- Render page content
-- Handle user interaction
-- Coordinate with storage
-- Coordinate with APIs
-
-Pages should not contain unrelated business logic.
-
----
-
-### utils/
-
-Utility modules contain reusable logic.
-
-Examples:
-
-```
-inventoryStorage.js
-
-taskStorage.js
-
-dateUtils.js
-
-formatters.js
-```
-
-Utility modules should remain independent of user interface code whenever practical.
-
----
-
-# Application Startup
-
-Application startup follows this sequence:
-
-```
-Browser
-
-↓
-
-index.html
-
-↓
-
-app.js
-
-↓
-
-Router
-
-↓
-
-Initialize Modules
-
-↓
-
-Dashboard
-
-Tasks
-
-Inventory
-
-↓
-
-Application Ready
-```
-
-Each module registers its own event listeners during initialization.
-
----
-
-# Routing
-
-The application uses client-side routing.
-
-Responsibilities:
-
-- Switch between pages
-- Preserve navigation state
-- Initialize page modules
-- Avoid page reloads
-
-The router should not contain business logic.
-
----
-
-# Module Responsibilities
-
-## Dashboard
-
-Responsible for:
-
-- Greeting
-- System overview
-- Inventory alerts
-- Future project summaries
-
----
-
-## Tasks
-
-Responsible for:
-
-- Creating tasks
-- Editing tasks
-- Completing tasks
-- Task persistence
-
----
-
-## Inventory
-
-Responsible for:
-
-- Inventory management
-- Search
-- Filtering
-- Sorting
-- Low-stock detection
-
-Inventory should not manage purchasing, budgeting, or projects directly.
-
----
-
-## Future Modules
-
-Planned modules include:
-
+```text
 Projects
-
-Budget
-
-Mealworms
-
-Customers
-
-Purchasing
-
-Maintenance
-
-Reporting
-
-Each module should remain independent while communicating through shared interfaces.
-
----
-
-# Data Flow
-
-Current architecture:
-
-```
-User
-
-↓
-
-UI Event
-
-↓
-
-Page Module
-
-↓
-
-Storage Module
-
-↓
-
-Browser Local Storage
-
-↓
-
-Render Updated UI
+Tasks
+Inventory
+Finance
+Notes
+Settings
+      │
+      ▼
+Operational facts from modules
+      │
+      ▼
+Capacity Engine
+      │
+      ▼
+Priority Engine
+      │
+      ▼
+Morning Briefing
+      │
+      ▼
+Dashboard application shell
 ```
 
-Future architecture:
+The responsibilities in this flow are explicit:
 
-```
-User
+1. Modules provide operational facts.
+2. Capacity determines which work is realistically eligible.
+3. Priority ranks eligible work.
+4. The Morning Briefing presents the result in the Dashboard's default
+   workspace.
 
-↓
+Capacity evaluation precedes scheduling and recommendation. Scheduling may
+organize eligible work, but it must never override real limits.
 
-UI Event
+## 3.2 Design Goals
 
-↓
+The Version 1.0 architecture must be:
 
-Page Module
+- Local-first
+- Modular
+- Explainable
+- Testable
+- Recoverable
+- Portable
+- AI-independent
 
-↓
+Artificial Intelligence may enhance the application, but it is never required
+for core operation.
 
-API Module
+## 3.3 Official Version 1.0 Technology Stack
 
-↓
+Backend:
 
-FastAPI
+- Python
+- FastAPI
+- SQLAlchemy
+- Pydantic
 
-↓
+Database:
 
-Database
+- SQLite
 
-↓
+Frontend:
 
-API Response
+- HTML
+- CSS
+- JavaScript
 
-↓
+Deployment:
 
-Render Updated UI
-```
+- Docker
+- Docker Compose
 
-The goal is to replace storage modules without rewriting page modules.
+FastAPI, SQLAlchemy, Pydantic, and SQLite are the official Version 1.0 target
+stack and now form the implemented backend foundation. The remaining Version
+1.0 services and operational capabilities are still target work. Changing the
+target stack requires an explicit architectural decision and founder approval.
 
----
+## 3.4 Planned Version 1.0 Repository Structure
 
-# Event-Driven Communication
+The exact internal package names may be refined when each layer is
+implemented, but the following structure records the required separation of
+responsibilities:
 
-Modules communicate using events whenever practical.
-
-Example:
-
-```
-Inventory Updated
-
-↓
-
-Dashboard Refreshes
-
-↓
-
-Inventory Summary Updates
-```
-
-This reduces coupling between modules.
-
-Modules should avoid directly modifying each other.
-
----
-
-# State Management
-
-Current:
-
-Browser Local Storage
-
-Future:
-
-Backend database with API synchronization.
-
-Pages should not maintain duplicate copies of application state.
-
-Whenever possible:
-
-Single source of truth.
-
----
-
-# User Interface
-
-The interface should remain:
-
-Fast
-
-Responsive
-
-Professional
-
-Minimal
-
-Information dense without becoming cluttered.
-
-Animation should support usability rather than decoration.
-
----
-
-# Styling
-
-Global styles belong in:
-
-```
-styles.css
+```text
+Foreman/
+├── backend/
+│   └── app/
+│       ├── api/             # Validated API endpoints
+│       ├── services/        # Business-logic layer
+│       ├── repositories/    # Database-access layer
+│       ├── models/          # SQLAlchemy persistence models
+│       ├── schemas/         # Pydantic schemas
+│       └── main.py
+├── database/                # Planned SQLite data and backup support
+├── docker/                  # Planned shared deployment support
+├── docs/
+├── frontend/
+│   ├── pages/
+│   └── utils/
+├── scripts/                 # Planned operational and backup scripts
+├── tests/                   # Planned automated tests
+├── ARCHITECTURE.md
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── README.md
+├── ROADMAP.md
+└── compose.yaml
 ```
 
-Component-specific styles should remain grouped logically.
-
-Future versions may split styles into modules if complexity increases.
-
----
-
-# Error Handling
-
-Errors should:
-
-- Fail gracefully
-- Preserve user data
-- Display meaningful messages
-- Avoid crashing the application
-
-Unexpected errors should be logged during development.
+This remains the target structure. The API, service, repository, model,
+schema, SQLite, and backend-test foundations now exist; shared operational
+scripts and additional Version 1.0 capabilities remain planned.
 
 ---
 
-# Performance
+# 4. Version 1.0 Architectural Layers
 
-Optimize for:
+## 4.1 Frontend
 
-- Responsiveness
-- Readability
-- Maintainability
+The frontend is responsible for presentation and user interaction.
 
-The Foreman is expected to run well on modest hardware.
+The Dashboard provides the application shell. Its default workspace is the
+Morning Briefing. Other workspaces must remain modular and must not displace
+the Morning Briefing as the primary experience.
 
-The reference development machine is the HardHead Linux server.
+## 4.2 API
 
----
+The FastAPI layer receives requests and returns validated responses.
 
-# Security
+Pydantic schemas define and validate request and response boundaries.
 
-Current development focuses on local deployment.
+## 4.3 Services
 
-Future releases should include:
+Services contain business logic, including:
 
-- Authentication
-- Authorization
-- Secure API communication
-- Encrypted credentials
-- Database security
+- Morning Briefing assembly
+- Capacity evaluation
+- Priority evaluation
+- Inventory evaluation
+- Financial readiness
 
-Security should be added without compromising usability.
+Services must not depend on frontend presentation details.
 
----
+## 4.4 Repositories
 
-# Testing Philosophy
+Repositories are responsible for database access.
 
-Every feature should be tested.
+Business logic must not depend directly on SQLite or SQLAlchemy implementation
+details.
 
-Verify:
+## 4.5 Database
 
-- Existing functionality
-- New functionality
-- Browser console
-- Docker containers
-- API responses
+SQLite provides persistent storage for Version 1.0.
 
-Regression testing is preferred over reactive bug fixing.
+Database storage replaces neither the service layer nor the repository
+boundary.
 
 ---
 
-# Documentation
+# 5. Morning Briefing
 
-Architecture changes require updates to:
+The Morning Briefing is the Dashboard's default workspace and the primary
+output of the system.
 
-ARCHITECTURE.md
+It answers three questions:
 
-Feature changes require updates to:
+1. What can I realistically accomplish today?
+2. What matters most today?
+3. What do I need to know before I begin?
 
-CHANGELOG.md
+Every major module contributes operational facts toward these answers.
 
-Future plans belong in:
-
-ROADMAP.md
-
-Ideas belong in:
-
-docs/FUTURE_IDEAS.md
+The Morning Briefing assembles capacity-aware, prioritized information. It
+does not replace the independent responsibilities of contributing modules.
 
 ---
 
-# Future Evolution
+# 6. Capacity Engine
 
-The current architecture is intentionally simple.
+The Capacity Engine evaluates:
 
-As The Foreman grows, planned additions include:
+- Available time
+- Available energy
+- Work schedule
+- Commute
+- Budget
+- Inventory readiness
+- Required tools
+- Available materials
+- Current workload
+- Work type
 
-- PostgreSQL
-- Authentication
-- Multi-user support
-- Mobile applications
-- Plugin architecture
-- REST API expansion
-- AI-assisted workflows
+Capacity evaluation precedes both scheduling and recommendation.
 
-These additions should extend the existing architecture rather than replace it.
-
----
-
-# Architectural Principles
-
-1. One responsibility per module.
-
-2. Prefer composition over duplication.
-
-3. Readability is more important than cleverness.
-
-4. Preserve backwards compatibility whenever practical.
-
-5. Every module should be independently testable.
-
-6. Features should be loosely coupled.
-
-7. Documentation is part of the architecture.
+Only work that fits the owner's real constraints is eligible for
+prioritization. Recommendations must always fit today's reality.
 
 ---
 
-# Final Principle
+# 7. Priority Engine
 
-The architecture exists to support craftsmanship.
+The Priority Engine ranks work only after the Capacity Engine has determined
+that the work is realistically eligible.
 
-Every technical decision should make the software easier to understand, easier to maintain, and more useful inside a real workshop.
+Priority must not make impossible work appear actionable. Its output supports
+the Morning Briefing by identifying the next meaningful work among realistic
+options.
 
-> The Foreman serves the craftsman.
+---
+
+# 8. Explainability
+
+Every recommendation should include:
+
+- Recommendation
+- Reason
+- Confidence
+- Source information when practical
+
+The Foreman must never expect blind trust.
+
+Explainability applies whether a recommendation is generated by deterministic
+business logic or enhanced by AI.
+
+---
+
+# 9. Module Philosophy
+
+Modules remain independent.
+
+Examples include:
+
+- Projects
+- Tasks
+- Inventory
+- Finance
+- Notes
+- Settings
+
+Modules own their operational facts and provide those facts through
+well-defined interfaces.
+
+Capacity evaluates realistic eligibility, Priority ranks eligible work, and
+the Morning Briefing assembles the result.
+
+---
+
+# 10. AI Integration
+
+Version 1.0 requires no AI.
+
+The complete core flow—from module facts through Capacity and Priority to the
+Morning Briefing—must remain useful without AI.
+
+Future AI providers must connect through a provider interface rather than
+being tightly coupled to the application.
+
+AI may assist, explain, summarize, or reason. It must not replace human
+judgment.
+
+---
+
+# 11. Backup and Restore
+
+Backup and restore are Version 1.0 requirements.
+
+Version 1.0 must support:
+
+- Manual backup
+- Scheduled backup
+- Restore
+- Restore verification
+
+Backup and restore must preserve user ownership of local data and support
+recoverability.
+
+---
+
+# 12. Testing Mode
+
+Testing Mode creates a recoverable snapshot before experimentation.
+
+The owner may restore production data when Testing Mode ends.
+
+Testing Mode must not weaken backup, restore, or data-safety requirements.
+
+---
+
+# 13. Portability
+
+The Foreman must remain portable and local-first.
+
+Core workshop operation must not depend on an Internet connection or a cloud
+service. Deployment and data should remain transferable between supported
+local environments.
+
+---
+
+# 14. Green Build
+
+Every development session ends with a Green Build.
+
+A Green Build means:
+
+- The application launches.
+- Current functionality works.
+- Documentation is current.
+- No known critical issues remain.
+
+Target architecture that is not yet implemented must be documented as target
+state, not reported as completed functionality.
+
+---
+
+# 15. Closing
+
+The architecture exists to support one outcome:
+
+Help the user understand what is possible, what matters most, and what should
+happen next.
+
+Bring clarity to complexity.
+
+Give confidence through clarity.
+
+Keep the work moving.

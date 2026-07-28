@@ -10,17 +10,46 @@ The goal is to preserve the long-term quality, architecture, and vision of the p
 
 # Read First
 
-Before making any code changes, read these documents in order:
+Before making any code or documentation changes, read these documents in
+order:
 
-1. README.md
-2. ROADMAP.md
-3. ARCHITECTURE.md
-4. CONTRIBUTING.md
-5. docs/FOUNDERS_LETTER.md
-6. docs/PROJECT_VISION.md
-7. docs/DESIGN_PRINCIPLES.md
+1. `docs/CONSTITUTION.md`
+2. `docs/FOUNDERS_LETTER.md`
+3. `docs/ENGINEERING_PRINCIPLES.md`
+4. `docs/DESIGN_PRINCIPLES.md`
+5. `ARCHITECTURE.md`
+6. `docs/AGENTS.md`
+7. `README.md`
+8. `ROADMAP.md`
+9. `CHANGELOG.md`
+10. `docs/TASKS.md`
+11. `CONTRIBUTING.md`
 
 Do not begin implementation until you understand the purpose of the project.
+
+---
+
+# Documentation Authority
+
+The documents above have distinct responsibilities:
+
+- The Constitution is the highest authority.
+- The Founder's Letter defines project intent.
+- Engineering Principles define development behavior.
+- Design Principles define the user experience.
+- Architecture defines the Version 1.0 target architecture. It does not
+  necessarily describe the current implementation.
+
+Lower-authority documents and implementation details must not override the
+Constitution.
+
+When documentation and implementation disagree, do not assume the
+implementation is correct. Determine whether the discrepancy represents
+incomplete implementation, outdated documentation, or an architectural
+decision requiring founder approval.
+
+Documentation must clearly distinguish implemented behavior from target
+behavior. Do not describe planned systems as if they already exist.
 
 ---
 
@@ -35,6 +64,20 @@ Every feature should solve a practical problem.
 Technology serves craftsmanship.
 
 Never lose sight of that purpose.
+
+---
+
+# Primary Experience
+
+The Dashboard is the application shell.
+
+The Morning Briefing is the Dashboard's default workspace.
+
+Every major module should ultimately contribute useful information to the
+Morning Briefing.
+
+Capacity must be evaluated before scheduling. Recommendations must fit the
+owner's available time, energy, money, materials, and other real constraints.
 
 ---
 
@@ -211,7 +254,11 @@ If the answer is no, reconsider the implementation.
 
 The Foreman serves the craftsman.
 
-Every contribution should move the project toward that goal.# The Foreman
+Every contribution should move the project toward that goal.
+
+---
+
+# The Foreman
 
 The digital operations center for HardHead Works.
 

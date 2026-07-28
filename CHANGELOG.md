@@ -10,16 +10,55 @@ Each release represents a stable, working version of the application.
 
 # [Unreleased]
 
-### Planned
+## Documentation
 
-- Complete Inventory v0.5.4
-- Dashboard inventory alerts
-- Inventory sorting refinements
-- Documentation improvements
+- Established the Constitution-first documentation authority order.
+- Clarified the Dashboard as the application shell and the Morning Briefing as
+  its default workspace.
+- Separated current implementation from the Version 1.0 target architecture.
+- Reconciled current release status, planned work, repository paths, and
+  persistence terminology.
+- Confirmed FastAPI, SQLAlchemy, Pydantic, and SQLite as the Version 1.0 target
+  stack.
 
 ---
 
-# v0.5.4 (Development)
+# v0.6.2
+
+## Added
+
+- Browser-local project storage and refresh-safe persistence
+- Project creation dialog fields for type, status, priority, progress, dates,
+  estimated cost, description, and notes
+- Project cards with key planning details and progress bars
+
+## Improved
+
+- Activated both Projects workspace creation actions
+- Made project search, status filtering, sorting, and summary counts functional
+- Updated application version metadata to 0.6.2
+
+## Removed
+
+- Deferred user-facing browser-local project archiving beyond v0.6.2
+
+---
+
+# v0.6.1
+
+## Added
+
+- Projects workspace shell
+- Project summary cards
+- Project search controls
+- Project status filtering controls
+- Project sorting controls
+- Add-project placeholder behavior
+- Projects navigation integration
+
+---
+
+# v0.5.4
 
 ## Added
 
@@ -62,8 +101,7 @@ Each release represents a stable, working version of the application.
 ## Added
 
 - Inventory creation dialog
-- Persistent inventory storage
-- Local inventory database
+- Browser-local inventory storage
 - Category tracking
 - Low-stock detection
 - Inventory summary cards
@@ -106,10 +144,9 @@ Each release represents a stable, working version of the application.
 
 ## Added
 
-- Persistent task storage
+- Browser-local task storage
 - Task priorities
 - Task completion
-- Local browser storage
 
 ## Improved
 
@@ -134,7 +171,7 @@ Each release represents a stable, working version of the application.
 
 - Initial project structure
 - Docker development environment
-- FastAPI backend
+- Flask backend
 - Nginx frontend
 - Docker Compose configuration
 - Local development workflow

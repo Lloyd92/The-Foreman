@@ -981,6 +981,107 @@ footer {
     font-size: 14px;
 }
 
+.projects-page-message.error {
+    color: #ff8a80;
+}
+
+.project-card {
+    padding: 18px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+}
+
+.project-card-heading,
+.project-progress-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.project-card-heading {
+    align-items: flex-start;
+}
+
+.project-card-heading h3 {
+    margin: 0 0 6px;
+}
+
+.project-status {
+    color: var(--orange);
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.06em;
+}
+
+.project-card-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+}
+
+.project-priority {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.project-progress-heading {
+    margin-top: 18px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.project-progress-heading strong {
+    color: var(--text);
+}
+
+.project-progress-track {
+    height: 8px;
+    margin-top: 7px;
+    overflow: hidden;
+    background: var(--panel);
+    border-radius: 999px;
+}
+
+.project-progress-track span {
+    display: block;
+    height: 100%;
+    background: var(--orange);
+    border-radius: inherit;
+}
+
+.project-details {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin: 16px 0 0;
+}
+
+.project-details div {
+    min-width: 0;
+}
+
+.project-details dt {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.project-details dd {
+    margin: 4px 0 0;
+    overflow-wrap: anywhere;
+}
+
+.project-description {
+    margin: 14px 0 0;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
 @media (max-width: 850px) {
     .projects-header {
         flex-direction: column;
@@ -993,5 +1094,8 @@ footer {
     .projects-toolbar {
         grid-template-columns: 1fr;
     }
-}
 
+    .project-details {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
