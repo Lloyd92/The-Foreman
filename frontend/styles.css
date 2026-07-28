@@ -1021,6 +1021,17 @@ footer {
     gap: 6px 12px;
 }
 
+.project-card-actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: 7px;
+}
+
+.delete-project-button:hover {
+    color: #ff8a80;
+    border-color: #ff6767;
+}
+
 .project-priority {
     color: var(--muted);
     font-size: 11px;

@@ -25,6 +25,11 @@ Tasks should remain small, testable, and compatible with a Green Build.
 - [x] Make v0.6.2 project search, status filtering, sorting, and summaries
       functional.
 - [x] Remove user-facing project archiving from the approved v0.6.2 scope.
+- [x] Add v0.6.3 browser-local project editing.
+- [x] Reuse and prepopulate the project dialog for edits.
+- [x] Preserve project identity and creation time while recording edit time.
+- [x] Add v0.6.3 confirmed permanent project deletion.
+- [x] Keep project controls, summaries, search, filtering, and sorting in sync.
 
 ## Current Feature Work
 

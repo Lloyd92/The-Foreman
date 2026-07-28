@@ -23,6 +23,22 @@ Each release represents a stable, working version of the application.
 
 ---
 
+# v0.6.3
+
+## Added
+
+- Reusable Add/Edit project dialog with complete field prepopulation
+- Project Edit and confirmed permanent Delete controls
+- Edit timestamps while preserving project identity and creation timestamps
+
+## Improved
+
+- Kept summaries, search, filtering, sorting, and browser-local persistence
+  current after project changes
+- Updated application version metadata to 0.6.3
+
+---
+
 # v0.6.2
 
 ## Added

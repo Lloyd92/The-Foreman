@@ -174,6 +174,13 @@ Completed
 - Functional project search, status filtering, and sorting
 - Persistent project cards and live project summary counts
 
+### v0.6.3
+
+- Browser-local project editing with reusable Add/Edit dialog
+- Persistent status, progress, and project-detail updates
+- Confirmed permanent project deletion
+- Preservation of project identity and creation timestamps during edits
+
 Pending
 
 Objectives

@@ -35,3 +35,39 @@ export function saveProjects(projects) {
         return false;
     }
 }
+
+export function updateProjectRecord(projectId, changes) {
+    const projects = getProjects();
+    const project = projects.find(item => item.id === projectId);
+
+    if (!project || project.status === "archived") {
+        return false;
+    }
+
+    const updatedProjects = projects.map(item =>
+        item.id === projectId
+            ? {
+                ...item,
+                ...changes,
+                id: item.id,
+                createdAt: item.createdAt,
+                updatedAt: new Date().toISOString()
+            }
+            : item
+    );
+
+    return saveProjects(updatedProjects);
+}
+
+export function deleteProjectRecord(projectId) {
+    const projects = getProjects();
+    const project = projects.find(item => item.id === projectId);
+
+    if (!project || project.status === "archived") {
+        return false;
+    }
+
+    return saveProjects(
+        projects.filter(item => item.id !== projectId)
+    );
+}

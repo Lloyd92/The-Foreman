@@ -1,8 +1,11 @@
 import {
+    deleteProjectRecord,
     getProjects,
-    saveProjects
+    saveProjects,
+    updateProjectRecord
 } from "../utils/projectStorage.js";
 
+let editingProjectId = null;
 let projects = [];
 
 function setProjectsMessage(message, isError = false) {
@@ -18,7 +21,51 @@ function setProjectsMessage(message, isError = false) {
     messageElement.classList.toggle("error", isError);
 }
 
-function openProjectDialog() {
+function setProjectDialogMode(isEditing) {
+    const title = document.getElementById(
+        "project-dialog-title"
+    );
+    const submitButton = document.getElementById(
+        "save-project"
+    );
+
+    if (title) {
+        title.textContent = isEditing
+            ? "Edit Project"
+            : "Add Project";
+    }
+
+    if (submitButton) {
+        submitButton.textContent = isEditing
+            ? "Save Changes"
+            : "Save Project";
+    }
+}
+
+function populateProjectForm(project) {
+    document.getElementById("project-name").value =
+        project.name || "";
+    document.getElementById("project-type").value =
+        project.type || "build";
+    document.getElementById("project-status").value =
+        project.status || "planning";
+    document.getElementById("project-priority").value =
+        project.priority || "medium";
+    document.getElementById("project-progress").value =
+        project.progress ?? 0;
+    document.getElementById("project-start-date").value =
+        project.startDate || "";
+    document.getElementById("project-target-date").value =
+        project.targetDate || "";
+    document.getElementById("project-estimated-cost").value =
+        project.estimatedCost ?? 0;
+    document.getElementById("project-description").value =
+        project.description || "";
+    document.getElementById("project-notes").value =
+        project.notes || "";
+}
+
+function openProjectDialog(project = null) {
     const backdrop = document.getElementById(
         "project-dialog-backdrop"
     );
@@ -29,6 +76,13 @@ function openProjectDialog() {
     }
 
     form?.reset();
+    editingProjectId = project?.id || null;
+    setProjectDialogMode(Boolean(project));
+
+    if (project) {
+        populateProjectForm(project);
+    }
+
     backdrop.hidden = false;
     document.body.classList.add("dialog-open");
 
@@ -51,6 +105,9 @@ function closeProjectDialog() {
 
     backdrop.hidden = true;
     document.body.classList.remove("dialog-open");
+    editingProjectId = null;
+    document.getElementById("project-form")?.reset();
+    setProjectDialogMode(false);
 
     if (errorElement) {
         errorElement.textContent = "";
@@ -182,6 +239,28 @@ function renderProjects() {
         const card = document.createElement("article");
         const statusLabel = formatLabel(project.status);
         const priorityLabel = formatLabel(project.priority);
+        const controls = project.status === "archived"
+            ? ""
+            : `
+                <div class="project-card-actions">
+                    <button
+                        class="table-action-button"
+                        type="button"
+                        data-action="edit"
+                        data-id="${project.id}"
+                    >
+                        Edit
+                    </button>
+                    <button
+                        class="table-action-button delete-project-button"
+                        type="button"
+                        data-action="delete"
+                        data-id="${project.id}"
+                    >
+                        Delete
+                    </button>
+                </div>
+            `;
 
         card.className = "project-card";
         card.innerHTML = `
@@ -193,6 +272,7 @@ function renderProjects() {
                         <span class="project-priority"></span>
                     </div>
                 </div>
+                ${controls}
             </div>
 
             <div class="project-progress-heading">
@@ -293,8 +373,7 @@ function handleProjectSubmit(event) {
         return;
     }
 
-    const project = {
-        id: crypto.randomUUID(),
+    const projectChanges = {
         name,
         type: formData.get("type"),
         status: formData.get("status"),
@@ -306,10 +385,32 @@ function handleProjectSubmit(event) {
             formData.get("estimatedCost") || 0
         ),
         description: formData.get("description").trim(),
-        notes: formData.get("notes").trim(),
-        createdAt: new Date().toISOString()
+        notes: formData.get("notes").trim()
     };
 
+    if (editingProjectId) {
+        if (!updateProjectRecord(
+            editingProjectId,
+            projectChanges
+        )) {
+            if (errorElement) {
+                errorElement.textContent =
+                    "The project changes could not be saved.";
+            }
+            return;
+        }
+
+        closeProjectDialog();
+        refreshProjects();
+        setProjectsMessage("Project updated.");
+        return;
+    }
+
+    const project = {
+        id: crypto.randomUUID(),
+        ...projectChanges,
+        createdAt: new Date().toISOString()
+    };
     const updatedProjects = [...getProjects(), project];
 
     if (!saveProjects(updatedProjects)) {
@@ -324,6 +425,52 @@ function handleProjectSubmit(event) {
     closeProjectDialog();
     renderProjects();
     setProjectsMessage("Project created.");
+}
+
+function handleProjectAction(event) {
+    const button = event.target.closest(
+        "[data-action][data-id]"
+    );
+
+    if (!button) {
+        return;
+    }
+
+    const project = projects.find(
+        item => item.id === button.dataset.id
+    );
+
+    if (!project || project.status === "archived") {
+        return;
+    }
+
+    if (button.dataset.action === "edit") {
+        openProjectDialog(project);
+        return;
+    }
+
+    if (button.dataset.action !== "delete") {
+        return;
+    }
+
+    if (!window.confirm(`Delete "${project.name}" permanently?`)) {
+        return;
+    }
+
+    if (!deleteProjectRecord(project.id)) {
+        setProjectsMessage(
+            "The project could not be deleted.",
+            true
+        );
+        return;
+    }
+
+    refreshProjects();
+    setProjectsMessage("Project deleted.");
+}
+
+function openAddProjectDialog() {
+    openProjectDialog();
 }
 
 function handleBackdropClick(event) {
@@ -353,16 +500,17 @@ export function initializeProjectsPage() {
     const backdrop = document.getElementById(
         "project-dialog-backdrop"
     );
+    const list = document.getElementById("projects-list");
     const search = document.getElementById("projects-search");
     const statusFilter = document.getElementById(
         "projects-status-filter"
     );
     const sort = document.getElementById("projects-sort");
 
-    addButton?.addEventListener("click", openProjectDialog);
+    addButton?.addEventListener("click", openAddProjectDialog);
     emptyStateButton?.addEventListener(
         "click",
-        openProjectDialog
+        openAddProjectDialog
     );
     closeButton?.addEventListener(
         "click",
@@ -374,6 +522,7 @@ export function initializeProjectsPage() {
     );
     form?.addEventListener("submit", handleProjectSubmit);
     backdrop?.addEventListener("click", handleBackdropClick);
+    list?.addEventListener("click", handleProjectAction);
     search?.addEventListener("input", renderProjects);
     statusFilter?.addEventListener("change", renderProjects);
     sort?.addEventListener("change", renderProjects);

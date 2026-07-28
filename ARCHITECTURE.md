@@ -72,7 +72,7 @@ Persistence:
   records in SQLite through SQLAlchemy.
 - The Inventory and Tasks frontends retain browser-local compatibility and
   include migration paths to backend persistence.
-- The v0.6.2 Projects frontend uses browser `localStorage` and does not
+- The v0.6.3 Projects frontend uses browser `localStorage` and does not
   currently use the backend Projects API.
 - The browser-local Projects fields and backend Project schema do not yet
   match; browser-local Projects are therefore absent from backend operational
@@ -102,9 +102,9 @@ Inventory:
 
 Projects:
 
-- Provides the v0.6.2 Projects workspace, browser-local project creation and
-  persistence, project cards, progress tracking, summary cards, search,
-  filtering, sorting controls, and empty state.
+- Provides the v0.6.3 Projects workspace, browser-local project creation,
+  editing, confirmed deletion, persistence, project cards, progress tracking,
+  summary cards, search, filtering, sorting controls, and empty state.
 - Material requirements, project templates, and deeper module integrations
   are not yet implemented.
 
@@ -222,7 +222,7 @@ are not yet implemented.
 The `/api/operational-facts` endpoint currently aggregates backend Inventory,
 Projects, and Tasks through their services and repositories. It is an early
 module-fact boundary, not the Morning Briefing, Capacity Engine, or Priority
-Engine. Because v0.6.2 Projects remain browser-local, those Projects do not
+Engine. Because v0.6.3 Projects remain browser-local, those Projects do not
 appear in this backend aggregation.
 
 ---
