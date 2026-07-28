@@ -16,12 +16,12 @@ The Foreman is designed to replace scattered notebooks, spreadsheets, sticky not
 
 **Current Version**
 
-v0.6.4 (Development)
+v0.7.1 (Development)
 
 Current focus:
 
-- Projects workspace
-- Documentation reconciliation
+- Project backend convergence
+- Core persistence and data safety
 - Workshop operating system foundation
 
 ---
@@ -89,7 +89,7 @@ Current capabilities:
 - Greeting and date
 - Task management workspace
 - Inventory alerts
-- Module status summaries
+- Module status summaries using backend Project data
 
 The full capacity-aware Morning Briefing is not yet implemented.
 
@@ -135,14 +135,26 @@ Planned capabilities:
 
 # Projects
 
-The v0.6.4 Projects workspace supports browser-local project creation,
-editing, confirmed deletion, persistence, project cards, progress tracking,
-summary counts, search, status filtering, sorting, and material requirements
-linked to current Inventory records. Project cards and the focused Materials
-dialog provide deterministic readiness and shortage calculations without
-deducting or reserving inventory.
+The v0.7.1 Projects workspace uses the backend API and SQLite as its
+authoritative runtime source. It supports project creation, editing, confirmed
+deletion, project cards, progress tracking, summary counts, search, status
+filtering, sorting, and persistent material requirements linked to Inventory
+records. Project cards and the focused Materials dialog provide deterministic
+readiness and shortage calculations without deducting or reserving inventory.
 
-Project templates and deeper module integrations remain planned work.
+Existing browser Projects migrate through a durable, idempotent backend
+migration endpoint. Startup migration runs in Inventory → Project → Task order
+so material links and Task Project references can be translated safely.
+Browser Project storage is intentionally retained as migration evidence and
+for compatibility and recovery; it is no longer the Projects page's runtime
+authority.
+
+Dashboard Project summaries use backend Projects. Deleting a Project clears
+related Task `projectId` references, and material requirements whose Inventory
+items were deleted remain visible, editable, and removable.
+
+Estimated completion, Project templates, and deeper module integrations remain
+planned work.
 
 ---
 
@@ -205,15 +217,18 @@ Development Environment
 
 - Linux (Xubuntu)
 
-Tasks and Inventory use backend SQLite persistence with migration and fallback
-support for browser-local records. The v0.6.4 Projects workspace remains
-browser-local and does not yet use the existing backend Projects API.
+Tasks, Inventory, and Projects use backend SQLite persistence. Browser-local
+records remain available to their migration and compatibility paths. The
+Projects page and Dashboard use backend Project APIs as their authoritative
+Project source, while retained browser Project records provide migration
+evidence and recovery support.
 
 The backend currently provides validated APIs for system status, Inventory,
-Projects, Tasks, browser-data migration, and operational facts. Its service,
-repository, Pydantic schema, SQLAlchemy model, SQLite persistence, and
-automated-test foundations are implemented. Capacity, Priority, the complete
-Morning Briefing, and backup and restore remain Version 1.0 target work.
+Projects, Project materials, Tasks, browser-data migration, and operational
+facts. Its service, repository, Pydantic schema, SQLAlchemy model, SQLite
+persistence, versioned schema-upgrade, and automated-test foundations are
+implemented. Capacity, Priority, backend-authoritative Project readiness, the
+complete Morning Briefing, and backup and restore remain target work.
 
 ## Version 1.0 Target
 

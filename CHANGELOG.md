@@ -23,6 +23,44 @@ Each release represents a stable, working version of the application.
 
 ---
 
+# v0.7.1
+
+## Added
+
+- Backend SQLite persistence for Projects and material requirements
+- Versioned, idempotent SQLite schema upgrades with internal schema version 2
+- Durable, server-authoritative browser Project migration with stable source
+  IDs, payload fingerprints, and atomic provenance
+- Inventory → Project → Task startup migration ordering
+- Backend Project and material CRUD integration for the Projects workspace
+- Shared frontend Project API and runtime validation utilities
+- Expanded frontend migration, API, runtime, and backend Project test coverage
+
+## Improved
+
+- Made backend Project responses authoritative for the Projects workspace and
+  Dashboard Project summaries
+- Preserved missing Inventory references so requirements remain visible,
+  editable, and removable
+- Kept Task records renderable by clearing their Project references when a
+  related Project is deleted
+- Completed manual browser validation of Project CRUD, material changes,
+  refresh persistence, Dashboard summaries, and Task compatibility
+- Updated application version metadata to 0.7.1
+
+## Compatibility
+
+- Retained legacy browser Project source data for migration evidence,
+  compatibility, and manual recovery
+- Retained tombstone provenance after deletion of a migrated Project so
+  idempotent retries do not recreate it
+- Report migration conflicts when a previously migrated browser source record
+  is edited locally
+- Retained archived legacy Projects for manual recovery instead of importing
+  or deleting them silently
+
+---
+
 # v0.6.4
 
 ## Added

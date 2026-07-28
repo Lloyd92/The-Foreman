@@ -149,11 +149,11 @@ Deferred inventory ideas:
 
 ---
 
-# Active Release
+# Completed Project Releases
 
-## v0.6 — Projects 🚧
+## v0.6 — Projects ✅
 
-Status: In Progress
+Status: Complete
 
 Completed
 
@@ -189,31 +189,85 @@ Completed
 - Project-card readiness indicators and Dashboard readiness summaries
 - Missing Inventory references remain visible without changing project data
 
-Pending
+# Active Release
 
-Objectives
+## v0.7 — Core Convergence 🚧
+
+The v0.7 sequence moves established browser capabilities onto durable shared
+foundations before additional operational modules are introduced.
+
+### v0.7.1 — Project Backend Convergence ✅
+
+Status: Complete
+
+Completed:
+
+- Persistent backend Project storage
+- Persistent Project material requirements
+- Safe, versioned SQLite schema upgrades
+- Durable and idempotent Project migration endpoint
+- Retained browser Project migration with stable source mappings
+- Inventory → Project → Task startup migration ordering
+- Backend-authoritative Projects workspace
+- Dashboard summaries sourced from backend Projects
+- Task reference compatibility when Projects migrate or are deleted
+- Expanded frontend and backend automated tests
+- Completed manual browser CRUD and persistence acceptance
+
+### v0.7.2 — Unified Operational Facts and Readiness
+
+Status: Planned
+
+Objectives:
+
+- Move Project material readiness to backend-authoritative calculations
+- Unify Project and Inventory readiness facts at the backend boundary
+- Provide consistent operational facts for future capacity and briefing work
+
+### v0.7.3 — Backup, Export, Restore, and Verification
+
+Status: Planned
+
+Objectives:
+
+- Add manual backup and export
+- Add restore with explicit verification
+- Preserve migration evidence and authoritative SQLite data
+- Establish recoverable data-safety workflows
+
+### v0.7.4 — Frontend Hardening and Browser End-to-End Infrastructure
+
+Status: Planned
+
+Objectives:
+
+- Establish repeatable browser end-to-end testing
+- Harden frontend failure and recovery behavior
+- Improve migration reporting and diagnostics
+- Verify supported browser workflows from clean deployments
+
+Deferred Project work:
 
 - Estimated completion
 - Project templates
+- Expanded Task-to-Project editing and display
+- Legacy Project storage retirement
+- Archive cleanup
+- Purchasing, reservations, and allocations
 
-The visible Projects workspace does not make the Projects module complete.
-Required project-management behavior remains pending until it is implemented
-and verified.
-
-Future integrations
-
-- Inventory
-- Budget
-- CNC
-- Purchasing
+These items remain outside v0.7.1 and must be scheduled explicitly.
 
 ---
 
-# Planned Releases
+# Later Module Releases
 
-## v0.7 — Mealworm Management
+Mealworm Management follows the v0.7 Core Convergence sequence rather than
+serving as the immediate v0.7 milestone. Its release number will be assigned
+when the foundation milestones are complete.
 
-Objectives
+## Mealworm Management
+
+Objectives:
 
 - Colony management
 - Rack visualization
@@ -221,7 +275,7 @@ Objectives
 - Harvest planning
 - Production reporting
 
-Future integrations
+Future integrations:
 
 - Inventory
 - Budget
@@ -229,7 +283,7 @@ Future integrations
 
 ---
 
-## v0.8 — Budget
+## Budget
 
 Objectives
 
@@ -247,7 +301,7 @@ Future integrations
 
 ---
 
-## v0.9 — Settings
+## Settings
 
 Objectives
 

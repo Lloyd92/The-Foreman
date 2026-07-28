@@ -15,7 +15,7 @@ class SystemApiTests(ApiTestCase):
                 "application": "The Foreman",
                 "company": "HardHead Works",
                 "status": "online",
-                "version": "0.6.4",
+                "version": "0.7.1",
             },
         )
 

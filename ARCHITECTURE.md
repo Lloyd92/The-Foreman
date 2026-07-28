@@ -72,14 +72,16 @@ Persistence:
   records in SQLite through SQLAlchemy.
 - The Inventory and Tasks frontends retain browser-local compatibility and
   include migration paths to backend persistence.
-- The v0.6.4 Projects frontend uses browser `localStorage` and does not
-  currently use the backend Projects API.
-- The browser-local Projects fields and backend Project schema do not yet
-  match; browser-local Projects are therefore absent from backend operational
-  facts.
-- Browser-local Projects may store material requirements linked by Inventory
-  item ID. The frontend derives readiness and shortages from current Inventory
-  records without storing derived values or mutating Inventory quantities.
+- SQLite is the authoritative Project store. The Projects workspace and
+  Dashboard consume backend Project data through the shared Project API
+  utility and runtime validation helpers.
+- Browser-local Projects are retained as migration evidence and for
+  compatibility and recovery. They are read by migration code, not used as
+  the Projects workspace's runtime authority.
+- Project material requirements persist in SQLite and link to Inventory by
+  item ID. The frontend currently derives readiness and shortages from backend
+  Project requirements and current Inventory records without storing derived
+  values or mutating Inventory quantities.
 
 ## 2.2 Current Workspaces
 
@@ -105,11 +107,16 @@ Inventory:
 
 Projects:
 
-- Provides the v0.6.4 Projects workspace, browser-local project creation,
+- Provides the v0.7.1 Projects workspace with backend-authoritative creation,
   editing, confirmed deletion, persistence, project cards, progress tracking,
-  material requirements, deterministic material-readiness calculations,
-  summary cards, search, filtering, sorting controls, and empty state.
-- Project templates and deeper module integrations are not yet implemented.
+  persistent material requirements, deterministic frontend
+  material-readiness calculations, summary cards, search, filtering, sorting
+  controls, and empty state.
+- Missing Inventory references remain visible, editable, and removable.
+- Project deletion clears related Task Project references through database
+  foreign-key behavior.
+- Estimated completion, Project templates, and deeper module integrations are
+  not yet implemented.
 
 Budget and Mealworms:
 
@@ -138,6 +145,7 @@ The implemented backend foundation currently includes:
 - Repositories for SQLAlchemy database access
 - SQLAlchemy persistence models
 - SQLite application persistence
+- Versioned, idempotent SQLite schema upgrades
 - Automated backend API tests
 - Operational-facts aggregation across backend Inventory, Projects, and Tasks
 
@@ -219,14 +227,61 @@ Pydantic response serialization
 FastAPI dependencies provide one SQLAlchemy session per request. Services
 commit successful mutations and roll back failed mutations; repositories
 remain responsible for database queries and record access. Application startup
-creates missing tables from SQLAlchemy metadata. Versioned database migrations
-are not yet implemented.
+creates missing tables from SQLAlchemy metadata and applies versioned,
+idempotent SQLite schema upgrades. The current internal SQLite schema version
+is 2. Startup refuses a database whose schema version is newer than the
+application supports and verifies the required Project schema after upgrades.
 
 The `/api/operational-facts` endpoint currently aggregates backend Inventory,
 Projects, and Tasks through their services and repositories. It is an early
 module-fact boundary, not the Morning Briefing, Capacity Engine, or Priority
-Engine. Because v0.6.4 Projects remain browser-local, those Projects do not
-appear in this backend aggregation.
+Engine. Backend Projects are visible in active-Project and Project-status
+facts. Project material readiness remains a frontend calculation and is not
+yet part of backend operational facts.
+
+## 2.6 Current Project Migration and Runtime Flow
+
+Application startup coordinates retained browser-data migration in this order:
+
+```text
+Inventory migration
+        │
+        ▼
+Project migration
+        │
+        ▼
+Task migration
+```
+
+Inventory migrates first so Project material requirements can resolve their
+authoritative Inventory IDs. Project migration then produces mappings from
+stable browser source IDs to backend Project UUIDs. Task migration runs last
+so legacy Task Project references can use those mappings. Task migration still
+runs when individual Project migrations fail.
+
+The durable Project migration endpoint records provenance in SQLite using the
+stable source record ID and a canonical payload fingerprint. Project creation,
+material-requirement creation, and provenance insertion occur in one database
+transaction. The backend is the idempotency authority: matching retries return
+the existing Project, while changed payloads produce a conflict. If a migrated
+Project is deleted, its provenance row remains with a null Project mapping as
+a tombstone so the source record is not silently recreated.
+
+Browser migration provenance is advisory. The original browser Project
+collection remains unchanged for compatibility, migration evidence, and
+manual recovery. Archived legacy Projects remain in that retained source and
+are not imported automatically.
+
+After the migration prerequisite completes, the Projects page loads
+exclusively through `GET /api/projects`. Normal Project and material mutations
+use the Project API endpoints, then render the validated backend response as
+the visible source of truth. A shared Project runtime validates lists and
+merges or removes successful mutation results. Dashboard Project summaries
+also load backend Projects and respond to Project update events.
+
+Backend-authoritative readiness and a unified operational-facts model are
+planned for v0.7.2. The current frontend combines backend Projects with
+Inventory data to calculate Project readiness deterministically.
 
 ---
 
