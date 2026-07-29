@@ -7,6 +7,7 @@ import { initializeProjectsPage } from "./pages/projects.js";
 import {
     migrateProjectsAfterInventory
 } from "./utils/migrationOrchestrator.js";
+import { initializePwa } from "./utils/pwa.js";
 
 function initializeApplication() {
     initializeRouter();
@@ -21,3 +22,6 @@ function initializeApplication() {
 }
 
 initializeApplication();
+void initializePwa().catch(error => {
+    console.error("Unable to initialize PWA support:", error);
+});

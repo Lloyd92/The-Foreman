@@ -21,6 +21,48 @@ body {
     font-family: Arial, Helvetica, sans-serif;
 }
 
+.pwa-update-notice {
+    position: fixed;
+    right: max(18px, env(safe-area-inset-right));
+    bottom: max(18px, env(safe-area-inset-bottom));
+    z-index: 1200;
+    width: min(430px, calc(100vw - 36px));
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    background: var(--panel);
+    border: 1px solid var(--orange);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgb(0 0 0 / 45%);
+}
+
+.pwa-update-notice[hidden] {
+    display: none;
+}
+
+.pwa-update-notice strong {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.pwa-update-notice p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.4;
+}
+
+.pwa-update-actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: 8px;
+}
+
+.pwa-update-actions button {
+    min-height: 40px;
+}
+
 .app {
     min-height: 100vh;
     display: grid;
@@ -189,6 +231,15 @@ footer {
 }
 
 @media (max-width: 850px) {
+    .pwa-update-notice {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .pwa-update-actions button {
+        flex: 1;
+    }
+
     .app {
         grid-template-columns: 1fr;
     }

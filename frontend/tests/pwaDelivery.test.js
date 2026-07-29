@@ -50,7 +50,7 @@ test("index includes approved PWA and Apple metadata", async () => {
     assert.match(html, /0\.7\.1/);
 });
 
-test("Docker image includes the manifest and icon assets", async () => {
+test("Docker image includes PWA metadata, icons, and service worker", async () => {
     const dockerfile = await readFrontendFile("Dockerfile");
 
     assert.match(
@@ -61,7 +61,10 @@ test("Docker image includes the manifest and icon assets", async () => {
         dockerfile,
         /COPY assets \/usr\/share\/nginx\/html\/assets/
     );
-    assert.doesNotMatch(dockerfile, /service-worker/);
+    assert.match(
+        dockerfile,
+        /COPY service-worker\.js \/usr\/share\/nginx\/html\/service-worker\.js/
+    );
 });
 
 test("Nginx delivers PWA files exactly and preserves SPA and API routing", async () => {
@@ -70,6 +73,10 @@ test("Nginx delivers PWA files exactly and preserves SPA and API routing", async
     assert.match(
         configuration,
         /location = \/manifest\.webmanifest[\s\S]*default_type application\/manifest\+json;[\s\S]*try_files \$uri =404;/
+    );
+    assert.match(
+        configuration,
+        /location = \/service-worker\.js[\s\S]*default_type application\/javascript;[\s\S]*Cache-Control "no-cache, no-store, must-revalidate" always;[\s\S]*try_files \$uri =404;/
     );
     assert.match(
         configuration,
@@ -85,12 +92,19 @@ test("Nginx delivers PWA files exactly and preserves SPA and API routing", async
     );
 });
 
-test("Commit 1 does not implement or register a service worker", async () => {
+test("application startup retains existing initialization and adds PWA registration", async () => {
     const app = await readFrontendFile("app.js");
-    const html = await readFrontendFile("index.html");
-    const dockerfile = await readFrontendFile("Dockerfile");
 
-    [app, html, dockerfile].forEach(contents => {
-        assert.doesNotMatch(contents, /serviceWorker|service-worker/);
-    });
+    assert.match(
+        app,
+        /import \{ initializePwa \} from "\.\/utils\/pwa\.js";/
+    );
+    assert.match(app, /initializeApplication\(\);/);
+    assert.match(app, /void initializePwa\(\)\.catch/);
+    assert.match(app, /initializeRouter\(\);/);
+    assert.match(app, /initializeDashboard\(\);/);
+    assert.match(app, /initializeInventoryPage\(\);/);
+    assert.match(app, /initializeTasksPage\(projectMigration\);/);
+    assert.match(app, /initializeProjectsPage\(projectMigration\);/);
+    assert.match(app, /initializeSystemStatus\(\);/);
 });

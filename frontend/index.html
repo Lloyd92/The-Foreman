@@ -45,6 +45,43 @@
 </head>
 
 <body>
+    <section
+        id="pwa-update-notice"
+        class="pwa-update-notice"
+        role="status"
+        aria-live="polite"
+        aria-labelledby="pwa-update-title"
+        hidden
+    >
+        <div>
+            <strong id="pwa-update-title">
+                Update available
+            </strong>
+
+            <p id="pwa-update-message">
+                A new Foreman application shell is ready.
+            </p>
+        </div>
+
+        <div class="pwa-update-actions">
+            <button
+                id="pwa-update-action"
+                class="primary-button"
+                type="button"
+            >
+                Update
+            </button>
+
+            <button
+                id="pwa-update-dismiss"
+                class="secondary-button"
+                type="button"
+            >
+                Later
+            </button>
+        </div>
+    </section>
+
     <div class="app">
 
         <!-- Sidebar -->
