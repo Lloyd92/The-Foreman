@@ -261,7 +261,7 @@ test("existing Nginx remains the static and API authority", async () => {
     );
 });
 
-test("application version and shell cache remain unchanged", async () => {
+test("release version and shell cache are finalized", async () => {
     const indexSource = await readRepositoryFile("frontend/index.html");
     const backendSource = await readRepositoryFile(
         "backend/app/core/config.py"
@@ -270,10 +270,10 @@ test("application version and shell cache remain unchanged", async () => {
         "frontend/service-worker.js"
     );
 
-    assert.match(indexSource, /0\.7\.1/);
-    assert.match(backendSource, /APPLICATION_VERSION = "0\.7\.1"/);
+    assert.match(indexSource, /0\.7\.2/);
+    assert.match(backendSource, /APPLICATION_VERSION = "0\.7\.2"/);
     assert.match(
         workerSource,
-        /SHELL_CACHE_NAME = "foreman-shell-v0\.7\.2-c4"/
+        /SHELL_CACHE_NAME = "foreman-shell-v0\.7\.2-c5"/
     );
 });

@@ -4,8 +4,6 @@ Tasks should remain small, testable, and compatible with a Green Build.
 
 ## Active
 
-- [ ] Implement v0.7.2 backend-authoritative Project readiness.
-- [ ] Unify Project and Inventory readiness in operational facts.
 - [ ] Plan v0.7.3 backup, export, restore, and verification.
 
 ## Completed
@@ -48,6 +46,17 @@ Tasks should remain small, testable, and compatible with a Green Build.
 - [x] Complete manual browser CRUD, materials, persistence, Dashboard, and Task
       compatibility acceptance for v0.7.1.
 - [x] Reconcile v0.7.1 documentation and release metadata.
+- [x] Add v0.7.2 PWA identity, manifest, and installation assets.
+- [x] Add controlled v0.7.2 static-shell caching.
+- [x] Add the explicit, deferrable service-worker update lifecycle.
+- [x] Protect updates and recovery while forms are dirty or dialogs are open.
+- [x] Gate operations on backend and database availability.
+- [x] Remove browser records as runtime fallback authority.
+- [x] Add private-LAN HTTPS with restricted host bindings.
+- [x] Complete physical iPhone certificate trust and Home Screen installation.
+- [x] Complete standalone launch and dynamic safe-area acceptance.
+- [x] Reconcile v0.7.2 version metadata and release documentation.
+- [x] Complete v0.7.2 final release validation.
 
 ## Current Feature Work
 

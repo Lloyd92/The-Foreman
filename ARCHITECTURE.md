@@ -65,6 +65,8 @@ Deployment:
 - Docker
 - Docker Compose
 - `compose.yaml`
+- Caddy private-LAN TLS gateway
+- Nginx static-file and `/api/` proxy authority behind Caddy
 
 Persistence:
 
@@ -168,7 +170,7 @@ Foreman/
 ├── database/
 │   └── .gitkeep
 ├── docker/
-│   └── .gitkeep
+│   └── Caddyfile
 ├── docs/
 │   ├── AGENTS.md
 │   ├── CONSTITUTION.md
@@ -182,9 +184,12 @@ Foreman/
 │   ├── pages/
 │   ├── utils/
 │   ├── Dockerfile
+│   ├── assets/
 │   ├── app.js
 │   ├── default.conf
 │   ├── index.html
+│   ├── manifest.webmanifest
+│   ├── service-worker.js
 │   └── styles.css
 ├── ARCHITECTURE.md
 ├── CHANGELOG.md
@@ -194,9 +199,10 @@ Foreman/
 └── compose.yaml
 ```
 
-The `database/` and `docker/` directories are currently placeholders. The
-SQLite database is stored in the Docker-managed `/data` volume. The repository
-does not yet contain an operational `scripts/` directory.
+The `database/` directory remains a repository placeholder while SQLite is
+stored in the Docker-managed `/data` volume. The `docker/` directory now
+contains the operational private-LAN Caddy configuration. The repository does
+not yet contain an operational `scripts/` directory.
 
 ## 2.5 Current Backend Flow
 
@@ -279,9 +285,69 @@ the visible source of truth. A shared Project runtime validates lists and
 merges or removes successful mutation results. Dashboard Project summaries
 also load backend Projects and respond to Project update events.
 
-Backend-authoritative readiness and a unified operational-facts model are
-planned for v0.7.2. The current frontend combines backend Projects with
-Inventory data to calculate Project readiness deterministically.
+Backend-authoritative readiness and a unified operational-facts model remain
+deferred core-convergence work. The current frontend combines backend Projects
+with Inventory data to calculate Project readiness deterministically.
+
+## 2.7 PWA, Availability, and Household Deployment
+
+The v0.7.2 PWA Foundation uses this implemented delivery path:
+
+```text
+LAN device
+    │ trusted HTTPS
+    ▼
+Caddy private-LAN TLS gateway
+    │
+    ▼
+frontend Nginx
+    ├── static SPA/PWA shell
+    └── /api/ proxy
+             │
+             ▼
+          backend
+             │
+             ▼
+           SQLite
+```
+
+The manifest and installation assets define the PWA identity and installation
+boundary. Standalone display, Apple installation metadata, and dynamic
+safe-area insets support the installed iPhone experience.
+
+The service worker atomically precaches exactly 29 static-shell resources.
+Only exact allowlisted shell resources and navigation fallback are handled by
+that cache. APIs, migrations, mutations, non-GET requests, the worker itself,
+unknown static resources, and cross-origin requests remain network-owned.
+There is no business-data cache, write queue, replay path, Background Sync, or
+IndexedDB mutation store.
+
+Updates install into a waiting state. Activation requires an explicit user
+action and is blocked while a form is dirty or a dialog is open. The worker
+does not automatically skip waiting or claim existing clients.
+
+The connection-state controller uses `/api/health` as the operational
+authority. The application does not start business operations until HardHead
+reports both a healthy application and an online database. A cached shell may
+remain visible during backend loss, but that does not make operational data
+available. Projects, Tasks, and Inventory browser records remain
+migration/evidence/compatibility inputs only and never become normal runtime
+fallback authority.
+
+The frontend is bound to tower loopback at `127.0.0.1:3000`. Caddy binds ports
+80 and 443 only to the configured private-LAN IP, currently
+`192.168.1.184`. The backend has no host binding and remains private to the
+Compose network. Nginx remains the static-file and `/api/` proxy authority;
+Caddy adds the trusted HTTPS edge without replacing it.
+
+This is a household-first private deployment, not public Internet exposure.
+HTTPS protects transport and server identity but does not authenticate users.
+Only Caddy's public root certificate is distributed to trusted devices. Its
+private CA keys and certificate state remain protected in persistent
+`caddy-data` and `caddy-config` volumes.
+
+The current secure origin is the private IP address.
+`hardhead.home.arpa` remains a future LAN-DNS goal and is not part of v0.7.2.
 
 ---
 

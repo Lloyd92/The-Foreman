@@ -23,6 +23,42 @@ Each release represents a stable, working version of the application.
 
 ---
 
+# v0.7.2
+
+## Added
+
+- Installable PWA manifest with favicon, Apple touch icon, regular icons, and
+  maskable icons
+- Standalone iPhone launch support and dynamic safe-area handling
+- Atomic, exact 29-resource static-shell cache
+- Explicit, deferrable service-worker update activation
+- Dirty-form and open-dialog protection during update activation and recovery
+- Backend-authoritative availability gating through `/api/health`
+- Private-LAN HTTPS through Caddy with restricted LAN-IP bindings
+
+## Improved
+
+- Kept API, migration, and mutation traffic network- and backend-owned
+- Removed browser records as runtime fallback authority while retaining them
+  as migration input, compatibility evidence, and recovery material
+- Preserved Nginx as the static-file and `/api/` proxy authority behind Caddy
+- Kept the backend private to the Compose network
+- Updated application version metadata to 0.7.2
+- Advanced the controlled shell cache to `foreman-shell-v0.7.2-c5`
+
+## Security and Deployment
+
+- Ignored local deployment configuration, trust exports, certificate files,
+  private keys, and generated Caddy state
+- Distributed only Caddy's public root certificate to the trusted physical
+  iPhone
+- Completed physical iPhone Home Screen installation, trusted HTTPS,
+  standalone launch, backend-authoritative startup, and safe-area acceptance
+- Kept the deployment private to the household LAN without adding public
+  exposure or user authentication
+
+---
+
 # v0.7.1
 
 ## Added

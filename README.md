@@ -16,13 +16,14 @@ The Foreman is designed to replace scattered notebooks, spreadsheets, sticky not
 
 **Current Version**
 
-v0.7.1 (Development)
+v0.7.2 — PWA Foundation
 
 Current focus:
 
-- Project backend convergence
-- Core persistence and data safety
-- Workshop operating system foundation
+- Installable household-first PWA
+- Controlled application-shell availability
+- Backend-authoritative operational safety
+- Private-LAN HTTPS deployment
 
 ---
 
@@ -102,7 +103,7 @@ Manage day-to-day work.
 Features include:
 
 - SQLite persistence through the backend
-- Migration and fallback support for browser-local tasks
+- Migration support for retained browser-local task records
 - Completion tracking
 - Priority levels
 
@@ -118,7 +119,7 @@ Current capabilities:
 - Edit inventory
 - Delete inventory
 - SQLite persistence through the backend
-- Migration and fallback support for browser-local inventory
+- Migration support for retained browser-local inventory records
 - Search
 - Filtering
 - Sorting
@@ -155,6 +156,53 @@ items were deleted remain visible, editable, and removable.
 
 Estimated completion, Project templates, and deeper module integrations remain
 planned work.
+
+---
+
+# PWA and Household Deployment
+
+v0.7.2 provides an installable Progressive Web App for the private HardHead
+Works household LAN. The manifest, favicon, Apple touch icon, regular icons,
+and maskable icons provide the installation identity. The application supports
+standalone launch, `viewport-fit=cover`, dynamic safe-area insets, and physical
+iPhone Home Screen installation. Trusted HTTPS installation, standalone
+launch, backend-authoritative startup, and safe-area behavior have been
+accepted on a physical iPhone.
+
+The service worker atomically precaches an exact 29-resource static shell. It
+does not cache API responses, business records, migrations, or mutations and
+does not queue, replay, or synchronize writes. A cached shell can therefore
+remain available when HardHead is unavailable, but shell availability does not
+mean operational data is available.
+
+`/api/health` is the authoritative operational gate. Normal Projects, Tasks,
+and Inventory behavior starts only when HardHead reports both the application
+healthy and its database online. Retained browser records are migration
+inputs, compatibility evidence, and recovery material only; they are not a
+runtime fallback authority. API, migration, and mutation traffic remains
+network- and backend-owned.
+
+Service-worker updates remain waiting until the user explicitly applies them.
+The update can be deferred, and activation is blocked while a form is dirty or
+a dialog is open. The worker does not automatically call `skipWaiting()` or
+claim existing clients.
+
+Current access is intentionally restricted:
+
+- `https://192.168.1.184` is the trusted household-LAN origin.
+- `http://127.0.0.1:3000` is available only on the tower.
+- The backend has no host port and remains private to the Compose network.
+
+Caddy is the private-LAN HTTPS edge. Nginx remains authoritative for static
+SPA/PWA delivery and the `/api/` proxy behind Caddy. This deployment is not
+exposed to the public Internet. HTTPS protects transport and server identity;
+it does not provide user authentication.
+
+Only Caddy's public root certificate is distributed to trusted household
+devices. Its private CA keys and certificate state remain protected in
+persistent Docker volumes and must not be copied, deleted, or regenerated.
+The current origin is the private IP address above. `hardhead.home.arpa`
+remains a future LAN-DNS goal, not a current hostname or v0.7.2 feature.
 
 ---
 
@@ -208,6 +256,7 @@ Infrastructure
 - Docker
 - Docker Compose
 - Nginx
+- Caddy private-LAN TLS gateway
 
 Version Control
 
@@ -218,7 +267,8 @@ Development Environment
 - Linux (Xubuntu)
 
 Tasks, Inventory, and Projects use backend SQLite persistence. Browser-local
-records remain available to their migration and compatibility paths. The
+records remain available only to migration, compatibility, evidence, and
+recovery paths; they are not runtime fallback stores. The
 Projects page and Dashboard use backend Project APIs as their authoritative
 Project source, while retained browser Project records provide migration
 evidence and recovery support.
@@ -324,6 +374,17 @@ Open:
 ```
 http://localhost:3000
 ```
+
+The loopback origin is reachable only from the host. The current household-LAN
+origin is:
+
+```
+https://192.168.1.184
+```
+
+LAN devices must trust the existing Caddy public root certificate. Do not
+distribute Caddy's private CA state or expose this deployment to the public
+Internet.
 
 ---
 

@@ -21,7 +21,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="The Foreman",
-    version="0.7.1",
+    version="0.7.2",
     lifespan=lifespan,
 )
 app.include_router(system_router)

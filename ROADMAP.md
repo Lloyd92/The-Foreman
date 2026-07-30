@@ -214,15 +214,27 @@ Completed:
 - Expanded frontend and backend automated tests
 - Completed manual browser CRUD and persistence acceptance
 
-### v0.7.2 — Unified Operational Facts and Readiness
+### v0.7.2 — PWA Foundation ✅
 
-Status: Planned
+Status: Complete
 
-Objectives:
+Completed:
 
-- Move Project material readiness to backend-authoritative calculations
-- Unify Project and Inventory readiness facts at the backend boundary
-- Provide consistent operational facts for future capacity and briefing work
+- PWA metadata and complete installation assets
+- Controlled 29-resource static-shell caching and explicit update lifecycle
+- Dirty-form and open-dialog protection during update activation
+- HardHead availability and backend-authority protection
+- Browser records retained as migration evidence without runtime fallback
+  authority
+- Private-LAN HTTPS through Caddy with restricted host bindings
+- Physical iPhone certificate trust, Home Screen installation, and standalone
+  launch acceptance
+- Dynamic safe-area correction acceptance
+- Household-first deployment at the current private IP origin
+
+The v0.7.2 deployment is private to the household LAN. It adds no public
+Internet exposure or user authentication. `hardhead.home.arpa` remains a
+future LAN-DNS goal.
 
 ### v0.7.3 — Backup, Export, Restore, and Verification
 
@@ -245,6 +257,12 @@ Objectives:
 - Harden frontend failure and recovery behavior
 - Improve migration reporting and diagnostics
 - Verify supported browser workflows from clean deployments
+
+Deferred, unversioned core-convergence work:
+
+- Move Project material readiness to backend-authoritative calculations
+- Unify Project and Inventory readiness facts at the backend boundary
+- Provide consistent operational facts for future capacity and briefing work
 
 Deferred Project work:
 
