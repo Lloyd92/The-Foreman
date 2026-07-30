@@ -63,6 +63,59 @@ body {
     min-height: 40px;
 }
 
+.connection-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: grid;
+    place-items: center;
+    padding: max(24px, env(safe-area-inset-top))
+        max(24px, env(safe-area-inset-right))
+        max(24px, env(safe-area-inset-bottom))
+        max(24px, env(safe-area-inset-left));
+    background: var(--background);
+}
+
+.connection-gate[hidden] {
+    display: none;
+}
+
+.connection-gate-panel {
+    width: min(560px, 100%);
+    padding: 30px;
+    background: var(--panel);
+    border: 1px solid var(--orange);
+    border-radius: 14px;
+    box-shadow: 0 16px 42px rgb(0 0 0 / 48%);
+}
+
+.connection-gate-panel h2 {
+    margin: 8px 0 12px;
+}
+
+.connection-gate-panel p {
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.connection-gate-panel .section-eyebrow {
+    margin: 0;
+    color: var(--orange);
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.connection-gate-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.connection-blocked .app {
+    visibility: hidden;
+}
+
 .app {
     min-height: 100vh;
     display: grid;

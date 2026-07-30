@@ -92,19 +92,47 @@ test("Nginx delivers PWA files exactly and preserves SPA and API routing", async
     );
 });
 
-test("application startup retains existing initialization and adds PWA registration", async () => {
+test("application startup gates operations behind PWA and health initialization", async () => {
     const app = await readFrontendFile("app.js");
 
     assert.match(
         app,
         /import \{ initializePwa \} from "\.\/utils\/pwa\.js";/
     );
-    assert.match(app, /initializeApplication\(\);/);
-    assert.match(app, /void initializePwa\(\)\.catch/);
+    assert.match(
+        app,
+        /import \{[\s\S]*createConnectionController,[\s\S]*setActiveConnectionController[\s\S]*\} from "\.\/utils\/connectionState\.js";/
+    );
+    assert.match(app, /await initializePwa\(\)\.catch/);
+    assert.match(app, /await connectionController\.initialize\(\);/);
+    assert.match(app, /void initializeApplication\(\)\.catch/);
     assert.match(app, /initializeRouter\(\);/);
-    assert.match(app, /initializeDashboard\(\);/);
-    assert.match(app, /initializeInventoryPage\(\);/);
-    assert.match(app, /initializeTasksPage\(projectMigration\);/);
-    assert.match(app, /initializeProjectsPage\(projectMigration\);/);
-    assert.match(app, /initializeSystemStatus\(\);/);
+    assert.match(app, /initializeDashboard\(\),/);
+    assert.match(app, /migrateLegacyInventory\(\);/);
+    assert.match(app, /migrateProjectsAfterInventory\(/);
+    assert.match(app, /migrateLegacyTasks\(/);
+    assert.match(app, /initializeInventoryPage\(/);
+    assert.match(app, /initializeTasksPage\(/);
+    assert.match(app, /initializeProjectsPage\(/);
+    assert.match(app, /initializeSystemStatus\(\)/);
+
+    const pwa = app.indexOf("await initializePwa()");
+    const controller = app.indexOf("createConnectionController({");
+    const health = app.indexOf("await connectionController.initialize()");
+    const inventoryMigration = app.indexOf(
+        "const inventoryMigrationResult = await migrateLegacyInventory()"
+    );
+    const projectMigration = app.indexOf(
+        "const projectMigrationResult = await migrateProjectsAfterInventory"
+    );
+    const taskMigration = app.indexOf(
+        "const taskMigrationResult = await migrateLegacyTasks"
+    );
+    const router = app.indexOf("initializeRouter();");
+
+    assert.ok(pwa < controller);
+    assert.ok(controller < health);
+    assert.ok(inventoryMigration < projectMigration);
+    assert.ok(projectMigration < taskMigration);
+    assert.ok(taskMigration < router);
 });

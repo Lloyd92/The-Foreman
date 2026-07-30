@@ -44,7 +44,7 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 
-<body>
+<body class="connection-blocked">
     <section
         id="pwa-update-notice"
         class="pwa-update-notice"
@@ -79,6 +79,60 @@
             >
                 Later
             </button>
+        </div>
+    </section>
+
+    <section
+        id="hardhead-availability"
+        class="connection-gate"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="hardhead-availability-title"
+        aria-describedby="hardhead-availability-message hardhead-availability-reason"
+        data-connection-state="checking"
+    >
+        <div class="connection-gate-panel">
+            <p class="section-eyebrow">
+                HardHead Connection
+            </p>
+
+            <h2 id="hardhead-availability-title">
+                Checking HardHead…
+            </h2>
+
+            <p
+                id="hardhead-availability-message"
+                role="status"
+                aria-live="polite"
+            >
+                Confirming that HardHead and its database are healthy.
+            </p>
+
+            <p id="hardhead-availability-reason">
+                Waiting for the health check.
+            </p>
+
+            <div class="connection-gate-actions">
+                <button
+                    id="hardhead-availability-retry"
+                    class="primary-button"
+                    type="button"
+                    hidden
+                    disabled
+                >
+                    Retry
+                </button>
+
+                <button
+                    id="hardhead-availability-reload"
+                    class="primary-button"
+                    type="button"
+                    hidden
+                    disabled
+                >
+                    Reload The Foreman
+                </button>
+            </div>
         </div>
     </section>
 

@@ -1,7 +1,4 @@
 import {
-    getInventoryItems
-} from "../utils/inventoryStorage.js";
-import {
     listInventoryItems
 } from "../utils/inventoryApi.js";
 import { listProjects } from "../utils/projectsApi.js";
@@ -14,6 +11,7 @@ let dashboardInventoryItems = [];
 let dashboardInventoryRevision = 0;
 let dashboardProjects = [];
 let dashboardProjectRevision = 0;
+let dashboardInitialized = false;
 
 function getGreeting(hour) {
     if (hour < 12) {
@@ -184,6 +182,11 @@ function renderDashboardProjects(projects, inventoryItems) {
 }
 
 export async function initializeDashboard() {
+    if (dashboardInitialized) {
+        return;
+    }
+    dashboardInitialized = true;
+
     initializeGreeting();
 
     document.addEventListener(
@@ -224,9 +227,6 @@ export async function initializeDashboard() {
             error
         );
 
-        if (dashboardInventoryRevision === startingRevision) {
-            dashboardInventoryItems = getInventoryItems();
-        }
     }
 
     const startingProjectRevision = dashboardProjectRevision;

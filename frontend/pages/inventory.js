@@ -6,14 +6,13 @@ import {
     updateInventoryItem
 } from "../utils/inventoryApi.js";
 import {
-    getBrowserInventoryRecords,
-    getInventoryItems,
-    saveInventoryItems
+    getBrowserInventoryRecords
 } from "../utils/inventoryStorage.js";
 
 let editingItemId = null;
 let inventoryItems = [];
 let persistenceMode = "initializing";
+let inventoryInitialized = false;
 
 function formPayload(formData) {
     return {
@@ -26,14 +25,6 @@ function formPayload(formData) {
         cost: Number(formData.get("cost") || 0),
         supplier: formData.get("supplier").trim(),
         notes: formData.get("notes").trim()
-    };
-}
-
-function browserInventoryItem(data) {
-    return {
-        id: crypto.randomUUID(),
-        ...data,
-        createdAt: new Date().toISOString()
     };
 }
 
@@ -65,18 +56,13 @@ async function removeInventoryItem(itemId) {
     }
 
     try {
-        if (persistenceMode === "backend") {
-            await deleteInventoryItem(itemId);
-        } else if (persistenceMode === "browser") {
-            saveInventoryItems(
-                inventoryItems.filter(current => current.id !== itemId)
-            );
-        } else {
+        if (persistenceMode !== "backend") {
             throw new Error(
-                "Backend persistence was confirmed but is currently unavailable"
+                "HardHead Inventory is unavailable"
             );
         }
 
+        await deleteInventoryItem(itemId);
         inventoryItems = inventoryItems.filter(current => current.id !== itemId);
         renderInventory();
     } catch (error) {
@@ -333,30 +319,18 @@ async function handleInventorySubmit(event) {
     }
 
     try {
-        if (persistenceMode === "backend") {
-            const saved = editingItemId
-                ? await updateInventoryItem(editingItemId, data)
-                : await createInventoryItem(data);
-            inventoryItems = editingItemId
-                ? inventoryItems.map(item => item.id === saved.id ? saved : item)
-                : [...inventoryItems, saved];
-        } else if (persistenceMode === "browser") {
-            const saved = editingItemId
-                ? {
-                    ...getItemById(editingItemId),
-                    ...data,
-                    updatedAt: new Date().toISOString()
-                }
-                : browserInventoryItem(data);
-            inventoryItems = editingItemId
-                ? inventoryItems.map(item => item.id === saved.id ? saved : item)
-                : [...inventoryItems, saved];
-            saveInventoryItems(inventoryItems);
-        } else {
+        if (persistenceMode !== "backend") {
             throw new Error(
-                "Backend persistence was confirmed but is currently unavailable"
+                "HardHead Inventory is unavailable"
             );
         }
+
+        const saved = editingItemId
+            ? await updateInventoryItem(editingItemId, data)
+            : await createInventoryItem(data);
+        inventoryItems = editingItemId
+            ? inventoryItems.map(item => item.id === saved.id ? saved : item)
+            : [...inventoryItems, saved];
 
         closeInventoryDialog();
         renderInventory();
@@ -370,17 +344,26 @@ async function handleInventorySubmit(event) {
     }
 }
 
-async function initializePersistence() {
+export async function migrateLegacyInventory() {
     const browserRecords = getBrowserInventoryRecords();
-    let backendConfirmed = false;
+    const migration = await migrateBrowserInventory(browserRecords);
 
+    return {
+        browserRecordCount: browserRecords.length,
+        migration
+    };
+}
+
+async function initializePersistence(inventoryMigration) {
     try {
-        const migration = await migrateBrowserInventory(browserRecords);
-        backendConfirmed = true;
+        const {
+            browserRecordCount = 0,
+            migration = null
+        } = await inventoryMigration;
         inventoryItems = await listInventoryItems();
         persistenceMode = "backend";
 
-        if (migration.errors.length) {
+        if (migration?.errors?.length) {
             showPageMessage(
                 `Inventory migration ${migration.status}: ` +
                 `${migration.migrated} migrated, ` +
@@ -389,7 +372,7 @@ async function initializePersistence() {
                 `${migration.malformed} malformed. ` +
                 "Browser-local records were retained for review."
             );
-        } else if (browserRecords.length) {
+        } else if (browserRecordCount) {
             showPageMessage(
                 `Inventory migration successful: ${migration.migrated} migrated, ` +
                 `${migration.alreadyMigrated} previously migrated. ` +
@@ -405,27 +388,14 @@ async function initializePersistence() {
         };
     } catch (error) {
         console.error("Inventory backend unavailable:", error);
-        inventoryItems = getInventoryItems();
-
-        if (backendConfirmed) {
-            persistenceMode = "unavailable";
-            showPageMessage(
-                "Backend persistence was confirmed but Inventory is temporarily " +
-                "unavailable. Browser-local records are shown read-only to avoid conflicts."
-            );
-        } else {
-            persistenceMode = "browser";
-            showPageMessage(
-                "Inventory is using browser-local fallback. " +
-                "Backend records were not changed."
-            );
-        }
-
-        renderInventory();
+        persistenceMode = "unavailable";
+        showPageMessage(
+            "HardHead Inventory is unavailable. Browser-local records " +
+            "were not loaded as operational data."
+        );
         return {
             status: "unavailable",
-            error,
-            items: inventoryItems
+            error
         };
     }
 }
@@ -440,7 +410,20 @@ function handleInventoryTableAction(event) {
     }
 }
 
-export function initializeInventoryPage() {
+export function initializeInventoryPage(
+    inventoryMigration = Promise.resolve({
+        browserRecordCount: 0,
+        migration: null
+    })
+) {
+    if (inventoryInitialized) {
+        return Promise.resolve({
+            status: "already-initialized",
+            items: inventoryItems
+        });
+    }
+    inventoryInitialized = true;
+
     document.getElementById("add-inventory-item")?.addEventListener(
         "click",
         () => openInventoryDialog(true)
@@ -485,5 +468,5 @@ export function initializeInventoryPage() {
         }
     });
 
-    return initializePersistence();
+    return initializePersistence(inventoryMigration);
 }

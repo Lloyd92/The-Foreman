@@ -1,4 +1,5 @@
 const DEFAULT_ROUTE = "dashboard";
+let routerInitialized = false;
 
 function getRouteFromHash() {
     const route = window.location.hash.replace("#", "").trim();
@@ -30,6 +31,11 @@ function showRoute(route) {
 }
 
 export function initializeRouter() {
+    if (routerInitialized) {
+        return;
+    }
+    routerInitialized = true;
+
     window.addEventListener("hashchange", () => {
         showRoute(getRouteFromHash());
     });

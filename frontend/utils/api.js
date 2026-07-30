@@ -1,3 +1,11 @@
+import {
+    assertBusinessRequestAllowed,
+    isTransportError,
+    isTransportStatus,
+    verifyTransportFailure
+} from "./connectionState.js";
+
+
 export class BackendApiError extends Error {
     constructor(message, { status = 0, data = null } = {}) {
         super(message);
@@ -9,6 +17,8 @@ export class BackendApiError extends Error {
 
 
 export async function apiRequest(path, options = {}) {
+    assertBusinessRequestAllowed();
+
     const requestOptions = { ...options };
     const headers = new Headers(requestOptions.headers || {});
 
@@ -20,8 +30,23 @@ export async function apiRequest(path, options = {}) {
     }
 
     requestOptions.headers = headers;
+    requestOptions.cache = "no-store";
 
-    const response = await fetch(path, requestOptions);
+    let response;
+
+    try {
+        response = await fetch(path, requestOptions);
+    } catch (error) {
+        if (isTransportError(error)) {
+            await verifyTransportFailure({ error });
+        }
+
+        throw error;
+    }
+
+    if (isTransportStatus(response.status)) {
+        await verifyTransportFailure({ status: response.status });
+    }
 
     if (response.status === 204) {
         return null;

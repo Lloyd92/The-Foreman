@@ -1,6 +1,5 @@
 import {
-    getBrowserTasks,
-    saveTasks
+    getBrowserTasks
 } from "../utils/storage.js";
 
 import {
@@ -17,16 +16,7 @@ import {
 
 let currentTasks = [];
 let backendAvailable = false;
-
-function createBrowserTask(title, priority) {
-    return {
-        id: crypto.randomUUID(),
-        title,
-        priority,
-        completed: false,
-        createdAt: new Date().toISOString()
-    };
-}
+let tasksInitialized = false;
 
 function priorityRank(priority) {
     const ranks = {
@@ -124,48 +114,60 @@ async function refreshBackendTasks() {
     renderTasks();
 }
 
-async function initializeTaskPersistence(projectMigration) {
+export async function migrateLegacyTasks(projectMigration) {
     const browserTasks = getBrowserTasks();
 
+    if (browserTasks.length === 0) {
+        return {
+            browserRecordCount: 0,
+            migration: null
+        };
+    }
+
+    const migration = await migrateTasksAfterProjects(
+        projectMigration,
+        browserTasks,
+        migrateBrowserTasks
+    );
+
+    return {
+        browserRecordCount: browserTasks.length,
+        migration
+    };
+}
+
+async function initializeTaskPersistence(taskMigration) {
     try {
-        if (browserTasks.length > 0) {
-            const migration = await migrateTasksAfterProjects(
-                projectMigration,
-                browserTasks,
-                migrateBrowserTasks
+        const { migration = null } = await taskMigration;
+
+        if (migration?.errors?.length > 0) {
+            setTaskMessage(
+                `${migration.migrated} browser task(s) migrated; ` +
+                `${migration.skipped} need attention. ` +
+                "Browser data was kept only as migration source.",
+                true
             );
 
-            if (migration.errors.length > 0) {
-                setTaskMessage(
-                    `${migration.migrated} browser task(s) migrated; ` +
-                    `${migration.skipped} need attention. ` +
-                    "Browser data was kept.",
-                    true
+            migration.errors.forEach(error => {
+                console.error(
+                    "Task migration record was not imported:",
+                    error
                 );
-
-                migration.errors.forEach(error => {
-                    console.error(
-                        "Task migration record was not imported:",
-                        error
-                    );
-                });
-            } else if (migration.migrated > 0) {
-                setTaskMessage(
-                    `${migration.migrated} browser task(s) migrated. ` +
-                    "The browser copy was kept for safety."
-                );
-            }
+            });
+        } else if (migration?.migrated > 0) {
+            setTaskMessage(
+                `${migration.migrated} browser task(s) migrated. ` +
+                "The browser copy was retained only as migration source."
+            );
         }
 
         backendAvailable = true;
         await refreshBackendTasks();
     } catch (error) {
         backendAvailable = false;
-        currentTasks = browserTasks;
-        renderTasks();
         setTaskMessage(
-            "Backend task persistence is unavailable. " +
-            "Browser-local tasks remain active and were not removed.",
+            "HardHead Tasks are unavailable. Browser-local tasks were " +
+            "not loaded as operational data.",
             true
         );
         console.error("Unable to initialize task persistence:", error);
@@ -190,19 +192,15 @@ async function addTask(event) {
     }
 
     try {
-        if (backendAvailable) {
-            await createBackendTask({
-                title,
-                priority: priorityInput.value
-            });
-            await refreshBackendTasks();
-        } else {
-            currentTasks.push(
-                createBrowserTask(title, priorityInput.value)
-            );
-            saveTasks(currentTasks);
-            renderTasks();
+        if (!backendAvailable) {
+            throw new Error("HardHead Tasks are unavailable.");
         }
+
+        await createBackendTask({
+            title,
+            priority: priorityInput.value
+        });
+        await refreshBackendTasks();
 
         titleInput.value = "";
         priorityInput.value = "medium";
@@ -227,39 +225,23 @@ async function handleTaskAction(event) {
     }
 
     try {
-        if (backendAvailable) {
-            if (action === "toggle") {
-                if (task.completed) {
-                    await reopenBackendTask(taskId);
-                } else {
-                    await completeBackendTask(taskId);
-                }
-            }
-
-            if (action === "delete") {
-                await deleteBackendTask(taskId);
-            }
-
-            await refreshBackendTasks();
-            return;
+        if (!backendAvailable) {
+            throw new Error("HardHead Tasks are unavailable.");
         }
 
         if (action === "toggle") {
-            currentTasks = currentTasks.map(item =>
-                item.id === taskId
-                    ? { ...item, completed: !item.completed }
-                    : item
-            );
+            if (task.completed) {
+                await reopenBackendTask(taskId);
+            } else {
+                await completeBackendTask(taskId);
+            }
         }
 
         if (action === "delete") {
-            currentTasks = currentTasks.filter(
-                item => item.id !== taskId
-            );
+            await deleteBackendTask(taskId);
         }
 
-        saveTasks(currentTasks);
-        renderTasks();
+        await refreshBackendTasks();
     } catch (error) {
         renderTasks();
         setTaskMessage(error.message, true);
@@ -267,10 +249,16 @@ async function handleTaskAction(event) {
 }
 
 export function initializeTasksPage(
-    projectMigration = Promise.resolve({
-        projectIdMappings: {}
+    taskMigration = Promise.resolve({
+        browserRecordCount: 0,
+        migration: null
     })
 ) {
+    if (tasksInitialized) {
+        return;
+    }
+    tasksInitialized = true;
+
     const taskForm = document.getElementById("task-form");
     const taskList = document.getElementById("task-list");
 
@@ -282,5 +270,5 @@ export function initializeTasksPage(
     taskForm.addEventListener("submit", addTask);
     taskList.addEventListener("click", handleTaskAction);
 
-    void initializeTaskPersistence(projectMigration);
+    return initializeTaskPersistence(taskMigration);
 }
