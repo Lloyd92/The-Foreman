@@ -236,7 +236,71 @@ The v0.7.2 deployment is private to the household LAN. It adds no public
 Internet exposure or user authentication. `hardhead.home.arpa` remains a
 future LAN-DNS goal.
 
-### v0.7.3 — Backup, Export, Restore, and Verification
+### v0.7.3 — Unified Operational Facts
+
+Status: In Progress
+
+Purpose:
+
+Create one backend-authoritative, deterministic fact layer for Projects,
+material readiness, Tasks, and Inventory so different pages cannot
+independently produce contradictory interpretations.
+
+Approved architecture:
+
+- Compute facts on demand from backend-authoritative SQLite records.
+- Read all source records from one explicit transaction snapshot.
+- Do not persist facts or change database schema version 2.
+- Keep `GET /api/operational-facts` as the fact endpoint.
+- Add `schemaVersion: 1`, normalized `facts`, and `summary` to the response.
+- Temporarily preserve existing top-level response fields for compatibility.
+- Keep fact IDs, types, states, reason codes, evidence, source references, and
+  ordering deterministic so identical inputs produce identical fact output.
+- Never use browser records as fact inputs or runtime fallback authority.
+
+Initial fact vocabulary and states:
+
+- `project.lifecycle`: `planning`, `active`, `on-hold`, `completed`, `archived`,
+  or `invalid`.
+- `project.material-readiness`: `ready`, `needs-materials`, `not-applicable`,
+  or `invalid`.
+- `task.work-state`: `open` or `completed`.
+- `inventory.stock-level`: `in-stock`, `low-stock`, `out-of-stock`, or
+  `invalid`.
+
+Material-readiness boundary:
+
+- No material requirements means `not-applicable`, not `ready`.
+- A missing Inventory reference means availability is unknown. Its evidence
+  uses a null available quantity rather than a fabricated zero.
+- Readiness evaluates one Project independently. It does not represent
+  allocation, reservation, or combined demand across Projects.
+- Dashboard and Projects must consume the same backend readiness fact.
+- Inventory must stop using frontend numeric fallback classification.
+
+This milestone prepares trustworthy inputs for the future Morning Briefing. It
+does not implement briefing narration or recommendation logic.
+
+Explicitly excluded:
+
+- Project dependencies or prerequisites
+- Blocked Task rules
+- Task due-soon or overdue facts
+- Project-overdue facts
+- Household-timezone policy
+- Next actionable step selection
+- Inventory allocation or reservation
+- Aggregate cross-Project material demand
+- System-health facts inside the database-backed facts endpoint
+- Migration-required detection
+- Historical change tracking or persisted fact snapshots
+- Severity scoring, prioritization, or recommended actions
+- Notifications, narrative generation, heuristics, or AI
+- Backup or restore
+- Authentication or external access
+- Database schema migration
+
+### v0.7.4 — Backup, Export, Restore, and Verification
 
 Status: Planned
 
@@ -247,7 +311,7 @@ Objectives:
 - Preserve migration evidence and authoritative SQLite data
 - Establish recoverable data-safety workflows
 
-### v0.7.4 — Frontend Hardening and Browser End-to-End Infrastructure
+### v0.7.5 — Frontend Hardening and Browser E2E
 
 Status: Planned
 
@@ -257,12 +321,6 @@ Objectives:
 - Harden frontend failure and recovery behavior
 - Improve migration reporting and diagnostics
 - Verify supported browser workflows from clean deployments
-
-Deferred, unversioned core-convergence work:
-
-- Move Project material readiness to backend-authoritative calculations
-- Unify Project and Inventory readiness facts at the backend boundary
-- Provide consistent operational facts for future capacity and briefing work
 
 Deferred Project work:
 
