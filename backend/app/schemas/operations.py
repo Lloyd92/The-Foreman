@@ -230,6 +230,11 @@ class InventoryOperationalFact(ApiModel):
 
 
 class OperationalFactsResponse(ApiModel):
+    schema_version: Literal[1] = 1
+    facts: list[OperationalFact]
+    summary: OperationalFactsSummary = Field(
+        default_factory=OperationalFactsSummary
+    )
     active_projects: list[ProjectRead]
     incomplete_tasks: list[TaskRead]
     completed_tasks: list[TaskRead]

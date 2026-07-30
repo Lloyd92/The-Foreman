@@ -8,8 +8,7 @@ from sqlalchemy.orm import Session
 from app.repositories import inventory as inventory_repository
 from app.repositories import projects as project_repository
 from app.repositories import tasks as task_repository
-from app.repositories.projects import project_status_counts
-from app.repositories.tasks import task_priority_counts
+from app.schemas.inventory import InventoryRead
 from app.schemas.operations import (
     InventoryFactsSummary,
     InventoryOperationalFact,
@@ -33,9 +32,10 @@ from app.schemas.operations import (
     TaskWorkStateEvidence,
     TaskWorkStateFact,
 )
-from app.services.inventory import list_inventory
-from app.services.projects import list_projects
-from app.services.tasks import list_tasks
+from app.schemas.project import ProjectRead
+from app.schemas.task import TaskRead
+from app.services.inventory import serialize_inventory_item
+from app.services.projects import serialize_projects
 
 
 @dataclass(frozen=True)
@@ -77,6 +77,9 @@ class OperationalSnapshot:
     projects: tuple[ProjectSnapshot, ...] = ()
     tasks: tuple[TaskSnapshot, ...] = ()
     inventory: tuple[InventorySnapshot, ...] = ()
+    legacy_projects: tuple[ProjectRead, ...] = ()
+    legacy_tasks: tuple[TaskRead, ...] = ()
+    legacy_inventory: tuple[InventoryRead, ...] = ()
 
 
 FACT_TYPE_ORDER = {
@@ -226,6 +229,15 @@ def _read_operational_snapshot(session: Session) -> OperationalSnapshot:
                 unit=item.unit,
                 updated_at=item.updated_at,
             )
+            for item in inventory
+        ),
+        legacy_projects=tuple(serialize_projects(session, projects)),
+        legacy_tasks=tuple(
+            TaskRead.model_validate(task)
+            for task in tasks
+        ),
+        legacy_inventory=tuple(
+            serialize_inventory_item(item)
             for item in inventory
         ),
     )
@@ -647,28 +659,47 @@ def calculate_normalized_operational_facts(
 def get_operational_facts(
     session: Session,
 ) -> OperationalFactsResponse:
-    projects = list_projects(session)
-    tasks = list_tasks(session)
-    inventory = list_inventory(session)
+    snapshot = load_operational_snapshot(session)
+    normalized = derive_operational_facts(snapshot)
+
+    project_status_counts: dict[str, int] = {}
+    for project in snapshot.legacy_projects:
+        project_status_counts[project.status] = (
+            project_status_counts.get(project.status, 0) + 1
+        )
+
+    task_priority_counts: dict[str, int] = {
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+    }
+    for task in snapshot.legacy_tasks:
+        task_priority_counts[task.priority] += 1
 
     return OperationalFactsResponse(
+        schema_version=normalized.schema_version,
+        facts=normalized.facts,
+        summary=normalized.summary,
         active_projects=[
             project
-            for project in projects
-            if project.status == "active"
+            for project in snapshot.legacy_projects
+            if (
+                project.archived_at is None
+                and project.status == "active"
+            )
         ],
         incomplete_tasks=[
             task
-            for task in tasks
+            for task in snapshot.legacy_tasks
             if not task.completed
         ],
         completed_tasks=[
             task
-            for task in tasks
+            for task in snapshot.legacy_tasks
             if task.completed
         ],
-        task_priority_counts=task_priority_counts(session),
-        project_status_counts=project_status_counts(session),
+        task_priority_counts=task_priority_counts,
+        project_status_counts=project_status_counts,
         inventory=[
             InventoryOperationalFact(
                 source_module="inventory",
@@ -681,6 +712,6 @@ def get_operational_facts(
                 status=item.status,
                 explanation=item.explanation,
             )
-            for item in inventory
+            for item in snapshot.legacy_inventory
         ],
     )
