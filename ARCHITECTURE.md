@@ -18,14 +18,17 @@ and Design Principles. The Constitution is the highest authority.
 
 The Foreman is a local-first business operating system whose primary
 responsibility is to transform scattered operational information into clear,
-actionable decisions.
+actionable decisions. It is also an external working memory and continuity
+system: the architecture must preserve operational context so work can resume
+after interruption without reconstructing that context from memory.
 
-The architecture is designed around four core goals:
+The architecture is designed around five core goals:
 
 - Reliability
 - Modularity
 - Explainability
 - Simplicity
+- Continuity
 
 Every technical decision should ultimately improve the Morning Briefing.
 
@@ -74,16 +77,16 @@ Persistence:
   records in SQLite through SQLAlchemy.
 - The Inventory and Tasks frontends retain browser-local compatibility and
   include migration paths to backend persistence.
-- SQLite is the authoritative Project store. The Projects workspace and
-  Dashboard consume backend Project data through the shared Project API
-  utility and runtime validation helpers.
+- SQLite is the authoritative Project, Task, and Inventory store.
 - Browser-local Projects are retained as migration evidence and for
   compatibility and recovery. They are read by migration code, not used as
   the Projects workspace's runtime authority.
 - Project material requirements persist in SQLite and link to Inventory by
-  item ID. The frontend currently derives readiness and shortages from backend
-  Project requirements and current Inventory records without storing derived
-  values or mutating Inventory quantities.
+  item ID.
+- Unified Operational Facts derive current lifecycle, material-readiness,
+  Task-work, and Inventory-stock conclusions from one authoritative database
+  snapshot. Dashboard, Projects, and Inventory consume these facts rather than
+  independently interpreting the same records.
 
 ## 2.2 Current Workspaces
 
@@ -104,16 +107,19 @@ Tasks:
 Inventory:
 
 - Supports creation, editing, deletion, search, filtering, sorting, low-stock
-  detection, dashboard alerts, backend persistence, and migration of
-  browser-local records.
+  and out-of-stock display, dashboard alerts, backend persistence, and
+  migration of browser-local records.
+- Uses normalized backend `inventory.stock-level` facts as the classification
+  authority.
 
 Projects:
 
-- Provides the v0.7.1 Projects workspace with backend-authoritative creation,
+- Provides the Projects workspace with backend-authoritative creation,
   editing, confirmed deletion, persistence, project cards, progress tracking,
-  persistent material requirements, deterministic frontend
-  material-readiness calculations, summary cards, search, filtering, sorting
-  controls, and empty state.
+  persistent material requirements, backend-authoritative readiness,
+  summary cards, search, filtering, sorting controls, and empty state.
+- Project cards and material dialogs consume normalized
+  `project.material-readiness` facts and backend-provided evidence.
 - Missing Inventory references remain visible, editable, and removable.
 - Project deletion clears related Task Project references through database
   foreign-key behavior.
@@ -238,12 +244,25 @@ idempotent SQLite schema upgrades. The current internal SQLite schema version
 is 2. Startup refuses a database whose schema version is newer than the
 application supports and verifies the required Project schema after upgrades.
 
-The `/api/operational-facts` endpoint currently aggregates backend Inventory,
-Projects, and Tasks through their services and repositories. It is an early
-module-fact boundary, not the Morning Briefing, Capacity Engine, or Priority
-Engine. Backend Projects are visible in active-Project and Project-status
-facts. Project material readiness remains a frontend calculation and is not
-yet part of backend operational facts.
+The versioned `GET /api/operational-facts` endpoint derives normalized facts
+from backend Inventory, Projects, materials, and Tasks. One explicit
+transaction supplies the authoritative snapshot for each request. Facts are
+computed on demand; there is no persisted fact table and the SQLite schema
+version remains 2.
+
+The operational-fact schema version is numeric 1. Its current vocabulary is
+`project.lifecycle`, `project.material-readiness`, `task.work-state`, and
+`inventory.stock-level`. Every normalized fact has a stable ID, type, subject,
+state, reason codes, evidence, and source-record references. Canonical ordering
+makes identical source state produce identical serialized fact output.
+
+The response retains six legacy top-level compatibility fields alongside
+`schemaVersion`, normalized `facts`, and `summary`, producing the approved
+nine-field public contract. Database query failures return a stable,
+non-sensitive HTTP 503 response.
+
+This is the implemented module-fact boundary. It is not the Capacity Engine,
+Priority Engine, next-action selection, or Morning Briefing narration.
 
 ## 2.6 Current Project Migration and Runtime Flow
 
@@ -282,16 +301,19 @@ After the migration prerequisite completes, the Projects page loads
 exclusively through `GET /api/projects`. Normal Project and material mutations
 use the Project API endpoints, then render the validated backend response as
 the visible source of truth. A shared Project runtime validates lists and
-merges or removes successful mutation results. Dashboard Project summaries
-also load backend Projects and respond to Project update events.
+merges or removes successful mutation results.
 
-Backend-authoritative readiness and a unified operational-facts model remain
-deferred core-convergence work. The current frontend combines backend Projects
-with Inventory data to calculate Project readiness deterministically.
+Dashboard, Projects, and Inventory request normalized operational facts
+through the shared frontend operations API. Dashboard Project counts come from
+the normalized summary. Project cards and material dialogs use
+`project.material-readiness` facts and evidence. Inventory status uses
+`inventory.stock-level` facts. Missing or malformed facts produce an
+unavailable presentation rather than a browser-derived valid state.
 
 ## 2.7 PWA, Availability, and Household Deployment
 
-The v0.7.2 PWA Foundation uses this implemented delivery path:
+The current PWA delivery path, established in v0.7.2 and retained by v0.7.3,
+is:
 
 ```text
 LAN device
@@ -347,7 +369,8 @@ private CA keys and certificate state remain protected in persistent
 `caddy-data` and `caddy-config` volumes.
 
 The current secure origin is the private IP address.
-`hardhead.home.arpa` remains a future LAN-DNS goal and is not part of v0.7.2.
+`hardhead.home.arpa` remains a future LAN-DNS goal and is not currently
+supported.
 
 ---
 
@@ -381,14 +404,31 @@ Dashboard application shell
 
 The responsibilities in this flow are explicit:
 
-1. Modules provide operational facts.
-2. Capacity determines which work is realistically eligible.
+1. Modules provide facts.
+2. Capacity evaluates reality and determines which work is eligible.
 3. Priority ranks eligible work.
-4. The Morning Briefing presents the result in the Dashboard's default
-   workspace.
+4. The Morning Briefing presents explainable recommendations in the
+   Dashboard's default workspace.
+
+```text
+Modules provide facts
+        │
+        ▼
+Capacity evaluates reality
+        │
+        ▼
+Priority ranks eligible work
+        │
+        ▼
+Morning Briefing presents explainable recommendations
+```
 
 Capacity evaluation precedes scheduling and recommendation. Scheduling may
 organize eligible work, but it must never override real limits.
+
+Unified Operational Facts are the implemented first boundary in this flow.
+Capacity, Priority, and complete Morning Briefing assembly remain target
+capabilities.
 
 ## 3.2 Design Goals
 
@@ -401,6 +441,7 @@ The Version 1.0 architecture must be:
 - Recoverable
 - Portable
 - AI-independent
+- Continuity-preserving
 
 Artificial Intelligence may enhance the application, but it is never required
 for core operation.
@@ -531,6 +572,8 @@ Every major module contributes operational facts toward these answers.
 
 The Morning Briefing assembles capacity-aware, prioritized information. It
 does not replace the independent responsibilities of contributing modules.
+When implemented, it should restore enough current context for the owner to
+continue after an interruption, not merely narrate disconnected records.
 
 ---
 
@@ -602,6 +645,10 @@ well-defined interfaces.
 Capacity evaluates realistic eligibility, Priority ranks eligible work, and
 the Morning Briefing assembles the result.
 
+The current Unified Operational Facts boundary gives modules one
+deterministic, explainable representation of current state. Frontend pages
+must consume that shared authority rather than recreate page-specific facts.
+
 ---
 
 # 10. AI Integration
@@ -615,7 +662,8 @@ Future AI providers must connect through a provider interface rather than
 being tightly coupled to the application.
 
 AI may assist, explain, summarize, or reason. It must not replace human
-judgment.
+judgment or become the factual authority. AI interpretation must remain
+grounded in authoritative records and deterministic operational facts.
 
 ---
 
@@ -631,7 +679,9 @@ Version 1.0 must support:
 - Restore verification
 
 Backup and restore must preserve user ownership of local data and support
-recoverability.
+recoverability. Backups preserve the continuity system itself: authoritative
+records, migration evidence, and the context required to resume work must be
+restorable and verifiable.
 
 ---
 

@@ -23,6 +23,61 @@ Each release represents a stable, working version of the application.
 
 ---
 
+# v0.7.3 — 2026-07-30
+
+## Added
+
+- Added four normalized operational fact types:
+  `project.lifecycle`, `project.material-readiness`, `task.work-state`, and
+  `inventory.stock-level`
+- Added stable fact IDs, typed states, reason codes, evidence, source-record
+  references, and deterministic ordering
+- Added operational-fact `schemaVersion: 1` with fixed normalized `facts` and
+  `summary` fields
+- Added a shared frontend operations API that validates the normalized
+  contract and preserves availability failures
+
+## Changed
+
+- Expanded `GET /api/operational-facts` to the approved nine-field response
+  while retaining the six compatibility fields: `activeProjects`,
+  `incompleteTasks`, `completedTasks`, `taskPriorityCounts`,
+  `projectStatusCounts`, and `inventory`
+- Derived facts on demand from one authoritative SQLite transaction snapshot
+- Converged Dashboard Project and Inventory summaries onto backend facts
+- Converged Project cards and material dialogs onto backend readiness facts
+  and evidence
+- Made normalized `inventory.stock-level` facts authoritative for frontend
+  stock classification
+- Updated the application and visible release version to 0.7.3
+- Advanced the exact 29-resource application shell to
+  `foreman-shell-v0.7.3-c2` so the precached version surface updates safely
+
+## Removed
+
+- Removed `frontend/utils/projectReadiness.js` and duplicate frontend Project
+  readiness calculations
+- Removed frontend numeric Inventory classification fallbacks
+
+## Reliability
+
+- Added a stable, non-sensitive HTTP 503 response for operational-fact
+  database failures
+- Kept missing Inventory availability unknown instead of fabricating zero
+- Preserved explicit service-worker update activation and network-only API and
+  mutation behavior
+- Added no fact persistence or database migration; SQLite `user_version`
+  remains 2
+
+## Validation
+
+- Added deterministic backend fact-engine and endpoint coverage
+- Added focused frontend contract and operational-convergence coverage
+- Completed automated, trusted-HTTPS, database-integrity, and controlled
+  Firefox/WebDriver operational-convergence validation
+
+---
+
 # v0.7.2
 
 ## Added

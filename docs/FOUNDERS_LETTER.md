@@ -63,6 +63,24 @@ If it does not, it does not belong.
 
 ---
 
+# Continuity
+
+The Foreman is an external working memory and continuity system.
+
+It should preserve the operational state of projects, decisions,
+dependencies, materials, responsibilities, and progress so its owner does not
+have to rebuild that context from memory after every interruption.
+
+Its responsibility is not merely to store disconnected records. It should
+protect progress by preserving knowledge, restoring context, explaining what
+remains, identifying the next logical action when sufficient facts and
+decision systems exist, and maintaining trustworthy backups.
+
+Whether its owner returns after an hour, a week, or a year, The Foreman should
+make it possible to continue rather than restart.
+
+---
+
 # The Philosophy
 
 The world is already complicated enough.

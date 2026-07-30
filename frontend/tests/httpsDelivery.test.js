@@ -270,10 +270,58 @@ test("release version and shell cache are finalized", async () => {
         "frontend/service-worker.js"
     );
 
-    assert.match(indexSource, /0\.7\.2/);
-    assert.match(backendSource, /APPLICATION_VERSION = "0\.7\.2"/);
+    assert.match(
+        indexSource,
+        /id="footer-version">\s*0\.7\.3\s*<\/span>/
+    );
+    assert.match(backendSource, /APPLICATION_VERSION = "0\.7\.3"/);
     assert.match(
         workerSource,
-        /SHELL_CACHE_NAME = "foreman-shell-v0\.7\.3-c1"/
+        /SHELL_CACHE_NAME = "foreman-shell-v0\.7\.3-c2"/
     );
+});
+
+test("v0.7.3 release documentation preserves continuity and boundaries", async () => {
+    const [
+        readme,
+        architecture,
+        roadmap,
+        changelog,
+        tasks,
+        foundersLetter
+    ] = await Promise.all([
+        readRepositoryFile("README.md"),
+        readRepositoryFile("ARCHITECTURE.md"),
+        readRepositoryFile("ROADMAP.md"),
+        readRepositoryFile("CHANGELOG.md"),
+        readRepositoryFile("docs/TASKS.md"),
+        readRepositoryFile("docs/FOUNDERS_LETTER.md")
+    ]);
+
+    assert.match(readme, /v0\.7\.3 — Unified Operational Facts/);
+    assert.match(
+        readme,
+        /external working\s+memory and continuity system/
+    );
+    assert.match(readme, /AI is not part of v0\.7\.3/);
+    assert.match(architecture, /continuity system/i);
+    assert.match(architecture, /AI interpretation must remain[\s\S]*authoritative records/);
+    assert.match(
+        roadmap,
+        /v0\.7\.3 — Unified Operational Facts ✅[\s\S]*Status: Complete/
+    );
+    assert.ok(
+        roadmap.indexOf("v0.7.4 — Backup, Export, Restore, and Verification") <
+        roadmap.indexOf("v0.7.5 — Frontend Hardening and Browser E2E")
+    );
+    assert.match(
+        roadmap,
+        /v0\.7\.4 — Backup, Export, Restore, and Verification[\s\S]*Status: Planned/
+    );
+    assert.match(changelog, /# v0\.7\.3 — 2026-07-30/);
+    assert.match(changelog, /# v0\.7\.2/);
+    assert.match(tasks, /- \[x\] Complete v0\.7\.3 release validation\./);
+    assert.match(tasks, /- \[ \] Add manual backup and export\./);
+    assert.match(foundersLetter, /external working memory and continuity system/);
+    assert.match(foundersLetter, /continue rather than restart/);
 });

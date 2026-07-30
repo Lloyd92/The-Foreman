@@ -117,7 +117,7 @@ class OperationalFactsApiTests(ApiTestCase):
 
         status_response = await self.client.get("/api/status")
         self.assertEqual(status_response.status_code, 200)
-        self.assertEqual(status_response.json()["version"], "0.7.2")
+        self.assertEqual(status_response.json()["version"], "0.7.3")
         unknown_response = await self.client.get(
             "/api/operational-facts/unknown"
         )

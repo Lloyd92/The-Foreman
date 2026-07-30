@@ -2,13 +2,23 @@
 
 > *The Foreman serves the craftsman.*
 
-The Foreman is a modular workshop operating system being developed by **HardHead Works**.
+The Foreman is a local-first, deterministic, and explainable external working
+memory and continuity system being developed by **HardHead Works**.
 
 Its purpose is simple:
 
 Help builders, makers, craftsmen, and small businesses organize their work without getting in the way of it.
 
-The Foreman is designed to replace scattered notebooks, spreadsheets, sticky notes, and disconnected applications with one organized command center for the workshop.
+The Foreman preserves operational state and context rather than merely storing
+disconnected records. It is designed to replace scattered notebooks,
+spreadsheets, sticky notes, and disconnected applications with one organized
+command center that can help its owner continue after an interruption instead
+of reconstructing the work from memory.
+
+The current system remains useful without AI. Deterministic records, facts,
+reason codes, evidence, and source references establish the factual authority;
+future decision-support or AI capabilities must build on that foundation
+rather than replace it.
 
 ---
 
@@ -16,14 +26,14 @@ The Foreman is designed to replace scattered notebooks, spreadsheets, sticky not
 
 **Current Version**
 
-v0.7.2 — PWA Foundation
+v0.7.3 — Unified Operational Facts
 
 Current focus:
 
-- Installable household-first PWA
-- Controlled application-shell availability
-- Backend-authoritative operational safety
-- Private-LAN HTTPS deployment
+- Backend-authoritative operational facts
+- Shared Project-readiness and Inventory-stock interpretation
+- Deterministic, explainable current-state evidence
+- Local-first continuity across Dashboard, Projects, and Inventory
 
 ---
 
@@ -32,6 +42,10 @@ Current focus:
 The Foreman exists to reduce friction inside the workshop.
 
 Instead of spending time searching for materials, remembering measurements, tracking projects, or managing inventory manually, users should be able to focus on building.
+
+It is designed to preserve context across interruptions. Current operational
+state should remain understandable without requiring the owner to remember
+how disconnected records fit together.
 
 Every feature is designed around one guiding question:
 
@@ -63,6 +77,8 @@ Briefing and Capacity Engine remain Version 1.0 target capabilities.
 The Foreman is built around several fundamental ideas.
 
 - Local-first operation
+- External working memory and continuity
+- Deterministic and explainable facts
 - Modular architecture
 - Offline capable
 - Reliable over flashy
@@ -90,7 +106,8 @@ Current capabilities:
 - Greeting and date
 - Task management workspace
 - Inventory alerts
-- Module status summaries using backend Project data
+- Project lifecycle, readiness, and Inventory summaries from the normalized
+  backend operational-facts response
 
 The full capacity-aware Morning Briefing is not yet implemented.
 
@@ -123,7 +140,8 @@ Current capabilities:
 - Search
 - Filtering
 - Sorting
-- Low-stock detection
+- Backend-authoritative in-stock, low-stock, out-of-stock, and invalid
+  classifications
 
 Planned capabilities:
 
@@ -136,12 +154,13 @@ Planned capabilities:
 
 # Projects
 
-The v0.7.1 Projects workspace uses the backend API and SQLite as its
+The Projects workspace uses the backend API and SQLite as its
 authoritative runtime source. It supports project creation, editing, confirmed
 deletion, project cards, progress tracking, summary counts, search, status
 filtering, sorting, and persistent material requirements linked to Inventory
-records. Project cards and the focused Materials dialog provide deterministic
-readiness and shortage calculations without deducting or reserving inventory.
+records. Project cards and the focused Materials dialog consume normalized
+backend material-readiness facts and their evidence without deducting,
+reserving, or aggregating inventory across Projects.
 
 Existing browser Projects migrate through a durable, idempotent backend
 migration endpoint. Startup migration runs in Inventory → Project → Task order
@@ -150,12 +169,44 @@ Browser Project storage is intentionally retained as migration evidence and
 for compatibility and recovery; it is no longer the Projects page's runtime
 authority.
 
-Dashboard Project summaries use backend Projects. Deleting a Project clears
-related Task `projectId` references, and material requirements whose Inventory
-items were deleted remain visible, editable, and removable.
+Dashboard and Projects consume the same backend readiness facts. Missing
+Inventory references remain visible with unknown availability rather than a
+fabricated zero. Deleting a Project clears related Task `projectId`
+references, and material requirements whose Inventory items were deleted
+remain visible, editable, and removable.
 
 Estimated completion, Project templates, and deeper module integrations remain
 planned work.
+
+---
+
+# Unified Operational Facts
+
+v0.7.3 derives one deterministic, backend-authoritative view of current
+Project, material, Task, and Inventory state. The backend reads authoritative
+SQLite records from one transaction snapshot and returns a versioned
+`GET /api/operational-facts` response with normalized facts and summary data.
+
+The implemented fact vocabulary is:
+
+- `project.lifecycle`
+- `project.material-readiness`
+- `task.work-state`
+- `inventory.stock-level`
+
+Each fact has a stable identity, typed state, reason codes, evidence, and
+source-record references. Facts are computed on demand and are not persisted.
+The operational-fact schema version is 1 while the SQLite database schema
+remains version 2.
+
+Dashboard, Projects, and Inventory consume these shared facts instead of
+independently reconstructing readiness or stock state from quantities.
+Browser-local records remain migration and recovery evidence, never
+operational fact authority.
+
+This release establishes trustworthy current-state inputs. It does not yet
+implement Capacity, Priority, next-action selection, Morning Briefing
+narration, or AI.
 
 ---
 
@@ -202,7 +253,7 @@ Only Caddy's public root certificate is distributed to trusted household
 devices. Its private CA keys and certificate state remain protected in
 persistent Docker volumes and must not be copied, deleted, or regenerated.
 The current origin is the private IP address above. `hardhead.home.arpa`
-remains a future LAN-DNS goal, not a current hostname or v0.7.2 feature.
+remains a future LAN-DNS goal, not a currently supported hostname.
 
 ---
 
@@ -224,6 +275,10 @@ Future modules include:
 Version 1.0 also requires shared system capabilities including the Morning
 Briefing, Capacity Engine, explainable recommendations, continued persistence
 and testing maturity, and backup and restore.
+
+Backup, export, restore, and verification are the next v0.7.4 milestone.
+Next-action identification and Morning Briefing narration remain future
+capabilities. AI is not part of v0.7.3.
 
 See `ROADMAP.md` for additional details.
 
@@ -268,17 +323,16 @@ Development Environment
 
 Tasks, Inventory, and Projects use backend SQLite persistence. Browser-local
 records remain available only to migration, compatibility, evidence, and
-recovery paths; they are not runtime fallback stores. The
-Projects page and Dashboard use backend Project APIs as their authoritative
-Project source, while retained browser Project records provide migration
-evidence and recovery support.
+recovery paths; they are not runtime fallback stores. Dashboard, Projects,
+and Inventory use the backend operational-facts API as the authority for
+current lifecycle, readiness, and stock classifications.
 
 The backend currently provides validated APIs for system status, Inventory,
 Projects, Project materials, Tasks, browser-data migration, and operational
 facts. Its service, repository, Pydantic schema, SQLAlchemy model, SQLite
 persistence, versioned schema-upgrade, and automated-test foundations are
-implemented. Capacity, Priority, backend-authoritative Project readiness, the
-complete Morning Briefing, and backup and restore remain target work.
+implemented. Capacity, Priority, the complete Morning Briefing, and backup and
+restore remain target work.
 
 ## Version 1.0 Target
 

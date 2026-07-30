@@ -2,29 +2,34 @@
 
 Tasks should remain small, testable, and compatible with a Green Build.
 
-## Active
+## Completed v0.7.3
 
-- [ ] Reconcile v0.7.3 roadmap and task ownership.
-- [ ] Add typed operational-fact schemas and stable reason codes.
-- [ ] Build pure deterministic fact calculations.
-- [ ] Read Projects, materials, Tasks, and Inventory from one transaction
+- [x] Reconcile v0.7.3 roadmap and task ownership.
+- [x] Add typed operational-fact schemas and stable reason codes.
+- [x] Build pure deterministic fact calculations.
+- [x] Read Projects, materials, Tasks, and Inventory from one transaction
       snapshot.
-- [ ] Add canonical ordering and stable fact IDs.
-- [ ] Represent missing Inventory references with null availability.
-- [ ] Add `schemaVersion: 1`, normalized facts, and summary to
+- [x] Add canonical ordering and stable fact IDs.
+- [x] Represent missing Inventory references with null availability.
+- [x] Add `schemaVersion: 1`, normalized facts, and summary to
       `/api/operational-facts`.
-- [ ] Preserve existing top-level response fields during the compatibility
+- [x] Preserve existing top-level response fields during the compatibility
       window.
-- [ ] Add database-failure handling with a stable, non-sensitive 503 response.
-- [ ] Add frontend `operationsApi` consumption.
-- [ ] Move Dashboard readiness and shortage summaries to backend facts.
-- [ ] Move Project cards and material dialogs to backend readiness facts.
-- [ ] Remove frontend Project readiness calculation after convergence.
-- [ ] Remove Inventory numeric fallback classification.
-- [ ] Preserve browser migration data only as migration and recovery evidence.
-- [ ] Add focused backend and frontend tests.
-- [ ] Reconcile documentation and version metadata at release time.
-- [ ] Complete v0.7.3 release validation.
+- [x] Add database-failure handling with a stable, non-sensitive 503 response.
+- [x] Add frontend `operationsApi` consumption.
+- [x] Move Dashboard lifecycle, readiness, and shortage summaries to backend
+      facts.
+- [x] Move Project cards and material dialogs to backend readiness facts.
+- [x] Move Inventory stock classification to backend facts.
+- [x] Remove frontend Project readiness calculation after convergence.
+- [x] Remove Inventory numeric fallback classification.
+- [x] Preserve browser migration data only as migration and recovery evidence.
+- [x] Revise the exact 29-resource service-worker shell for frontend
+      convergence and release identity.
+- [x] Add focused backend and frontend tests.
+- [x] Complete controlled browser operational-convergence validation.
+- [x] Reconcile documentation, continuity principles, and version metadata.
+- [x] Complete v0.7.3 release validation.
 
 ## Planned v0.7.4
 

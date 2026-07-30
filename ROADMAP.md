@@ -22,6 +22,11 @@ Features come before optimization.
 
 Optimization comes before expansion.
 
+The Foreman must first become trustworthy before it becomes adaptive.
+
+Features should preserve or restore operational continuity rather than create
+another disconnected place to store information.
+
 ---
 
 # Completed Releases
@@ -236,9 +241,9 @@ The v0.7.2 deployment is private to the household LAN. It adds no public
 Internet exposure or user authentication. `hardhead.home.arpa` remains a
 future LAN-DNS goal.
 
-### v0.7.3 — Unified Operational Facts
+### v0.7.3 — Unified Operational Facts ✅
 
-Status: In Progress
+Status: Complete
 
 Purpose:
 
@@ -246,19 +251,34 @@ Create one backend-authoritative, deterministic fact layer for Projects,
 material readiness, Tasks, and Inventory so different pages cannot
 independently produce contradictory interpretations.
 
-Approved architecture:
+Completed:
 
-- Compute facts on demand from backend-authoritative SQLite records.
-- Read all source records from one explicit transaction snapshot.
-- Do not persist facts or change database schema version 2.
-- Keep `GET /api/operational-facts` as the fact endpoint.
-- Add `schemaVersion: 1`, normalized `facts`, and `summary` to the response.
-- Temporarily preserve existing top-level response fields for compatibility.
-- Keep fact IDs, types, states, reason codes, evidence, source references, and
-  ordering deterministic so identical inputs produce identical fact output.
-- Never use browser records as fact inputs or runtime fallback authority.
+- Typed, deterministic facts computed on demand from backend-authoritative
+  SQLite records
+- One explicit transaction snapshot for all source records
+- Stable fact IDs, canonical ordering, typed states, reason codes, evidence,
+  and source-record references
+- `schemaVersion: 1`, normalized `facts`, and fixed `summary` sections on
+  `GET /api/operational-facts`
+- Six retained top-level compatibility fields within the approved nine-field
+  response
+- Stable, non-sensitive HTTP 503 behavior for database query failures
+- No persisted fact table or database migration; SQLite schema version remains
+  2
+- Shared frontend operations API with normalized-contract validation
+- Dashboard lifecycle, readiness, and stock summaries sourced from backend
+  facts
+- Project cards and material dialogs sourced from backend readiness evidence
+- Backend-authoritative Inventory stock classification
+- Removal of duplicate frontend Project-readiness calculations and numeric
+  Inventory fallbacks
+- Automated backend and frontend validation plus controlled browser
+  operational-convergence validation
+- Exact 29-resource PWA shell advanced to
+  `foreman-shell-v0.7.3-c2` for release-version finalization
+- Browser records excluded from fact inputs and runtime fallback authority
 
-Initial fact vocabulary and states:
+Fact vocabulary and states:
 
 - `project.lifecycle`: `planning`, `active`, `on-hold`, `completed`, `archived`,
   or `invalid`.
@@ -275,10 +295,11 @@ Material-readiness boundary:
   uses a null available quantity rather than a fabricated zero.
 - Readiness evaluates one Project independently. It does not represent
   allocation, reservation, or combined demand across Projects.
-- Dashboard and Projects must consume the same backend readiness fact.
-- Inventory must stop using frontend numeric fallback classification.
+- Dashboard and Projects consume the same backend readiness fact.
+- Inventory uses backend stock-level facts without a frontend numeric
+  classification fallback.
 
-This milestone prepares trustworthy inputs for the future Morning Briefing. It
+This milestone provides trustworthy inputs for the future Morning Briefing. It
 does not implement briefing narration or recommendation logic.
 
 Explicitly excluded:
@@ -304,6 +325,8 @@ Explicitly excluded:
 
 Status: Planned
 
+This is the next implementation milestone after v0.7.3.
+
 Objectives:
 
 - Add manual backup and export
@@ -314,6 +337,8 @@ Objectives:
 ### v0.7.5 — Frontend Hardening and Browser E2E
 
 Status: Planned
+
+This milestone follows v0.7.4.
 
 Objectives:
 
@@ -390,7 +415,7 @@ Objectives
 
 ---
 
-## v1.0 — Initial Stable Release
+## v1.0 — Initial Stable Release: Trustworthy Deterministic Decision Support
 
 Goals
 
@@ -430,11 +455,36 @@ and current documentation.
 
 ---
 
-# Long-Term Vision
+# Long-Term Trust Progression
 
-## Version 2
+v1.0 first delivers reliable, explainable decision support grounded in
+authoritative records, deterministic facts, Capacity, and Priority.
 
-Potential additions:
+## v1.5 — Observational Analytics Without Behavior Changes
+
+The Foreman may observe and summarize historical patterns without silently
+changing rules, priorities, or user behavior.
+
+## v2.0 — User-Approved Adaptive Calibration
+
+Any adaptive calibration must be explicit, reviewable, reversible, and
+approved by the user.
+
+## v3.0 — Optional AI Advisor
+
+AI may optionally interpret and explain authoritative facts. It must not
+become the factual authority or be required for core operation.
+
+The Foreman must first become trustworthy before it becomes adaptive.
+
+---
+
+# Potential Platform and Workshop Expansion
+
+These exploratory ideas do not reorder the approved trust progression or the
+v0.7.4 and v0.7.5 milestones.
+
+## Platform Options
 
 - PostgreSQL database as a later consideration after the Version 1.0 SQLite
   foundation
@@ -448,9 +498,7 @@ Potential additions:
 
 ---
 
-## Version 3
-
-Potential additions:
+## Workshop Integration Options
 
 - Barcode scanner
 - QR labels
@@ -463,9 +511,7 @@ Potential additions:
 
 ---
 
-## Version 4
-
-Potential additions:
+## Optional Advanced Automation
 
 - Artificial Intelligence
 - Voice assistant
