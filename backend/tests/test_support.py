@@ -4,19 +4,42 @@ import unittest
 from httpx import ASGITransport, AsyncClient
 
 from app.core.config import DATABASE_URL
-from app.core.database import engine, initialize_database
+from app.core.database import (
+    SessionLocal,
+    engine,
+    initialize_database,
+)
 from app.main import app
 from app.models.base import Base
+
+
+def require_test_database() -> None:
+    if "/tmp/" not in DATABASE_URL:
+        raise RuntimeError(
+            "Tests require a temporary SQLite database URL."
+        )
+
+
+class DatabaseTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        require_test_database()
+        initialize_database()
+
+    def setUp(self) -> None:
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
+        self.session = SessionLocal()
+
+    def tearDown(self) -> None:
+        self.session.rollback()
+        self.session.close()
 
 
 class ApiTestCase(unittest.IsolatedAsyncioTestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        if "/tmp/" not in DATABASE_URL:
-            raise RuntimeError(
-                "Tests require a temporary SQLite database URL."
-            )
-
+        require_test_database()
         initialize_database()
 
     async def asyncSetUp(self) -> None:
