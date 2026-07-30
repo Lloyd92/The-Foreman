@@ -16,6 +16,9 @@
 body {
     margin: 0;
     min-height: 100vh;
+    min-height: 100dvh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
     background: var(--background);
     color: var(--text);
     font-family: Arial, Helvetica, sans-serif;
@@ -117,7 +120,16 @@ body {
 }
 
 .app {
-    min-height: 100vh;
+    min-height: calc(
+        100vh
+        - env(safe-area-inset-top)
+        - env(safe-area-inset-bottom)
+    );
+    min-height: calc(
+        100dvh
+        - env(safe-area-inset-top)
+        - env(safe-area-inset-bottom)
+    );
     display: grid;
     grid-template-columns: 240px 1fr;
 }
@@ -714,7 +726,10 @@ footer {
     position: fixed;
     inset: 0;
     z-index: 1000;
-    padding: 24px;
+    padding: max(24px, env(safe-area-inset-top))
+        max(24px, env(safe-area-inset-right))
+        max(24px, env(safe-area-inset-bottom))
+        max(24px, env(safe-area-inset-left));
     display: grid;
     place-items: center;
     background: rgba(0, 0, 0, 0.72);

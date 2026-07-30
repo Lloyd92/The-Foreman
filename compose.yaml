@@ -17,7 +17,25 @@ services:
     depends_on:
       - backend
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
+
+  caddy:
+    image: caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
+    container_name: foreman-caddy
+    environment:
+      FOREMAN_LAN_IP: ${FOREMAN_LAN_IP:?FOREMAN_LAN_IP is required}
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    ports:
+      - "${FOREMAN_LAN_IP:?FOREMAN_LAN_IP is required}:80:80"
+      - "${FOREMAN_LAN_IP:?FOREMAN_LAN_IP is required}:443:443"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
 
 volumes:
   foreman-data:
+  caddy-data:
+  caddy-config:

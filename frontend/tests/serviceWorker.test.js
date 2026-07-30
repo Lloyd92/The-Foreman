@@ -147,7 +147,7 @@ test("install atomically precaches the exact versioned shell", async () => {
 
     assert.deepEqual(
         harness.calls.cacheOpens,
-        ["foreman-shell-v0.7.2-c3"]
+        ["foreman-shell-v0.7.2-c4"]
     );
     assert.deepEqual(
         harness.calls.addAll,
@@ -232,7 +232,8 @@ test("activate removes only stale Foreman shell caches", async () => {
         harness.calls.cacheDeletes,
         [
             "foreman-shell-v0.7.1",
-            "foreman-shell-v0.7.2"
+            "foreman-shell-v0.7.2",
+            "foreman-shell-v0.7.2-c3"
         ]
     );
     assert.equal(harness.calls.skipWaiting, 0);
@@ -297,7 +298,7 @@ test("exact shell assets are served only from the current cache", async () => {
     assert.equal(await fetchEvent.responsePromise, cachedResponse);
     assert.deepEqual(
         harness.calls.cacheOpens,
-        ["foreman-shell-v0.7.2-c3"]
+        ["foreman-shell-v0.7.2-c4"]
     );
     assert.deepEqual(harness.calls.cacheMatches, ["/app.js"]);
     assert.deepEqual(harness.calls.fetches, []);

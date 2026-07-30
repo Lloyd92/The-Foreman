@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+
+/local/
+/secrets/
+/certificates/
+/docker/tls/
+
+*.key
+*.pem
+*.crt
+*.cer
+*.p12
+*.pfx

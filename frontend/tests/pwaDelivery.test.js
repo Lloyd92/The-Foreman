@@ -50,6 +50,31 @@ test("index includes approved PWA and Apple metadata", async () => {
     assert.match(html, /0\.7\.1/);
 });
 
+test("application shell respects dynamic safe areas without changing widths", async () => {
+    const styles = await readFrontendFile("styles.css");
+
+    assert.match(
+        styles,
+        /body \{[\s\S]*min-height: 100dvh;[\s\S]*padding-top: env\(safe-area-inset-top\);[\s\S]*padding-bottom: env\(safe-area-inset-bottom\);/
+    );
+    assert.match(
+        styles,
+        /\.app \{[\s\S]*min-height: calc\([\s\S]*100dvh[\s\S]*- env\(safe-area-inset-top\)[\s\S]*- env\(safe-area-inset-bottom\)[\s\S]*\);[\s\S]*grid-template-columns: 240px 1fr;/
+    );
+    assert.match(
+        styles,
+        /\.dialog-backdrop \{[\s\S]*padding: max\(24px, env\(safe-area-inset-top\)\)[\s\S]*max\(24px, env\(safe-area-inset-bottom\)\)[\s\S]*max\(24px, env\(safe-area-inset-left\)\);/
+    );
+    assert.match(
+        styles,
+        /@media \(max-width: 850px\) \{[\s\S]*\.app \{[\s\S]*grid-template-columns: 1fr;/
+    );
+    assert.doesNotMatch(
+        styles,
+        /padding-(?:top|bottom):\s*(?:44|47|59)px/
+    );
+});
+
 test("Docker image includes PWA metadata, icons, and service worker", async () => {
     const dockerfile = await readFrontendFile("Dockerfile");
 

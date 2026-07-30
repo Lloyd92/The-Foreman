@@ -1,0 +1,30 @@
+{
+	admin off
+	auto_https disable_redirects
+	default_sni {$FOREMAN_LAN_IP}
+
+	servers {
+		protocols h1 h2
+	}
+}
+
+http://{$FOREMAN_LAN_IP} {
+	redir https://{$FOREMAN_LAN_IP}{uri} permanent
+}
+
+https://{$FOREMAN_LAN_IP} {
+	tls internal
+
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		X-Frame-Options "DENY"
+		Content-Security-Policy "frame-ancestors 'none'"
+	}
+
+	reverse_proxy frontend:80 {
+		header_up Host {http.request.host}
+		header_up X-Forwarded-Host {http.request.host}
+		header_up X-Forwarded-Proto {http.request.scheme}
+	}
+}
