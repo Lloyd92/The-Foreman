@@ -1,16 +1,14 @@
 import {
     listInventoryItems
 } from "../utils/inventoryApi.js";
-import { listProjects } from "../utils/projectsApi.js";
 import {
-    evaluateProjectReadiness,
-    PROJECT_READINESS
-} from "../utils/projectReadiness.js";
+    getInventoryStockLevelFact,
+    getOperationalFacts
+} from "../utils/operationsApi.js";
 
 let dashboardInventoryItems = [];
 let dashboardInventoryRevision = 0;
-let dashboardProjects = [];
-let dashboardProjectRevision = 0;
+let dashboardOperationalFacts = null;
 let dashboardInitialized = false;
 
 function getGreeting(hour) {
@@ -32,10 +30,6 @@ function formatCurrentDate(date) {
         day: "numeric",
         year: "numeric"
     }).format(date);
-}
-
-function isLowStock(item) {
-    return item.isLow ?? item.quantity <= item.minimum;
 }
 
 function formatQuantity(item) {
@@ -62,7 +56,41 @@ function initializeGreeting() {
         formatCurrentDate(now);
 }
 
-function renderDashboardInventory(items) {
+export function getDashboardInventoryEntries(
+    items,
+    operationalFacts
+) {
+    return items.map(item => {
+        const fact = operationalFacts
+            ? getInventoryStockLevelFact(
+                operationalFacts,
+                item.id
+            )
+            : null;
+
+        return {
+            item,
+            fact,
+            state: fact?.state ?? "unknown"
+        };
+    });
+}
+
+function inventoryAttentionLabel(state) {
+    if (state === "out-of-stock") {
+        return "OUT OF STOCK";
+    }
+    if (state === "low-stock") {
+        return "LOW STOCK";
+    }
+    if (state === "invalid") {
+        return "INVALID STOCK DATA";
+    }
+
+    return "STATUS UNAVAILABLE";
+}
+
+function renderDashboardInventory(items, operationalFacts) {
     const countElement = document.getElementById(
         "dashboard-inventory-count"
     );
@@ -88,40 +116,72 @@ function renderDashboardInventory(items) {
         return;
     }
 
-    const lowStockItems = items
-        .filter(isLowStock)
-        .sort((a, b) => a.name.localeCompare(b.name));
+    const entries = getDashboardInventoryEntries(
+        items,
+        operationalFacts
+    );
+    const attentionEntries = entries
+        .filter(entry => entry.state !== "in-stock")
+        .sort((a, b) => a.item.name.localeCompare(b.item.name));
+    const summary = operationalFacts?.summary.inventory ?? null;
 
-    countElement.textContent = items.length;
+    countElement.textContent = summary?.total ?? "—";
     listElement.innerHTML = "";
 
-    if (items.length === 0) {
-        statusElement.textContent = "READY";
+    if (!summary) {
+        statusElement.textContent = "UNAVAILABLE";
+        messageElement.textContent =
+            "Inventory status could not be verified.";
+        return;
+    }
+
+    if (summary.total === 0) {
+        statusElement.textContent = "NO INVENTORY";
         messageElement.textContent =
             "No inventory items are currently tracked.";
         return;
     }
 
-    if (lowStockItems.length === 0) {
-        statusElement.textContent = "ALL STOCKED";
+    if (
+        items.length !== summary.total ||
+        entries.some(entry => !entry.fact)
+    ) {
+        statusElement.textContent = "STATUS UNAVAILABLE";
         messageElement.textContent =
-            `${items.length} items tracked. No purchasing alerts.`;
+            "Inventory records and operational facts could not be matched.";
         return;
     }
 
-    statusElement.textContent =
-        `${lowStockItems.length} LOW`;
+    if (attentionEntries.length === 0) {
+        statusElement.textContent = "ALL STOCKED";
+        messageElement.textContent =
+            `${summary.total} items tracked. No stock alerts.`;
+        return;
+    }
+
+    statusElement.textContent = [
+        summary.outOfStock
+            ? `${summary.outOfStock} OUT`
+            : "",
+        summary.lowStock
+            ? `${summary.lowStock} LOW`
+            : "",
+        summary.invalid
+            ? `${summary.invalid} INVALID`
+            : ""
+    ].filter(Boolean).join(" · ") || "STATUS UNAVAILABLE";
 
     messageElement.textContent =
         "These items need attention:";
 
-    lowStockItems.slice(0, 4).forEach(item => {
+    attentionEntries.slice(0, 4).forEach(({ item, state }) => {
         const alertRow = document.createElement("div");
 
         alertRow.className = "dashboard-low-stock-item";
 
         const name = document.createElement("strong");
-        name.textContent = item.name;
+        name.textContent =
+            `${item.name} — ${inventoryAttentionLabel(state)}`;
 
         const quantity = document.createElement("span");
         quantity.textContent =
@@ -131,7 +191,7 @@ function renderDashboardInventory(items) {
         listElement.appendChild(alertRow);
     });
 
-    if (lowStockItems.length > 4) {
+    if (attentionEntries.length > 4) {
         const remainingMessage =
             document.createElement("p");
 
@@ -139,13 +199,31 @@ function renderDashboardInventory(items) {
             "dashboard-low-stock-more";
 
         remainingMessage.textContent =
-            `+${lowStockItems.length - 4} more low-stock items`;
+            `+${attentionEntries.length - 4} more stock alerts`;
 
         listElement.appendChild(remainingMessage);
     }
 }
 
-function renderDashboardProjects(projects, inventoryItems) {
+export function getDashboardProjectMetrics(operationalFacts) {
+    const summary = operationalFacts?.summary.projects;
+
+    if (!summary) {
+        return null;
+    }
+
+    return {
+        active: summary.byStatus.active,
+        ready: summary.materialReadiness.ready,
+        needsMaterials:
+            summary.materialReadiness.needsMaterials,
+        notApplicable:
+            summary.materialReadiness.notApplicable,
+        invalid: summary.materialReadiness.invalid
+    };
+}
+
+function renderDashboardProjects(operationalFacts) {
     const active = document.getElementById(
         "dashboard-active-projects"
     );
@@ -160,25 +238,59 @@ function renderDashboardProjects(projects, inventoryItems) {
         return;
     }
 
-    const readinessProjects = projects.filter(
-        project =>
-            project.status === "planning" ||
-            project.status === "active"
+    const metrics = getDashboardProjectMetrics(
+        operationalFacts
     );
 
-    active.textContent = projects.filter(
-        project => project.status === "active"
-    ).length;
-    ready.textContent = readinessProjects.filter(
-        project =>
-            evaluateProjectReadiness(project, inventoryItems)
-                .status === PROJECT_READINESS.ready
-    ).length;
-    needsMaterials.textContent = readinessProjects.filter(
-        project =>
-            evaluateProjectReadiness(project, inventoryItems)
-                .status === PROJECT_READINESS.needsMaterials
-    ).length;
+    if (!metrics) {
+        active.textContent = "—";
+        ready.textContent = "—";
+        needsMaterials.textContent = "—";
+        return;
+    }
+
+    active.textContent = metrics.active;
+    ready.textContent = metrics.ready;
+    needsMaterials.textContent = (
+        `${metrics.needsMaterials} / ` +
+        `${metrics.notApplicable} / ${metrics.invalid}`
+    );
+    const label = needsMaterials.parentElement?.querySelector(
+        "span"
+    );
+
+    if (label) {
+        label.textContent = "Needs / N/A / Invalid";
+    }
+    needsMaterials.title = (
+        `${metrics.needsMaterials} need materials; ` +
+        `${metrics.notApplicable} not applicable; ` +
+        `${metrics.invalid} invalid`
+    );
+}
+
+async function refreshDashboardOperationalFacts() {
+    dashboardOperationalFacts = null;
+    renderDashboardInventory(
+        dashboardInventoryItems,
+        dashboardOperationalFacts
+    );
+    renderDashboardProjects(dashboardOperationalFacts);
+
+    try {
+        dashboardOperationalFacts = await getOperationalFacts();
+    } catch (error) {
+        console.error(
+            "Unable to load backend operational facts for Dashboard:",
+            error
+        );
+    }
+
+    renderDashboardInventory(
+        dashboardInventoryItems,
+        dashboardOperationalFacts
+    );
+    renderDashboardProjects(dashboardOperationalFacts);
 }
 
 export async function initializeDashboard() {
@@ -194,22 +306,13 @@ export async function initializeDashboard() {
         event => {
             dashboardInventoryRevision += 1;
             dashboardInventoryItems = event.detail.items;
-            renderDashboardInventory(dashboardInventoryItems);
-            renderDashboardProjects(
-                dashboardProjects,
-                dashboardInventoryItems
-            );
+            void refreshDashboardOperationalFacts();
         }
     );
     document.addEventListener(
         "projects:updated",
-        event => {
-            dashboardProjectRevision += 1;
-            dashboardProjects = event.detail.projects;
-            renderDashboardProjects(
-                dashboardProjects,
-                dashboardInventoryItems
-            );
+        () => {
+            void refreshDashboardOperationalFacts();
         }
     );
 
@@ -229,28 +332,5 @@ export async function initializeDashboard() {
 
     }
 
-    const startingProjectRevision = dashboardProjectRevision;
-
-    try {
-        const loadedProjects = await listProjects();
-
-        if (
-            dashboardProjectRevision === startingProjectRevision &&
-            Array.isArray(loadedProjects)
-        ) {
-            dashboardProjects = loadedProjects;
-        }
-    } catch (error) {
-        console.error(
-            "Unable to load backend Projects for Dashboard:",
-            error
-        );
-    }
-
-    renderDashboardInventory(dashboardInventoryItems);
-    renderDashboardProjects(
-        dashboardProjects,
-        dashboardInventoryItems
-    );
-
+    await refreshDashboardOperationalFacts();
 }

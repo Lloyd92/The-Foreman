@@ -1,8 +1,7 @@
 import {
-    evaluateProjectReadiness,
-    getProjectMaterials,
-    PROJECT_READINESS
-} from "../utils/projectReadiness.js";
+    getOperationalFacts,
+    getProjectMaterialReadinessFact
+} from "../utils/operationsApi.js";
 import {
     listInventoryItems
 } from "../utils/inventoryApi.js";
@@ -28,9 +27,16 @@ let editingMaterialInventoryId = null;
 let inventoryItems = [];
 let inventoryRevision = 0;
 let projects = [];
+let projectOperationalFacts = null;
 let projectRequestPending = false;
 let materialRequestPending = false;
 let projectsInitialized = false;
+
+function getProjectMaterials(project) {
+    return Array.isArray(project?.materials)
+        ? project.materials
+        : [];
+}
 
 function notifyProjectsUpdated() {
     document.dispatchEvent(
@@ -262,12 +268,73 @@ function formatQuantity(value) {
     }).format(Number(value) || 0);
 }
 
-function readinessClass(status) {
-    if (status === PROJECT_READINESS.ready) {
+function formatOperationalQuantity(value) {
+    if (value === null) {
+        return "Unknown";
+    }
+    if (typeof value === "string") {
+        return value;
+    }
+
+    return new Intl.NumberFormat(undefined, {
+        maximumFractionDigits: 6
+    }).format(value);
+}
+
+export function getProjectReadinessPresentation(fact) {
+    if (!fact) {
+        return {
+            state: "unknown",
+            label: "READINESS UNAVAILABLE"
+        };
+    }
+
+    const labels = {
+        ready: "READY",
+        "needs-materials": "NEEDS MATERIALS",
+        "not-applicable": "NOT APPLICABLE",
+        invalid: "INVALID MATERIAL DATA"
+    };
+
+    return {
+        state: fact.state,
+        label: labels[fact.state] ?? "READINESS UNAVAILABLE"
+    };
+}
+
+export function getMaterialEvidencePresentation(evidence) {
+    const labels = {
+        PROJECT_MATERIALS_SUFFICIENT: "SUFFICIENT",
+        PROJECT_MATERIAL_QUANTITY_INSUFFICIENT: "INSUFFICIENT",
+        PROJECT_MATERIAL_INVENTORY_MISSING: "MISSING INVENTORY",
+        PROJECT_MATERIAL_DATA_INVALID: "INVALID DATA"
+    };
+
+    return {
+        status: labels[evidence.reasonCode] ??
+            "EVIDENCE UNAVAILABLE",
+        itemName: evidence.itemName ?? "Missing inventory item",
+        unit: evidence.unit ?? "unit unavailable",
+        available: formatOperationalQuantity(
+            evidence.availableQuantity
+        ),
+        required: formatOperationalQuantity(
+            evidence.requiredQuantity
+        ),
+        shortage: formatOperationalQuantity(
+            evidence.shortageQuantity
+        ),
+        isSufficient:
+            evidence.reasonCode === "PROJECT_MATERIALS_SUFFICIENT"
+    };
+}
+
+function readinessClass(state) {
+    if (state === "ready") {
         return "project-readiness-ready";
     }
 
-    if (status === PROJECT_READINESS.needsMaterials) {
+    if (state === "needs-materials") {
         return "project-readiness-needs-materials";
     }
 
@@ -321,9 +388,14 @@ function renderProjects() {
         const card = document.createElement("article");
         const statusLabel = formatLabel(project.status);
         const priorityLabel = formatLabel(project.priority);
-        const readiness = evaluateProjectReadiness(
-            project,
-            inventoryItems
+        const readinessFact = projectOperationalFacts
+            ? getProjectMaterialReadinessFact(
+                projectOperationalFacts,
+                project.id
+            )
+            : null;
+        const readiness = getProjectReadinessPresentation(
+            readinessFact
         );
         const controls = project.status === "archived"
             ? ""
@@ -404,8 +476,8 @@ function renderProjects() {
 
             <div class="project-readiness-summary">
                 <span>Material Readiness</span>
-                <strong class="${readinessClass(readiness.status)}">
-                    ${readiness.status}
+                <strong class="${readinessClass(readiness.state)}">
+                    ${readiness.label}
                 </strong>
             </div>
         `;
@@ -483,6 +555,33 @@ async function refreshProjects() {
         }
         return false;
     }
+}
+
+async function refreshProjectOperationalFacts() {
+    projectOperationalFacts = null;
+    renderProjects();
+
+    if (materialsProjectId) {
+        renderMaterialsDialog();
+    }
+
+    try {
+        projectOperationalFacts = await getOperationalFacts();
+    } catch (error) {
+        console.error(
+            "Unable to load backend operational facts for Projects:",
+            error
+        );
+        return false;
+    }
+
+    renderProjects();
+
+    if (materialsProjectId) {
+        renderMaterialsDialog();
+    }
+
+    return true;
 }
 
 function getMaterialsProject() {
@@ -630,29 +729,65 @@ function renderMaterialsDialog() {
         return;
     }
 
-    const readiness = evaluateProjectReadiness(
-        project,
-        inventoryItems
+    const readinessFact = projectOperationalFacts
+        ? getProjectMaterialReadinessFact(
+            projectOperationalFacts,
+            project.id
+        )
+        : null;
+    const readiness = getProjectReadinessPresentation(
+        readinessFact
     );
+    const evidenceRequirements =
+        readinessFact?.evidence.requirements ?? [];
+    const projectMaterials = getProjectMaterials(project);
+    const displayedRequirements = readinessFact
+        ? evidenceRequirements
+        : projectMaterials.map(requirement => {
+            const inventoryItem = inventoryItems.find(
+                item => (
+                    item.id === requirement.inventoryItemId
+                )
+            ) ?? null;
+
+            return {
+                inventoryItemId: requirement.inventoryItemId,
+                itemName: inventoryItem?.name ?? null,
+                unit: inventoryItem?.unit ?? null,
+                requiredQuantity: requirement.requiredQuantity,
+                availableQuantity: null,
+                shortageQuantity: null,
+                reasonCode: null
+            };
+        });
 
     title.textContent = project.name;
-    readinessElement.textContent = readiness.status;
+    readinessElement.textContent = readiness.label;
     readinessElement.className =
-        `project-readiness-badge ${readinessClass(readiness.status)}`;
+        `project-readiness-badge ${readinessClass(readiness.state)}`;
     list.innerHTML = "";
-    empty.hidden = readiness.requirements.length > 0;
+    empty.hidden = displayedRequirements.length > 0;
+    empty.textContent = readinessFact
+        ? "No materials are listed for this project."
+        : (
+            "Operational material evidence is unavailable for " +
+            "this Project state."
+        );
 
-    readiness.requirements.forEach(requirement => {
+    displayedRequirements.forEach(evidence => {
         const row = document.createElement("article");
-        const itemName = requirement.inventoryItem
-            ? requirement.inventoryItem.name
-            : "Missing inventory item";
-        const unit = requirement.inventoryItem
-            ? requirement.inventoryItem.unit
-            : "unit unavailable";
-        const status = requirement.isSufficient
-            ? "SUFFICIENT"
-            : "INSUFFICIENT";
+        const requirement = getProjectMaterials(project).find(
+            item => (
+                item.inventoryItemId ===
+                evidence.inventoryItemId
+            )
+        );
+        const presentation = getMaterialEvidencePresentation(
+            evidence
+        );
+        const inventoryItem = inventoryItems.find(
+            item => item.id === evidence.inventoryItemId
+        ) ?? null;
 
         row.className = "material-requirement";
         row.innerHTML = `
@@ -666,15 +801,15 @@ function renderMaterialsDialog() {
             <dl class="material-quantities">
                 <div>
                     <dt>Available</dt>
-                    <dd>${formatQuantity(requirement.availableQuantity)} ${unit}</dd>
+                    <dd>${presentation.available} ${presentation.unit}</dd>
                 </div>
                 <div>
                     <dt>Required</dt>
-                    <dd>${formatQuantity(requirement.requiredQuantity)} ${unit}</dd>
+                    <dd>${presentation.required} ${presentation.unit}</dd>
                 </div>
                 <div>
                     <dt>Shortage</dt>
-                    <dd>${formatQuantity(requirement.shortageQuantity)} ${unit}</dd>
+                    <dd>${presentation.shortage} ${presentation.unit}</dd>
                 </div>
             </dl>
             <p class="material-requirement-note"></p>
@@ -683,7 +818,7 @@ function renderMaterialsDialog() {
                     class="table-action-button"
                     type="button"
                     data-action="edit-material"
-                    data-inventory-id="${requirement.inventoryItemId}"
+                    data-inventory-id="${evidence.inventoryItemId}"
                 >
                     Edit Material
                 </button>
@@ -691,7 +826,7 @@ function renderMaterialsDialog() {
                     class="table-action-button delete-project-button"
                     type="button"
                     data-action="remove-material"
-                    data-inventory-id="${requirement.inventoryItemId}"
+                    data-inventory-id="${evidence.inventoryItemId}"
                 >
                     Remove Material
                 </button>
@@ -699,22 +834,24 @@ function renderMaterialsDialog() {
         `;
 
         row.querySelector(".material-requirement-name").textContent =
-            itemName;
+            presentation.itemName;
         row.querySelector(".material-requirement-reference").textContent =
-            requirement.isMissingReference
-                ? `Inventory reference: ${requirement.inventoryItemId}`
-                : requirement.inventoryItem.category;
+            evidence.itemName === null
+                ? `Inventory reference: ${evidence.inventoryItemId}`
+                : inventoryItem?.category ?? (
+                    `Inventory reference: ${evidence.inventoryItemId}`
+                );
         const statusElement = row.querySelector(
             ".material-requirement-status"
         );
-        statusElement.textContent = status;
+        statusElement.textContent = presentation.status;
         statusElement.classList.add(
-            requirement.isSufficient
+            presentation.isSufficient
                 ? "material-status-sufficient"
                 : "material-status-insufficient"
         );
         row.querySelector(".material-requirement-note").textContent =
-            requirement.note || "No note.";
+            requirement?.note || "No note.";
         list.appendChild(row);
     });
 
@@ -841,6 +978,7 @@ async function handleMaterialSubmit(event) {
             )
             : await addProjectMaterial(project.id, requirement);
         replaceProject(persistedProject);
+        await refreshProjectOperationalFacts();
     } catch (requestError) {
         if (error) {
             error.textContent =
@@ -910,6 +1048,7 @@ async function handleMaterialListAction(event) {
             requirement.inventoryItemId
         );
         replaceProject(persistedProject);
+        await refreshProjectOperationalFacts();
     } catch (error) {
         const errorElement = document.getElementById(
             "material-requirement-error"
@@ -1013,6 +1152,7 @@ async function handleProjectSubmit(event) {
                 materials: []
             });
         replaceProject(persistedProject);
+        await refreshProjectOperationalFacts();
     } catch (error) {
         if (errorElement) {
             errorElement.textContent =
@@ -1095,6 +1235,7 @@ async function handleProjectAction(event) {
 
     projectRequestPending = false;
     projects = removePersistedProject(projects, project.id);
+    await refreshProjectOperationalFacts();
     renderProjects();
     notifyProjectsUpdated();
     setProjectsMessage("Project deleted.");
@@ -1221,11 +1362,7 @@ export async function initializeProjectsPage(
     document.addEventListener("inventory:updated", event => {
         inventoryRevision += 1;
         inventoryItems = event.detail.items;
-        renderProjects();
-
-        if (materialsProjectId) {
-            renderMaterialsDialog();
-        }
+        void refreshProjectOperationalFacts();
     });
 
     setProjectsLoading();
@@ -1239,8 +1376,16 @@ export async function initializeProjectsPage(
         );
     }
 
-    await Promise.all([
+    const [, , factsLoaded] = await Promise.all([
         refreshProjects(),
-        loadProjectInventory()
+        loadProjectInventory(),
+        refreshProjectOperationalFacts()
     ]);
+
+    if (!factsLoaded) {
+        setProjectsMessage(
+            "Project operational facts are unavailable or malformed.",
+            true
+        );
+    }
 }

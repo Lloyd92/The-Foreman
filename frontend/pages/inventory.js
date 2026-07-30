@@ -8,9 +8,14 @@ import {
 import {
     getBrowserInventoryRecords
 } from "../utils/inventoryStorage.js";
+import {
+    getInventoryStockLevelFact,
+    getOperationalFacts
+} from "../utils/operationsApi.js";
 
 let editingItemId = null;
 let inventoryItems = [];
+let inventoryOperationalFacts = null;
 let persistenceMode = "initializing";
 let inventoryInitialized = false;
 
@@ -28,8 +33,53 @@ function formPayload(formData) {
     };
 }
 
-function isLowStock(item) {
-    return item.isLow ?? item.quantity <= item.minimum;
+export function getInventoryOperationalState(
+    operationalFacts,
+    itemId
+) {
+    return operationalFacts
+        ? getInventoryStockLevelFact(
+            operationalFacts,
+            itemId
+        )?.state ?? "unknown"
+        : "unknown";
+}
+
+export function getInventoryStockPresentation(state) {
+    if (state === "in-stock") {
+        return {
+            label: "IN STOCK",
+            className: "stock-badge-available",
+            attention: false
+        };
+    }
+    if (state === "low-stock") {
+        return {
+            label: "LOW STOCK",
+            className: "stock-badge-low",
+            attention: true
+        };
+    }
+    if (state === "out-of-stock") {
+        return {
+            label: "OUT OF STOCK",
+            className: "stock-badge-low",
+            attention: true
+        };
+    }
+    if (state === "invalid") {
+        return {
+            label: "INVALID STOCK DATA",
+            className: "stock-badge-low",
+            attention: true
+        };
+    }
+
+    return {
+        label: "STATUS UNAVAILABLE",
+        className: "stock-badge-low",
+        attention: true
+    };
 }
 
 function formatQuantity(item) {
@@ -64,6 +114,16 @@ async function removeInventoryItem(itemId) {
 
         await deleteInventoryItem(itemId);
         inventoryItems = inventoryItems.filter(current => current.id !== itemId);
+        inventoryOperationalFacts = null;
+
+        try {
+            inventoryOperationalFacts = await getOperationalFacts();
+        } catch (factsError) {
+            console.error(
+                "Unable to refresh operational facts after deletion:",
+                factsError
+            );
+        }
         renderInventory();
     } catch (error) {
         console.error("Unable to delete inventory item:", error);
@@ -164,7 +224,11 @@ function renderInventoryRows(items) {
 
     items.forEach(item => {
         const row = document.createElement("tr");
-        const lowStock = isLowStock(item);
+        const state = getInventoryOperationalState(
+            inventoryOperationalFacts,
+            item.id
+        );
+        const stock = getInventoryStockPresentation(state);
 
         row.innerHTML = `
             <td>
@@ -176,9 +240,7 @@ function renderInventoryRows(items) {
             <td class="inventory-minimum"></td>
             <td class="inventory-location"></td>
             <td>
-                <span class="stock-badge ${
-                    lowStock ? "stock-badge-low" : "stock-badge-available"
-                }">${lowStock ? "LOW STOCK" : "IN STOCK"}</span>
+                <span class="stock-badge ${stock.className}"></span>
             </td>
             <td class="inventory-actions-cell">
                 <div class="inventory-row-actions">
@@ -199,18 +261,38 @@ function renderInventoryRows(items) {
         row.querySelector(".inventory-minimum").textContent =
             `${item.minimum} ${item.unit}`;
         row.querySelector(".inventory-location").textContent = item.location;
+        row.querySelector(".stock-badge").textContent = stock.label;
         tableBody.appendChild(row);
     });
 }
 
-function updateInventorySummary(items) {
+function updateInventorySummary(items, operationalFacts) {
     const categories = new Set(items.map(item => item.category));
     const total = document.getElementById("inventory-total-count");
     const low = document.getElementById("inventory-low-count");
     const category = document.getElementById("inventory-category-count");
+    const summary = operationalFacts?.summary.inventory;
+    const attentionCount = items.filter(item => (
+        getInventoryStockPresentation(
+            getInventoryOperationalState(
+                operationalFacts,
+                item.id
+            )
+        ).attention
+    )).length;
 
-    if (total) total.textContent = items.length;
-    if (low) low.textContent = items.filter(isLowStock).length;
+    if (total) total.textContent = summary?.total ?? "—";
+    if (low) {
+        low.textContent = operationalFacts
+            ? attentionCount
+            : "—";
+        const label = low.parentElement?.querySelector(
+            ".summary-label"
+        );
+        if (label) {
+            label.textContent = "Stock Alerts";
+        }
+    }
     if (category) category.textContent = categories.size;
 }
 
@@ -254,10 +336,19 @@ function filteredInventory(items) {
         ].some(value => value.toLowerCase().includes(search));
         const matchesCategory =
             category === "all" || item.category === category;
+        const stockPresentation = getInventoryStockPresentation(
+            getInventoryOperationalState(
+                inventoryOperationalFacts,
+                item.id
+            )
+        );
         const matchesStock =
             stock === "all" ||
-            (stock === "low" && isLowStock(item)) ||
-            (stock === "available" && !isLowStock(item));
+            (stock === "low" && stockPresentation.attention) ||
+            (
+                stock === "available" &&
+                !stockPresentation.attention
+            );
 
         return matchesSearch && matchesCategory && matchesStock;
     });
@@ -284,8 +375,24 @@ function sortedInventory(items) {
         );
     }
     if (value === "stock") {
+        const stockOrder = {
+            "out-of-stock": 0,
+            "low-stock": 1,
+            invalid: 2,
+            unknown: 3,
+            "in-stock": 4
+        };
         return sorted.sort(
-            (a, b) => Number(isLowStock(b)) - Number(isLowStock(a)) ||
+            (a, b) => (
+                stockOrder[getInventoryOperationalState(
+                    inventoryOperationalFacts,
+                    a.id
+                )] -
+                stockOrder[getInventoryOperationalState(
+                    inventoryOperationalFacts,
+                    b.id
+                )]
+            ) ||
                 a.name.localeCompare(b.name)
         );
     }
@@ -300,7 +407,10 @@ function notifyInventoryUpdated(items) {
 
 function renderInventory() {
     renderInventoryRows(sortedInventory(filteredInventory(inventoryItems)));
-    updateInventorySummary(inventoryItems);
+    updateInventorySummary(
+        inventoryItems,
+        inventoryOperationalFacts
+    );
     updateCategoryFilter(inventoryItems);
     notifyInventoryUpdated(inventoryItems);
 }
@@ -331,6 +441,16 @@ async function handleInventorySubmit(event) {
         inventoryItems = editingItemId
             ? inventoryItems.map(item => item.id === saved.id ? saved : item)
             : [...inventoryItems, saved];
+        inventoryOperationalFacts = null;
+
+        try {
+            inventoryOperationalFacts = await getOperationalFacts();
+        } catch (factsError) {
+            console.error(
+                "Unable to refresh operational facts after save:",
+                factsError
+            );
+        }
 
         closeInventoryDialog();
         renderInventory();
@@ -360,7 +480,13 @@ async function initializePersistence(inventoryMigration) {
             browserRecordCount = 0,
             migration = null
         } = await inventoryMigration;
-        inventoryItems = await listInventoryItems();
+        [
+            inventoryItems,
+            inventoryOperationalFacts
+        ] = await Promise.all([
+            listInventoryItems(),
+            getOperationalFacts()
+        ]);
         persistenceMode = "backend";
 
         if (migration?.errors?.length) {

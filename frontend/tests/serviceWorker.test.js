@@ -27,7 +27,7 @@ const expectedShellAssets = [
     "/utils/inventoryStorage.js",
     "/utils/migrationOrchestrator.js",
     "/utils/projectMigration.js",
-    "/utils/projectReadiness.js",
+    "/utils/operationsApi.js",
     "/utils/projectRuntime.js",
     "/utils/projectStorage.js",
     "/utils/projectsApi.js",
@@ -145,9 +145,18 @@ test("install atomically precaches the exact versioned shell", async () => {
 
     await install.waitPromise;
 
+    assert.equal(expectedShellAssets.length, 29);
+    assert.equal(
+        expectedShellAssets.includes("/utils/operationsApi.js"),
+        true
+    );
+    assert.equal(
+        expectedShellAssets.includes("/utils/projectReadiness.js"),
+        false
+    );
     assert.deepEqual(
         harness.calls.cacheOpens,
-        ["foreman-shell-v0.7.2-c5"]
+        ["foreman-shell-v0.7.3-c1"]
     );
     assert.deepEqual(
         harness.calls.addAll,
@@ -222,6 +231,7 @@ test("activate removes only stale Foreman shell caches", async () => {
             "foreman-shell-v0.7.2",
             "foreman-shell-v0.7.2-c3",
             "foreman-shell-v0.7.2-c4",
+            "foreman-shell-v0.7.2-c5",
             "unrelated-cache"
         ]
     });
@@ -235,7 +245,8 @@ test("activate removes only stale Foreman shell caches", async () => {
             "foreman-shell-v0.7.1",
             "foreman-shell-v0.7.2",
             "foreman-shell-v0.7.2-c3",
-            "foreman-shell-v0.7.2-c4"
+            "foreman-shell-v0.7.2-c4",
+            "foreman-shell-v0.7.2-c5"
         ]
     );
     assert.equal(harness.calls.skipWaiting, 0);
@@ -300,7 +311,7 @@ test("exact shell assets are served only from the current cache", async () => {
     assert.equal(await fetchEvent.responsePromise, cachedResponse);
     assert.deepEqual(
         harness.calls.cacheOpens,
-        ["foreman-shell-v0.7.2-c5"]
+        ["foreman-shell-v0.7.3-c1"]
     );
     assert.deepEqual(harness.calls.cacheMatches, ["/app.js"]);
     assert.deepEqual(harness.calls.fetches, []);

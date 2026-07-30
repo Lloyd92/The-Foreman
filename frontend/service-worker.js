@@ -1,4 +1,4 @@
-const SHELL_CACHE_NAME = "foreman-shell-v0.7.2-c5";
+const SHELL_CACHE_NAME = "foreman-shell-v0.7.3-c1";
 const FOREMAN_CACHE_PREFIX = "foreman-shell-";
 
 // This exact, atomic set keeps one frontend release coherent. Runtime fetches
@@ -18,7 +18,7 @@ const SHELL_ASSETS = Object.freeze([
     "/utils/inventoryStorage.js",
     "/utils/migrationOrchestrator.js",
     "/utils/projectMigration.js",
-    "/utils/projectReadiness.js",
+    "/utils/operationsApi.js",
     "/utils/projectRuntime.js",
     "/utils/projectStorage.js",
     "/utils/projectsApi.js",
