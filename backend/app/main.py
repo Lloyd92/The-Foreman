@@ -7,6 +7,7 @@ from app.api.inventory_migrations import router as inventory_migrations_router
 from app.api.operations import router as operations_router
 from app.api.project_migrations import router as project_migrations_router
 from app.api.projects import router as projects_router
+from app.api.recovery import router as recovery_router
 from app.api.system import router as system_router
 from app.api.task_migrations import router as task_migrations_router
 from app.api.tasks import router as tasks_router
@@ -32,3 +33,4 @@ app.include_router(project_migrations_router)
 app.include_router(tasks_router)
 app.include_router(task_migrations_router)
 app.include_router(operations_router)
+app.include_router(recovery_router)
