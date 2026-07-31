@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
+import stat
+import zipfile
 from collections.abc import Iterable, Mapping
 from contextlib import closing
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -23,9 +28,27 @@ from app.schemas.recovery import (
 )
 
 
+BACKUP_FORMAT_VERSION = 1
+MAX_MANIFEST_BYTES = 1024 * 1024
+MAX_DATABASE_BYTES = 2 * 1024 * 1024 * 1024
+MAX_BACKUP_PACKAGE_BYTES = (
+    MAX_DATABASE_BYTES + MAX_MANIFEST_BYTES + 16 * 1024 * 1024
+)
+
 EXPECTED_BACKUP_MEMBERS = (
     "manifest.json",
     "foreman.db",
+)
+CURRENT_REQUIRED_DATABASE_TABLES = frozenset(
+    {
+        "inventory_items",
+        "inventory_migrations",
+        "project_material_requirements",
+        "project_migrations",
+        "projects",
+        "task_migrations",
+        "tasks",
+    }
 )
 
 _ISSUE_SEVERITY_ORDER = {
@@ -35,9 +58,16 @@ _ISSUE_SEVERITY_ORDER = {
 
 
 class RecoveryContractError(ValueError):
-    def __init__(self, code: str, message: str) -> None:
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        location: str | None = None,
+    ) -> None:
         super().__init__(message)
         self.code = code
+        self.location = location
 
 
 @dataclass(frozen=True)
@@ -48,6 +78,20 @@ class VerifiedSqliteSnapshot:
 
     def record_count_mapping(self) -> dict[str, int]:
         return dict(self.record_counts)
+
+
+@dataclass(frozen=True)
+class BackupPackageVerification:
+    package_path: Path
+    manifest: BackupManifest | None
+    result: VerificationResult
+
+
+@dataclass(frozen=True)
+class VerifiedBackupPackage:
+    path: Path
+    manifest: BackupManifest
+    verification: VerificationResult
 
 
 class _DuplicateJsonKeyError(ValueError):
@@ -625,4 +669,686 @@ def create_verified_sqlite_snapshot(
         ) from error
     except Exception:
         destination.unlink(missing_ok=True)
+        raise
+
+
+def backup_package_filename(created_at: datetime) -> str:
+    if not isinstance(created_at, datetime):
+        raise TypeError("Backup creation time must be a datetime.")
+
+    if created_at.tzinfo is None or created_at.utcoffset() is None:
+        raise RecoveryContractError(
+            "BACKUP_TIMESTAMP_INVALID",
+            "Backup creation time must be timezone-aware.",
+        )
+
+    if created_at.utcoffset() != timezone.utc.utcoffset(created_at):
+        raise RecoveryContractError(
+            "BACKUP_TIMESTAMP_INVALID",
+            "Backup creation time must use UTC.",
+        )
+
+    if created_at.microsecond != 0:
+        raise RecoveryContractError(
+            "BACKUP_TIMESTAMP_INVALID",
+            "Backup creation time must use whole-second precision.",
+        )
+
+    if not 1980 <= created_at.year <= 2107:
+        raise RecoveryContractError(
+            "BACKUP_TIMESTAMP_INVALID",
+            "Backup creation time is outside the ZIP timestamp range.",
+        )
+
+    return created_at.strftime("foreman-backup-%Y%m%dT%H%M%SZ.zip")
+
+
+def _resolve_destination_directory(destination_directory: Path) -> Path:
+    destination = Path(destination_directory)
+
+    if not destination.is_absolute():
+        raise RecoveryContractError(
+            "BACKUP_DESTINATION_INVALID",
+            "Backup destination directory must be absolute.",
+        )
+
+    if destination.is_symlink():
+        raise RecoveryContractError(
+            "BACKUP_DESTINATION_INVALID",
+            "Backup destination directory cannot be a symbolic link.",
+        )
+
+    try:
+        resolved = destination.resolve(strict=True)
+    except (FileNotFoundError, OSError) as error:
+        raise RecoveryContractError(
+            "BACKUP_DESTINATION_INVALID",
+            "Backup destination directory cannot be resolved.",
+        ) from error
+
+    if not resolved.is_dir():
+        raise RecoveryContractError(
+            "BACKUP_DESTINATION_INVALID",
+            "Backup destination must be an existing directory.",
+        )
+
+    return resolved
+
+
+def _resolve_backup_package_path(package_path: Path) -> Path:
+    package = Path(package_path)
+
+    if not package.is_absolute():
+        raise RecoveryContractError(
+            "BACKUP_PACKAGE_PATH_INVALID",
+            "Backup package path must be absolute.",
+        )
+
+    if package.is_symlink():
+        raise RecoveryContractError(
+            "BACKUP_PACKAGE_PATH_INVALID",
+            "Backup package cannot be a symbolic link.",
+        )
+
+    try:
+        resolved = package.resolve(strict=True)
+    except FileNotFoundError as error:
+        raise RecoveryContractError(
+            "BACKUP_PACKAGE_MISSING",
+            "Backup package does not exist.",
+        ) from error
+    except OSError as error:
+        raise RecoveryContractError(
+            "BACKUP_PACKAGE_PATH_INVALID",
+            "Backup package path cannot be resolved.",
+        ) from error
+
+    if not resolved.is_file():
+        raise RecoveryContractError(
+            "BACKUP_PACKAGE_PATH_INVALID",
+            "Backup package path is not a regular file.",
+        )
+
+    try:
+        package_size = resolved.stat().st_size
+    except OSError as error:
+        raise RecoveryContractError(
+            "BACKUP_PACKAGE_READ_FAILED",
+            "Backup package metadata could not be read.",
+        ) from error
+
+    if package_size <= 0 or package_size > MAX_BACKUP_PACKAGE_BYTES:
+        raise RecoveryContractError(
+            "BACKUP_PACKAGE_SIZE_INVALID",
+            "Backup package size is outside supported limits.",
+        )
+
+    return resolved
+
+
+def _zip_member_file_type(member: zipfile.ZipInfo) -> int:
+    mode = member.external_attr >> 16
+    return stat.S_IFMT(mode)
+
+
+def _validate_zip_member(member: zipfile.ZipInfo) -> None:
+    _validate_member_name(member.filename)
+    file_type = _zip_member_file_type(member)
+
+    if (
+        member.is_dir()
+        or file_type not in {0, stat.S_IFREG}
+    ):
+        raise RecoveryContractError(
+            "ARCHIVE_MEMBER_TYPE_INVALID",
+            "Backup archive members must be regular files.",
+            location=member.filename,
+        )
+
+    if member.flag_bits & 0x1:
+        raise RecoveryContractError(
+            "ARCHIVE_MEMBER_ENCRYPTED",
+            "Encrypted backup archive members are unsupported.",
+            location=member.filename,
+        )
+
+    if member.compress_type not in {
+        zipfile.ZIP_STORED,
+        zipfile.ZIP_DEFLATED,
+    }:
+        raise RecoveryContractError(
+            "ARCHIVE_COMPRESSION_UNSUPPORTED",
+            "Backup archive uses an unsupported compression method.",
+            location=member.filename,
+        )
+
+    maximum_size = (
+        MAX_MANIFEST_BYTES
+        if member.filename == "manifest.json"
+        else MAX_DATABASE_BYTES
+    )
+
+    if member.file_size <= 0 or member.file_size > maximum_size:
+        raise RecoveryContractError(
+            "ARCHIVE_MEMBER_SIZE_INVALID",
+            "Backup archive member size is outside supported limits.",
+            location=member.filename,
+        )
+
+
+def _read_zip_member_limited(
+    archive: zipfile.ZipFile,
+    member: zipfile.ZipInfo,
+    maximum_size: int,
+) -> bytes:
+    try:
+        with archive.open(member, "r") as source:
+            data = source.read(maximum_size + 1)
+    except (OSError, RuntimeError, zipfile.BadZipFile) as error:
+        raise RecoveryContractError(
+            "ARCHIVE_MEMBER_READ_FAILED",
+            "Backup archive member could not be read.",
+            location=member.filename,
+        ) from error
+
+    if len(data) > maximum_size:
+        raise RecoveryContractError(
+            "ARCHIVE_MEMBER_SIZE_INVALID",
+            "Backup archive member exceeds supported limits.",
+            location=member.filename,
+        )
+
+    return data
+
+
+def _extract_database_member(
+    archive: zipfile.ZipFile,
+    member: zipfile.ZipInfo,
+    destination_path: Path,
+) -> tuple[int, str]:
+    digest = hashlib.sha256()
+    total = 0
+
+    try:
+        with archive.open(member, "r") as source:
+            with destination_path.open("xb") as destination:
+                while True:
+                    chunk = source.read(1024 * 1024)
+
+                    if not chunk:
+                        break
+
+                    total += len(chunk)
+
+                    if total > MAX_DATABASE_BYTES:
+                        raise RecoveryContractError(
+                            "ARCHIVE_MEMBER_SIZE_INVALID",
+                            "Backup database exceeds supported limits.",
+                            location="foreman.db",
+                        )
+
+                    destination.write(chunk)
+                    digest.update(chunk)
+    except RecoveryContractError:
+        destination_path.unlink(missing_ok=True)
+        raise
+    except (OSError, RuntimeError, zipfile.BadZipFile) as error:
+        destination_path.unlink(missing_ok=True)
+        raise RecoveryContractError(
+            "ARCHIVE_MEMBER_READ_FAILED",
+            "Backup database could not be extracted for verification.",
+            location="foreman.db",
+        ) from error
+
+    return total, digest.hexdigest()
+
+
+def _issue_from_contract_error(
+    error: RecoveryContractError,
+) -> VerificationIssue:
+    return VerificationIssue(
+        code=error.code,
+        message=str(error),
+        location=error.location,
+    )
+
+
+def verify_backup_package(
+    package_path: Path,
+) -> BackupPackageVerification:
+    input_path = Path(package_path)
+    manifest: BackupManifest | None = None
+    compatibility: BackupCompatibility | None = None
+
+    try:
+        resolved_package = _resolve_backup_package_path(input_path)
+
+        try:
+            archive_context = zipfile.ZipFile(resolved_package, "r")
+        except (OSError, zipfile.BadZipFile) as error:
+            raise RecoveryContractError(
+                "BACKUP_ARCHIVE_INVALID",
+                "Backup package is not a readable ZIP archive.",
+            ) from error
+
+        with archive_context as archive:
+            members = archive.infolist()
+            validate_archive_member_names(
+                member.filename
+                for member in members
+            )
+
+            for member in members:
+                _validate_zip_member(member)
+
+            members_by_name = {
+                member.filename: member
+                for member in members
+            }
+            manifest_member = members_by_name["manifest.json"]
+            database_member = members_by_name["foreman.db"]
+            manifest_bytes = _read_zip_member_limited(
+                archive,
+                manifest_member,
+                MAX_MANIFEST_BYTES,
+            )
+            manifest = parse_backup_manifest(manifest_bytes)
+
+            if canonical_json_bytes(manifest) != manifest_bytes:
+                raise RecoveryContractError(
+                    "MANIFEST_NOT_CANONICAL",
+                    "Backup manifest is not canonical JSON.",
+                    location="manifest.json",
+                )
+
+            issues: list[VerificationIssue] = []
+
+            with TemporaryDirectory(
+                prefix="foreman-backup-verification-"
+            ) as temporary_directory:
+                extracted_database = (
+                    Path(temporary_directory) / "foreman.db"
+                )
+                actual_size, actual_checksum = (
+                    _extract_database_member(
+                        archive,
+                        database_member,
+                        extracted_database,
+                    )
+                )
+
+                if actual_size != database_member.file_size:
+                    issues.append(
+                        VerificationIssue(
+                            code="ARCHIVE_MEMBER_SIZE_MISMATCH",
+                            message=(
+                                "Extracted database size does not match "
+                                "the ZIP member metadata."
+                            ),
+                            location="foreman.db",
+                        )
+                    )
+
+                if actual_size != manifest.database.byte_size:
+                    issues.append(
+                        VerificationIssue(
+                            code="DATABASE_SIZE_MISMATCH",
+                            message=(
+                                "Extracted database size does not match "
+                                "the manifest."
+                            ),
+                            location="foreman.db",
+                        )
+                    )
+
+                if actual_checksum != manifest.database.sha256:
+                    issues.append(
+                        VerificationIssue(
+                            code="DATABASE_CHECKSUM_MISMATCH",
+                            message=(
+                                "Backup database checksum does not match "
+                                "the manifest."
+                            ),
+                            location="foreman.db",
+                        )
+                    )
+
+                try:
+                    (
+                        actual_user_version,
+                        actual_tables,
+                        actual_record_counts,
+                    ) = _inspect_sqlite_snapshot(extracted_database)
+                except RecoveryContractError as error:
+                    issues.append(_issue_from_contract_error(error))
+                except sqlite3.Error:
+                    issues.append(
+                        VerificationIssue(
+                            code="BACKUP_DATABASE_INVALID",
+                            message=(
+                                "Backup database could not be opened "
+                                "as SQLite."
+                            ),
+                            location="foreman.db",
+                        )
+                    )
+                else:
+                    if actual_user_version != manifest.database.user_version:
+                        issues.append(
+                            VerificationIssue(
+                                code="DATABASE_VERSION_MISMATCH",
+                                message=(
+                                    "Backup database schema version does "
+                                    "not match the manifest."
+                                ),
+                                location="foreman.db",
+                            )
+                        )
+
+                    if actual_tables != manifest.database.tables:
+                        issues.append(
+                            VerificationIssue(
+                                code="DATABASE_TABLES_MISMATCH",
+                                message=(
+                                    "Backup database table inventory does "
+                                    "not match the manifest."
+                                ),
+                                location="foreman.db",
+                            )
+                        )
+
+                    if actual_record_counts != manifest.record_counts:
+                        issues.append(
+                            VerificationIssue(
+                                code="DATABASE_RECORD_COUNTS_MISMATCH",
+                                message=(
+                                    "Backup database record counts do not "
+                                    "match the manifest."
+                                ),
+                                location="foreman.db",
+                            )
+                        )
+
+                    if (
+                        actual_user_version
+                        == CURRENT_DATABASE_SCHEMA_VERSION
+                        and not CURRENT_REQUIRED_DATABASE_TABLES.issubset(
+                            actual_tables
+                        )
+                    ):
+                        issues.append(
+                            VerificationIssue(
+                                code="DATABASE_REQUIRED_TABLES_MISSING",
+                                message=(
+                                    "Backup database is missing required "
+                                    "application tables."
+                                ),
+                                location="foreman.db",
+                            )
+                        )
+
+                    compatibility = classify_database_compatibility(
+                        actual_user_version
+                    )
+
+                    if compatibility.status == "unsupported-future":
+                        issues.append(
+                            VerificationIssue(
+                                code="DATABASE_VERSION_UNSUPPORTED",
+                                message=(
+                                    "Backup database is newer than this "
+                                    "application supports."
+                                ),
+                                location="foreman.db",
+                            )
+                        )
+                    elif compatibility.status == "unsupported-invalid":
+                        issues.append(
+                            VerificationIssue(
+                                code="DATABASE_VERSION_INVALID",
+                                message=(
+                                    "Backup database schema version is "
+                                    "invalid."
+                                ),
+                                location="foreman.db",
+                            )
+                        )
+                    elif compatibility.status == "upgrade-required":
+                        issues.append(
+                            VerificationIssue(
+                                severity="warning",
+                                code="DATABASE_UPGRADE_REQUIRED",
+                                message=(
+                                    "Backup database requires a supported "
+                                    "schema upgrade before activation."
+                                ),
+                                location="foreman.db",
+                            )
+                        )
+
+        return BackupPackageVerification(
+            package_path=resolved_package,
+            manifest=manifest,
+            result=build_verification_result(
+                issues,
+                compatibility=compatibility,
+            ),
+        )
+    except RecoveryContractError as error:
+        return BackupPackageVerification(
+            package_path=input_path,
+            manifest=manifest,
+            result=build_verification_result(
+                [_issue_from_contract_error(error)],
+                compatibility=compatibility,
+            ),
+        )
+    except (OSError, sqlite3.Error, zipfile.BadZipFile):
+        issue = VerificationIssue(
+            code="BACKUP_PACKAGE_READ_FAILED",
+            message="Backup package could not be verified.",
+        )
+        return BackupPackageVerification(
+            package_path=input_path,
+            manifest=manifest,
+            result=build_verification_result(
+                [issue],
+                compatibility=compatibility,
+            ),
+        )
+
+
+def _zip_info(name: str, created_at: datetime) -> zipfile.ZipInfo:
+    info = zipfile.ZipInfo(
+        filename=name,
+        date_time=(
+            created_at.year,
+            created_at.month,
+            created_at.day,
+            created_at.hour,
+            created_at.minute,
+            created_at.second,
+        ),
+    )
+    info.compress_type = zipfile.ZIP_DEFLATED
+    info.create_system = 3
+    info.external_attr = (stat.S_IFREG | 0o600) << 16
+    return info
+
+
+def _write_backup_archive(
+    package_path: Path,
+    manifest_bytes: bytes,
+    snapshot_path: Path,
+    created_at: datetime,
+) -> None:
+    if len(manifest_bytes) > MAX_MANIFEST_BYTES:
+        raise RecoveryContractError(
+            "MANIFEST_SIZE_INVALID",
+            "Backup manifest exceeds supported limits.",
+        )
+
+    try:
+        with zipfile.ZipFile(
+            package_path,
+            mode="x",
+            compression=zipfile.ZIP_DEFLATED,
+            compresslevel=6,
+        ) as archive:
+            archive.writestr(
+                _zip_info("manifest.json", created_at),
+                manifest_bytes,
+            )
+
+            database_info = _zip_info("foreman.db", created_at)
+
+            with snapshot_path.open("rb") as source:
+                with archive.open(database_info, "w") as destination:
+                    while True:
+                        chunk = source.read(1024 * 1024)
+
+                        if not chunk:
+                            break
+
+                        destination.write(chunk)
+    except FileExistsError as error:
+        raise RecoveryContractError(
+            "BACKUP_TEMPORARY_PACKAGE_EXISTS",
+            "Temporary backup package already exists.",
+        ) from error
+    except (OSError, RuntimeError, zipfile.BadZipFile) as error:
+        package_path.unlink(missing_ok=True)
+        raise RecoveryContractError(
+            "BACKUP_PACKAGE_CREATION_FAILED",
+            "Backup ZIP package could not be created.",
+        ) from error
+
+
+def _publish_verified_package(
+    temporary_package: Path,
+    destination_path: Path,
+) -> None:
+    reserved = False
+
+    try:
+        destination_path.touch(mode=0o600, exist_ok=False)
+        reserved = True
+        os.replace(temporary_package, destination_path)
+    except FileExistsError as error:
+        raise RecoveryContractError(
+            "BACKUP_DESTINATION_EXISTS",
+            "Backup destination already exists.",
+        ) from error
+    except OSError as error:
+        if reserved:
+            destination_path.unlink(missing_ok=True)
+        raise RecoveryContractError(
+            "BACKUP_PUBLISH_FAILED",
+            "Verified backup package could not be published.",
+        ) from error
+
+
+def create_verified_backup_package(
+    database_url: str,
+    destination_directory: Path,
+    *,
+    application_name: str,
+    application_version: str,
+    operational_fact_schema_version: int,
+    created_at: datetime | None = None,
+) -> VerifiedBackupPackage:
+    creation_time = (
+        created_at
+        if created_at is not None
+        else datetime.now(timezone.utc).replace(microsecond=0)
+    )
+    filename = backup_package_filename(creation_time)
+    destination = _resolve_destination_directory(
+        Path(destination_directory)
+    )
+    final_path = destination / filename
+
+    if final_path.exists() or final_path.is_symlink():
+        raise RecoveryContractError(
+            "BACKUP_DESTINATION_EXISTS",
+            "Backup destination already exists.",
+        )
+
+    published = False
+
+    try:
+        with TemporaryDirectory(
+            prefix=".foreman-backup-",
+            dir=destination,
+        ) as temporary_directory:
+            work_directory = Path(temporary_directory)
+            snapshot = create_verified_sqlite_snapshot(
+                database_url,
+                work_directory / "foreman.db",
+            )
+            manifest = BackupManifest(
+                backup_format_version=BACKUP_FORMAT_VERSION,
+                application_name=application_name,
+                application_version=application_version,
+                created_at=creation_time,
+                operational_fact_schema_version=(
+                    operational_fact_schema_version
+                ),
+                database=snapshot.database_manifest,
+                record_counts=snapshot.record_count_mapping(),
+            )
+            manifest_bytes = canonical_json_bytes(manifest)
+            temporary_package = work_directory / filename
+            _write_backup_archive(
+                temporary_package,
+                manifest_bytes,
+                snapshot.path,
+                creation_time,
+            )
+            temporary_verification = verify_backup_package(
+                temporary_package
+            )
+
+            if not temporary_verification.result.is_valid:
+                raise RecoveryContractError(
+                    "BACKUP_PACKAGE_VERIFICATION_FAILED",
+                    "New backup package failed independent verification.",
+                )
+
+            _publish_verified_package(
+                temporary_package,
+                final_path,
+            )
+            published = True
+
+        final_verification = verify_backup_package(final_path)
+
+        if not final_verification.result.is_valid:
+            final_path.unlink(missing_ok=True)
+            published = False
+            raise RecoveryContractError(
+                "BACKUP_PACKAGE_VERIFICATION_FAILED",
+                "Published backup package failed final verification.",
+            )
+
+        if final_verification.manifest != manifest:
+            final_path.unlink(missing_ok=True)
+            published = False
+            raise RecoveryContractError(
+                "BACKUP_MANIFEST_MISMATCH",
+                "Published backup manifest changed during creation.",
+            )
+
+        return VerifiedBackupPackage(
+            path=final_path.resolve(strict=True),
+            manifest=manifest,
+            verification=final_verification.result,
+        )
+    except RecoveryContractError:
+        if published:
+            final_path.unlink(missing_ok=True)
+        raise
+    except Exception:
+        if published:
+            final_path.unlink(missing_ok=True)
         raise

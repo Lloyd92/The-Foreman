@@ -1,8 +1,11 @@
 import copy
 import json
 import sqlite3
+import stat
 import tempfile
 import unittest
+import warnings
+import zipfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
@@ -17,11 +20,14 @@ from app.schemas.recovery import (
     VerificationResult,
 )
 from app.services.recovery import (
+    BackupPackageVerification,
     EXPECTED_BACKUP_MEMBERS,
     RecoveryContractError,
+    backup_package_filename,
     build_verification_result,
     canonical_json_bytes,
     classify_database_compatibility,
+    create_verified_backup_package,
     create_verified_sqlite_snapshot,
     normalize_table_counts,
     parse_backup_manifest,
@@ -30,6 +36,7 @@ from app.services.recovery import (
     sha256_hex,
     sort_verification_issues,
     validate_archive_member_names,
+    verify_backup_package,
 )
 
 
@@ -743,3 +750,541 @@ class SqliteSnapshotTests(unittest.TestCase):
             "SNAPSHOT_CREATION_FAILED",
         )
         self.assertFalse(self.destination_path.exists())
+
+
+class BackupPackageTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary_directory.name)
+        self.source_path = self.root / "source.db"
+        self.destination_directory = self.root / "backups"
+        self.destination_directory.mkdir()
+
+    def tearDown(self) -> None:
+        self.temporary_directory.cleanup()
+
+    @property
+    def database_url(self) -> str:
+        return f"sqlite:///{self.source_path}"
+
+    @property
+    def package_path(self) -> Path:
+        return self.destination_directory / (
+            "foreman-backup-20260731T160000Z.zip"
+        )
+
+    def create_source_database(self, *, user_version: int = 2) -> None:
+        connection = sqlite3.connect(self.source_path)
+
+        try:
+            connection.executescript(
+                """
+                PRAGMA foreign_keys = ON;
+                CREATE TABLE projects (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL
+                );
+                CREATE TABLE tasks (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT,
+                    title TEXT NOT NULL,
+                    FOREIGN KEY(project_id) REFERENCES projects(id)
+                );
+                CREATE TABLE inventory_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL
+                );
+                CREATE TABLE inventory_migrations (
+                    id TEXT PRIMARY KEY
+                );
+                CREATE TABLE project_material_requirements (
+                    id TEXT PRIMARY KEY
+                );
+                CREATE TABLE project_migrations (
+                    id TEXT PRIMARY KEY
+                );
+                CREATE TABLE task_migrations (
+                    id TEXT PRIMARY KEY
+                );
+                """
+            )
+            connection.execute(
+                "INSERT INTO projects (id, name) VALUES (?, ?)",
+                ("project-1", "Backup Project"),
+            )
+            connection.execute(
+                "INSERT INTO tasks (id, project_id, title) "
+                "VALUES (?, ?, ?)",
+                ("task-1", "project-1", "Backup Task"),
+            )
+            connection.executemany(
+                "INSERT INTO inventory_items (name) VALUES (?)",
+                [("Fastener",), ("Board",)],
+            )
+            connection.execute(f"PRAGMA user_version = {user_version}")
+            connection.commit()
+        finally:
+            connection.close()
+
+    def create_package(self, *, user_version: int = 2):
+        self.create_source_database(user_version=user_version)
+        return create_verified_backup_package(
+            self.database_url,
+            self.destination_directory,
+            application_name="The Foreman",
+            application_version="0.7.3",
+            operational_fact_schema_version=1,
+            created_at=CREATED_AT,
+        )
+
+    def read_package_members(self) -> dict[str, bytes]:
+        with zipfile.ZipFile(self.package_path, "r") as archive:
+            return {
+                member.filename: archive.read(member)
+                for member in archive.infolist()
+            }
+
+    def rewrite_package(
+        self,
+        *,
+        manifest_bytes: bytes | None = None,
+        database_bytes: bytes | None = None,
+        extra_members: dict[str, bytes] | None = None,
+    ) -> None:
+        members = self.read_package_members()
+        self.package_path.unlink()
+
+        with zipfile.ZipFile(
+            self.package_path,
+            "w",
+            compression=zipfile.ZIP_DEFLATED,
+        ) as archive:
+            archive.writestr(
+                "manifest.json",
+                manifest_bytes
+                if manifest_bytes is not None
+                else members["manifest.json"],
+            )
+            archive.writestr(
+                "foreman.db",
+                database_bytes
+                if database_bytes is not None
+                else members["foreman.db"],
+            )
+
+            for name, value in (extra_members or {}).items():
+                archive.writestr(name, value)
+
+    def modified_manifest_bytes(self, update) -> bytes:
+        members = self.read_package_members()
+        manifest = json.loads(members["manifest.json"])
+        update(manifest)
+        return canonical_json_bytes(manifest)
+
+    def issue_codes(self, verification) -> list[str]:
+        return [
+            issue.code
+            for issue in verification.result.issues
+        ]
+
+    def test_backup_filename_uses_exact_utc_timestamp(self) -> None:
+        self.assertEqual(
+            backup_package_filename(CREATED_AT),
+            "foreman-backup-20260731T160000Z.zip",
+        )
+
+        with self.assertRaises(RecoveryContractError):
+            backup_package_filename(
+                CREATED_AT.replace(microsecond=1)
+            )
+
+        with self.assertRaises(RecoveryContractError):
+            backup_package_filename(
+                CREATED_AT.astimezone(
+                    timezone(timedelta(hours=-4))
+                )
+            )
+
+    def test_create_package_is_exact_and_independently_verified(
+        self,
+    ) -> None:
+        source_before = None
+        self.create_source_database()
+        source_before = sha256_file(self.source_path)
+
+        result = create_verified_backup_package(
+            self.database_url,
+            self.destination_directory,
+            application_name="The Foreman",
+            application_version="0.7.3",
+            operational_fact_schema_version=1,
+            created_at=CREATED_AT,
+        )
+
+        self.assertEqual(result.path, self.package_path.resolve())
+        self.assertTrue(result.verification.is_valid)
+        self.assertEqual(result.verification.issues, [])
+        self.assertEqual(result.manifest.created_at, CREATED_AT)
+        self.assertEqual(result.manifest.application_version, "0.7.3")
+        self.assertEqual(sha256_file(self.source_path), source_before)
+
+        with zipfile.ZipFile(self.package_path, "r") as archive:
+            self.assertEqual(
+                [member.filename for member in archive.infolist()],
+                ["manifest.json", "foreman.db"],
+            )
+            self.assertEqual(
+                archive.read("manifest.json"),
+                canonical_json_bytes(result.manifest),
+            )
+
+        leftovers = [
+            path.name
+            for path in self.destination_directory.iterdir()
+            if path.name.startswith(".foreman-backup-")
+        ]
+        self.assertEqual(leftovers, [])
+
+    def test_create_package_rejects_existing_destination(self) -> None:
+        self.create_source_database()
+        self.package_path.write_bytes(b"preserve me")
+
+        with self.assertRaises(RecoveryContractError) as context:
+            create_verified_backup_package(
+                self.database_url,
+                self.destination_directory,
+                application_name="The Foreman",
+                application_version="0.7.3",
+                operational_fact_schema_version=1,
+                created_at=CREATED_AT,
+            )
+
+        self.assertEqual(
+            context.exception.code,
+            "BACKUP_DESTINATION_EXISTS",
+        )
+        self.assertEqual(self.package_path.read_bytes(), b"preserve me")
+
+    def test_create_package_rejects_future_database_and_cleans_up(
+        self,
+    ) -> None:
+        self.create_source_database(user_version=3)
+
+        with self.assertRaises(RecoveryContractError) as context:
+            create_verified_backup_package(
+                self.database_url,
+                self.destination_directory,
+                application_name="The Foreman",
+                application_version="0.7.3",
+                operational_fact_schema_version=1,
+                created_at=CREATED_AT,
+            )
+
+        self.assertEqual(
+            context.exception.code,
+            "BACKUP_PACKAGE_VERIFICATION_FAILED",
+        )
+        self.assertFalse(self.package_path.exists())
+        self.assertEqual(list(self.destination_directory.iterdir()), [])
+
+    def test_verify_package_accepts_supported_upgrade_warning(self) -> None:
+        result = self.create_package(user_version=1)
+        verification = verify_backup_package(result.path)
+
+        self.assertTrue(verification.result.is_valid)
+        self.assertEqual(
+            verification.result.compatibility.status,
+            "upgrade-required",
+        )
+        self.assertEqual(
+            self.issue_codes(verification),
+            ["DATABASE_UPGRADE_REQUIRED"],
+        )
+
+    def test_verify_package_rejects_relative_path(self) -> None:
+        verification = verify_backup_package(Path("backup.zip"))
+
+        self.assertFalse(verification.result.is_valid)
+        self.assertEqual(
+            self.issue_codes(verification),
+            ["BACKUP_PACKAGE_PATH_INVALID"],
+        )
+
+    def test_verify_package_rejects_unreadable_archive(self) -> None:
+        self.package_path.write_bytes(b"not a zip")
+        verification = verify_backup_package(self.package_path)
+
+        self.assertFalse(verification.result.is_valid)
+        self.assertEqual(
+            self.issue_codes(verification),
+            ["BACKUP_ARCHIVE_INVALID"],
+        )
+
+    def test_verify_package_rejects_extra_member(self) -> None:
+        self.create_package()
+        self.rewrite_package(extra_members={"extra.txt": b"extra"})
+        verification = verify_backup_package(self.package_path)
+
+        self.assertFalse(verification.result.is_valid)
+        self.assertEqual(
+            self.issue_codes(verification),
+            ["ARCHIVE_MEMBER_SET_INVALID"],
+        )
+
+    def test_verify_package_rejects_symbolic_link_member(self) -> None:
+        self.create_package()
+        members = self.read_package_members()
+        self.package_path.unlink()
+        link = zipfile.ZipInfo("foreman.db")
+        link.create_system = 3
+        link.external_attr = (stat.S_IFLNK | 0o777) << 16
+
+        with zipfile.ZipFile(self.package_path, "w") as archive:
+            archive.writestr("manifest.json", members["manifest.json"])
+            archive.writestr(link, b"manifest.json")
+
+        verification = verify_backup_package(self.package_path)
+
+        self.assertFalse(verification.result.is_valid)
+        self.assertEqual(
+            self.issue_codes(verification),
+            ["ARCHIVE_MEMBER_TYPE_INVALID"],
+        )
+
+    def test_verify_package_rejects_noncanonical_manifest(self) -> None:
+        self.create_package()
+        members = self.read_package_members()
+        payload = json.loads(members["manifest.json"])
+        noncanonical = json.dumps(payload, indent=2).encode("utf-8")
+        self.rewrite_package(manifest_bytes=noncanonical)
+        verification = verify_backup_package(self.package_path)
+
+        self.assertFalse(verification.result.is_valid)
+        self.assertEqual(
+            self.issue_codes(verification),
+            ["MANIFEST_NOT_CANONICAL"],
+        )
+
+    def test_verify_package_rejects_checksum_tampering(self) -> None:
+        self.create_package()
+        members = self.read_package_members()
+        tampered_database = members["foreman.db"] + b"tamper"
+        self.rewrite_package(database_bytes=tampered_database)
+        verification = verify_backup_package(self.package_path)
+
+        self.assertFalse(verification.result.is_valid)
+        self.assertIn(
+            "DATABASE_CHECKSUM_MISMATCH",
+            self.issue_codes(verification),
+        )
+        self.assertIn(
+            "DATABASE_SIZE_MISMATCH",
+            self.issue_codes(verification),
+        )
+
+    def test_verify_package_rejects_manifest_size_mismatch(self) -> None:
+        self.create_package()
+        manifest_bytes = self.modified_manifest_bytes(
+            lambda manifest: manifest["database"].update(
+                {"byteSize": manifest["database"]["byteSize"] + 1}
+            )
+        )
+        self.rewrite_package(manifest_bytes=manifest_bytes)
+        verification = verify_backup_package(self.package_path)
+
+        self.assertFalse(verification.result.is_valid)
+        self.assertEqual(
+            self.issue_codes(verification),
+            ["DATABASE_SIZE_MISMATCH"],
+        )
+
+    def test_verify_package_rejects_manifest_table_mismatch(self) -> None:
+        self.create_package()
+
+        def update(manifest) -> None:
+            manifest["database"]["tables"].remove("tasks")
+            manifest["recordCounts"].pop("tasks")
+
+        self.rewrite_package(
+            manifest_bytes=self.modified_manifest_bytes(update)
+        )
+        verification = verify_backup_package(self.package_path)
+
+        self.assertFalse(verification.result.is_valid)
+        self.assertIn(
+            "DATABASE_TABLES_MISMATCH",
+            self.issue_codes(verification),
+        )
+        self.assertIn(
+            "DATABASE_RECORD_COUNTS_MISMATCH",
+            self.issue_codes(verification),
+        )
+
+    def test_verify_package_rejects_record_count_mismatch(self) -> None:
+        self.create_package()
+        manifest_bytes = self.modified_manifest_bytes(
+            lambda manifest: manifest["recordCounts"].update(
+                {"tasks": 99}
+            )
+        )
+        self.rewrite_package(manifest_bytes=manifest_bytes)
+        verification = verify_backup_package(self.package_path)
+
+        self.assertFalse(verification.result.is_valid)
+        self.assertEqual(
+            self.issue_codes(verification),
+            ["DATABASE_RECORD_COUNTS_MISMATCH"],
+        )
+
+    def test_verify_package_rejects_manifest_version_mismatch(self) -> None:
+        self.create_package()
+        manifest_bytes = self.modified_manifest_bytes(
+            lambda manifest: manifest["database"].update(
+                {"userVersion": 1}
+            )
+        )
+        self.rewrite_package(manifest_bytes=manifest_bytes)
+        verification = verify_backup_package(self.package_path)
+
+        self.assertFalse(verification.result.is_valid)
+        self.assertEqual(
+            self.issue_codes(verification),
+            ["DATABASE_VERSION_MISMATCH"],
+        )
+    def test_verify_package_rejects_duplicate_member(self) -> None:
+        self.create_package()
+        members = self.read_package_members()
+        self.package_path.unlink()
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+
+            with zipfile.ZipFile(self.package_path, "w") as archive:
+                archive.writestr(
+                    "manifest.json",
+                    members["manifest.json"],
+                )
+                archive.writestr("foreman.db", members["foreman.db"])
+                archive.writestr("foreman.db", members["foreman.db"])
+
+        verification = verify_backup_package(self.package_path)
+
+        self.assertFalse(verification.result.is_valid)
+        self.assertEqual(
+            self.issue_codes(verification),
+            ["ARCHIVE_MEMBER_DUPLICATE"],
+        )
+
+    def test_verify_package_rejects_malformed_manifest(self) -> None:
+        self.create_package()
+        self.rewrite_package(manifest_bytes=b"{not-json")
+        verification = verify_backup_package(self.package_path)
+
+        self.assertFalse(verification.result.is_valid)
+        self.assertEqual(
+            self.issue_codes(verification),
+            ["MANIFEST_JSON_INVALID"],
+        )
+
+    def test_create_package_cleans_up_publish_failure(self) -> None:
+        self.create_source_database()
+
+        with patch(
+            "app.services.recovery.os.replace",
+            side_effect=OSError("publish failed"),
+        ):
+            with self.assertRaises(RecoveryContractError) as context:
+                create_verified_backup_package(
+                    self.database_url,
+                    self.destination_directory,
+                    application_name="The Foreman",
+                    application_version="0.7.3",
+                    operational_fact_schema_version=1,
+                    created_at=CREATED_AT,
+                )
+
+        self.assertEqual(
+            context.exception.code,
+            "BACKUP_PUBLISH_FAILED",
+        )
+        self.assertFalse(self.package_path.exists())
+        self.assertEqual(list(self.destination_directory.iterdir()), [])
+
+    def test_create_package_removes_failed_final_verification(
+        self,
+    ) -> None:
+        self.create_source_database()
+        original_verify = verify_backup_package
+        call_count = 0
+
+        def fail_second_verification(path):
+            nonlocal call_count
+            call_count += 1
+            verification = original_verify(path)
+
+            if call_count == 1:
+                return verification
+
+            return BackupPackageVerification(
+                package_path=Path(path),
+                manifest=verification.manifest,
+                result=build_verification_result(
+                    [
+                        VerificationIssue(
+                            code="TEST_FINAL_VERIFICATION_FAILED",
+                            message="Final verification failed.",
+                        )
+                    ]
+                ),
+            )
+
+        with patch(
+            "app.services.recovery.verify_backup_package",
+            side_effect=fail_second_verification,
+        ):
+            with self.assertRaises(RecoveryContractError) as context:
+                create_verified_backup_package(
+                    self.database_url,
+                    self.destination_directory,
+                    application_name="The Foreman",
+                    application_version="0.7.3",
+                    operational_fact_schema_version=1,
+                    created_at=CREATED_AT,
+                )
+
+        self.assertEqual(
+            context.exception.code,
+            "BACKUP_PACKAGE_VERIFICATION_FAILED",
+        )
+        self.assertEqual(call_count, 2)
+        self.assertFalse(self.package_path.exists())
+        self.assertEqual(list(self.destination_directory.iterdir()), [])
+
+    def test_create_package_rejects_incomplete_current_schema(
+        self,
+    ) -> None:
+        self.create_source_database()
+        connection = sqlite3.connect(self.source_path)
+
+        try:
+            connection.execute("DROP TABLE task_migrations")
+            connection.commit()
+        finally:
+            connection.close()
+
+        with self.assertRaises(RecoveryContractError) as context:
+            create_verified_backup_package(
+                self.database_url,
+                self.destination_directory,
+                application_name="The Foreman",
+                application_version="0.7.3",
+                operational_fact_schema_version=1,
+                created_at=CREATED_AT,
+            )
+
+        self.assertEqual(
+            context.exception.code,
+            "BACKUP_PACKAGE_VERIFICATION_FAILED",
+        )
+        self.assertFalse(self.package_path.exists())
+        self.assertEqual(list(self.destination_directory.iterdir()), [])
