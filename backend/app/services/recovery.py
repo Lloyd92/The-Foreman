@@ -2,15 +2,22 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sqlite3
 from collections.abc import Iterable, Mapping
+from contextlib import closing
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
+from sqlalchemy.engine import make_url
+from sqlalchemy.exc import ArgumentError
 
 from app.core.schema_upgrades import CURRENT_DATABASE_SCHEMA_VERSION
 from app.schemas.recovery import (
     BackupCompatibility,
     BackupManifest,
+    DatabaseBackupManifest,
     VerificationIssue,
     VerificationResult,
 )
@@ -31,6 +38,16 @@ class RecoveryContractError(ValueError):
     def __init__(self, code: str, message: str) -> None:
         super().__init__(message)
         self.code = code
+
+
+@dataclass(frozen=True)
+class VerifiedSqliteSnapshot:
+    path: Path
+    database_manifest: DatabaseBackupManifest
+    record_counts: tuple[tuple[str, int], ...]
+
+    def record_count_mapping(self) -> dict[str, int]:
+        return dict(self.record_counts)
 
 
 class _DuplicateJsonKeyError(ValueError):
@@ -332,3 +349,280 @@ def build_verification_result(
         issues=ordered,
         compatibility=compatibility,
     )
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+
+    try:
+        with path.open("rb") as file_handle:
+            for chunk in iter(lambda: file_handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+    except OSError as error:
+        raise RecoveryContractError(
+            "SNAPSHOT_READ_FAILED",
+            "Snapshot file could not be read for checksum verification.",
+        ) from error
+
+    return digest.hexdigest()
+
+
+def resolve_sqlite_database_path(database_url: str) -> Path:
+    if not isinstance(database_url, str) or not database_url:
+        raise TypeError("Database URL must be a nonempty string.")
+
+    try:
+        url = make_url(database_url)
+    except ArgumentError as error:
+        raise RecoveryContractError(
+            "DATABASE_URL_INVALID",
+            "Configured database URL is invalid.",
+        ) from error
+
+    if url.get_backend_name() != "sqlite":
+        raise RecoveryContractError(
+            "DATABASE_BACKEND_UNSUPPORTED",
+            "Backup snapshots currently require a SQLite database.",
+        )
+
+    if url.query:
+        raise RecoveryContractError(
+            "DATABASE_SOURCE_UNSUPPORTED",
+            "SQLite database URLs with query parameters are unsupported.",
+        )
+
+    database = url.database
+
+    if (
+        not database
+        or database == ":memory:"
+        or database.startswith("file:")
+    ):
+        raise RecoveryContractError(
+            "DATABASE_SOURCE_UNSUPPORTED",
+            "Backup snapshots require a filesystem SQLite database.",
+        )
+
+    path = Path(database)
+
+    if not path.is_absolute():
+        raise RecoveryContractError(
+            "DATABASE_SOURCE_PATH_INVALID",
+            "SQLite database path must be absolute.",
+        )
+
+    try:
+        resolved = path.resolve(strict=True)
+    except FileNotFoundError as error:
+        raise RecoveryContractError(
+            "DATABASE_SOURCE_MISSING",
+            "Configured SQLite database file does not exist.",
+        ) from error
+    except OSError as error:
+        raise RecoveryContractError(
+            "DATABASE_SOURCE_PATH_INVALID",
+            "Configured SQLite database path cannot be resolved.",
+        ) from error
+
+    if not resolved.is_file():
+        raise RecoveryContractError(
+            "DATABASE_SOURCE_PATH_INVALID",
+            "Configured SQLite database path is not a regular file.",
+        )
+
+    return resolved
+
+
+def _validate_snapshot_destination(
+    source_path: Path,
+    destination_path: Path,
+) -> Path:
+    destination = Path(destination_path)
+
+    if not destination.is_absolute():
+        raise RecoveryContractError(
+            "SNAPSHOT_DESTINATION_INVALID",
+            "Snapshot destination path must be absolute.",
+        )
+
+    try:
+        resolved_destination = destination.resolve(strict=False)
+    except OSError as error:
+        raise RecoveryContractError(
+            "SNAPSHOT_DESTINATION_INVALID",
+            "Snapshot destination path cannot be resolved.",
+        ) from error
+
+    if resolved_destination == source_path:
+        raise RecoveryContractError(
+            "SNAPSHOT_SOURCE_DESTINATION_CONFLICT",
+            "Snapshot destination cannot be the source database.",
+        )
+
+    if destination.name != "foreman.db":
+        raise RecoveryContractError(
+            "SNAPSHOT_DESTINATION_INVALID",
+            "Snapshot destination filename must be foreman.db.",
+        )
+
+    parent = destination.parent
+
+    if not parent.exists() or not parent.is_dir():
+        raise RecoveryContractError(
+            "SNAPSHOT_DESTINATION_INVALID",
+            "Snapshot destination directory must already exist.",
+        )
+
+    if destination.exists() or destination.is_symlink():
+        raise RecoveryContractError(
+            "SNAPSHOT_DESTINATION_EXISTS",
+            "Snapshot destination must not already exist.",
+        )
+
+    return destination
+
+
+def _copy_sqlite_database(
+    source_path: Path,
+    destination_path: Path,
+) -> None:
+    source_uri = f"{source_path.as_uri()}?mode=ro"
+
+    with closing(
+        sqlite3.connect(source_uri, uri=True)
+    ) as source_connection:
+        with closing(
+            sqlite3.connect(destination_path)
+        ) as destination_connection:
+            source_connection.backup(destination_connection)
+
+
+def _quote_sqlite_identifier(value: str) -> str:
+    return '"' + value.replace('"', '""') + '"'
+
+
+def _inspect_sqlite_snapshot(
+    snapshot_path: Path,
+) -> tuple[int, list[str], dict[str, int]]:
+    snapshot_uri = f"{snapshot_path.as_uri()}?mode=ro"
+
+    with closing(
+        sqlite3.connect(snapshot_uri, uri=True)
+    ) as connection:
+        integrity_results = [
+            str(row[0])
+            for row in connection.execute("PRAGMA integrity_check")
+        ]
+
+        if integrity_results != ["ok"]:
+            raise RecoveryContractError(
+                "SNAPSHOT_INTEGRITY_FAILED",
+                "SQLite snapshot failed its integrity check.",
+            )
+
+        foreign_key_violations = list(
+            connection.execute("PRAGMA foreign_key_check")
+        )
+
+        if foreign_key_violations:
+            raise RecoveryContractError(
+                "SNAPSHOT_FOREIGN_KEY_VIOLATIONS",
+                "SQLite snapshot contains foreign-key violations.",
+            )
+
+        user_version = int(
+            connection.execute(
+                "PRAGMA user_version"
+            ).fetchone()[0]
+        )
+        tables = [
+            str(row[0])
+            for row in connection.execute(
+                """
+                SELECT name
+                FROM sqlite_master
+                WHERE type = 'table'
+                  AND name NOT GLOB 'sqlite_*'
+                ORDER BY name COLLATE NOCASE, name
+                """
+            )
+        ]
+
+        if not tables:
+            raise RecoveryContractError(
+                "SNAPSHOT_SCHEMA_EMPTY",
+                "SQLite snapshot contains no application tables.",
+            )
+
+        raw_counts: dict[str, int] = {}
+
+        for table in tables:
+            identifier = _quote_sqlite_identifier(table)
+            count = connection.execute(
+                f"SELECT COUNT(*) FROM {identifier}"
+            ).fetchone()[0]
+            raw_counts[table] = int(count)
+
+    normalized_tables, record_counts = normalize_table_counts(
+        raw_counts
+    )
+    return user_version, normalized_tables, record_counts
+
+
+def create_verified_sqlite_snapshot(
+    database_url: str,
+    destination_path: Path,
+) -> VerifiedSqliteSnapshot:
+    source_path = resolve_sqlite_database_path(database_url)
+    destination = _validate_snapshot_destination(
+        source_path,
+        Path(destination_path),
+    )
+
+    try:
+        destination.touch(exist_ok=False)
+    except FileExistsError as error:
+        raise RecoveryContractError(
+            "SNAPSHOT_DESTINATION_EXISTS",
+            "Snapshot destination must not already exist.",
+        ) from error
+    except OSError as error:
+        raise RecoveryContractError(
+            "SNAPSHOT_DESTINATION_INVALID",
+            "Snapshot destination could not be created.",
+        ) from error
+
+    try:
+        _copy_sqlite_database(source_path, destination)
+        user_version, tables, record_counts = _inspect_sqlite_snapshot(
+            destination
+        )
+        byte_size = destination.stat().st_size
+
+        database_manifest = DatabaseBackupManifest(
+            filename="foreman.db",
+            byte_size=byte_size,
+            sha256=sha256_file(destination),
+            user_version=user_version,
+            integrity_check="ok",
+            foreign_key_violation_count=0,
+            tables=tables,
+        )
+
+        return VerifiedSqliteSnapshot(
+            path=destination.resolve(strict=True),
+            database_manifest=database_manifest,
+            record_counts=tuple(record_counts.items()),
+        )
+    except RecoveryContractError:
+        destination.unlink(missing_ok=True)
+        raise
+    except (OSError, sqlite3.Error) as error:
+        destination.unlink(missing_ok=True)
+        raise RecoveryContractError(
+            "SNAPSHOT_CREATION_FAILED",
+            "Verified SQLite snapshot could not be created.",
+        ) from error
+    except Exception:
+        destination.unlink(missing_ok=True)
+        raise

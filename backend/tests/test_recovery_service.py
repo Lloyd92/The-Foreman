@@ -1,7 +1,11 @@
 import copy
 import json
+import sqlite3
+import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from unittest.mock import patch
 
 from pydantic import ValidationError
 
@@ -18,8 +22,11 @@ from app.services.recovery import (
     build_verification_result,
     canonical_json_bytes,
     classify_database_compatibility,
+    create_verified_sqlite_snapshot,
     normalize_table_counts,
     parse_backup_manifest,
+    resolve_sqlite_database_path,
+    sha256_file,
     sha256_hex,
     sort_verification_issues,
     validate_archive_member_names,
@@ -398,3 +405,341 @@ class RecoveryServiceTests(unittest.TestCase):
         self.assertTrue(valid.is_valid)
         self.assertEqual(valid.compatibility, compatibility)
         self.assertFalse(invalid.is_valid)
+
+
+class SqliteSnapshotTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary_directory.name)
+        self.source_path = self.root / "source.db"
+        self.destination_directory = self.root / "snapshot"
+        self.destination_directory.mkdir()
+        self.destination_path = (
+            self.destination_directory / "foreman.db"
+        )
+
+    def tearDown(self) -> None:
+        self.temporary_directory.cleanup()
+
+    def create_source_database(
+        self,
+        *,
+        foreign_key_violation: bool = False,
+    ) -> None:
+        connection = sqlite3.connect(self.source_path)
+
+        try:
+            connection.executescript(
+                """
+                PRAGMA foreign_keys = OFF;
+                CREATE TABLE projects (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL
+                );
+                CREATE TABLE tasks (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT,
+                    title TEXT NOT NULL,
+                    FOREIGN KEY(project_id) REFERENCES projects(id)
+                );
+                CREATE TABLE inventory_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL
+                );
+                """
+            )
+            connection.execute(
+                "INSERT INTO projects (id, name) VALUES (?, ?)",
+                ("project-1", "Backup Project"),
+            )
+            connection.execute(
+                "INSERT INTO tasks (id, project_id, title) "
+                "VALUES (?, ?, ?)",
+                (
+                    "task-1",
+                    "missing-project"
+                    if foreign_key_violation
+                    else "project-1",
+                    "Backup Task",
+                ),
+            )
+            connection.executemany(
+                "INSERT INTO inventory_items (name) VALUES (?)",
+                [("Fastener",), ("Board",)],
+            )
+            connection.execute("PRAGMA user_version = 2")
+            connection.commit()
+        finally:
+            connection.close()
+
+    @property
+    def database_url(self) -> str:
+        return f"sqlite:///{self.source_path}"
+
+    def test_create_verified_snapshot_preserves_database(self) -> None:
+        self.create_source_database()
+        source_before = sha256_file(self.source_path)
+
+        result = create_verified_sqlite_snapshot(
+            self.database_url,
+            self.destination_path,
+        )
+        manifest = result.database_manifest
+
+        self.assertTrue(self.destination_path.is_file())
+        self.assertEqual(result.path, self.destination_path.resolve())
+        self.assertEqual(manifest.filename, "foreman.db")
+        self.assertEqual(
+            manifest.byte_size,
+            self.destination_path.stat().st_size,
+        )
+        self.assertEqual(
+            manifest.sha256,
+            sha256_file(self.destination_path),
+        )
+        self.assertEqual(manifest.user_version, 2)
+        self.assertEqual(manifest.integrity_check, "ok")
+        self.assertEqual(manifest.foreign_key_violation_count, 0)
+        self.assertEqual(
+            manifest.tables,
+            ["inventory_items", "projects", "tasks"],
+        )
+        self.assertEqual(
+            result.record_count_mapping(),
+            {
+                "inventory_items": 2,
+                "projects": 1,
+                "tasks": 1,
+            },
+        )
+        self.assertEqual(sha256_file(self.source_path), source_before)
+
+        snapshot = sqlite3.connect(
+            f"{self.destination_path.as_uri()}?mode=ro",
+            uri=True,
+        )
+
+        try:
+            counts = {
+                table: snapshot.execute(
+                    f'SELECT COUNT(*) FROM "{table}"'
+                ).fetchone()[0]
+                for table in result.database_manifest.tables
+            }
+            project_name = snapshot.execute(
+                "SELECT name FROM projects WHERE id = ?",
+                ("project-1",),
+            ).fetchone()[0]
+        finally:
+            snapshot.close()
+
+        self.assertEqual(
+            counts,
+            {
+                "inventory_items": 2,
+                "projects": 1,
+                "tasks": 1,
+            },
+        )
+        self.assertEqual(project_name, "Backup Project")
+
+    def test_snapshot_excludes_sqlite_system_tables(self) -> None:
+        self.create_source_database()
+
+        result = create_verified_sqlite_snapshot(
+            self.database_url,
+            self.destination_path,
+        )
+
+        self.assertNotIn(
+            "sqlite_sequence",
+            result.database_manifest.tables,
+        )
+
+    def test_snapshot_includes_committed_wal_state(self) -> None:
+        connection = sqlite3.connect(self.source_path)
+
+        try:
+            connection.execute("PRAGMA journal_mode = WAL")
+            connection.execute("PRAGMA wal_autocheckpoint = 0")
+            connection.execute(
+                "CREATE TABLE projects "
+                "(id TEXT PRIMARY KEY, name TEXT NOT NULL)"
+            )
+            connection.execute(
+                "INSERT INTO projects (id, name) VALUES (?, ?)",
+                ("wal-project", "Committed WAL Project"),
+            )
+            connection.execute("PRAGMA user_version = 2")
+            connection.commit()
+
+            result = create_verified_sqlite_snapshot(
+                self.database_url,
+                self.destination_path,
+            )
+        finally:
+            connection.close()
+
+        snapshot = sqlite3.connect(
+            f"{self.destination_path.as_uri()}?mode=ro",
+            uri=True,
+        )
+
+        try:
+            row = snapshot.execute(
+                "SELECT name FROM projects WHERE id = ?",
+                ("wal-project",),
+            ).fetchone()
+        finally:
+            snapshot.close()
+
+        self.assertEqual(row, ("Committed WAL Project",))
+        self.assertEqual(
+            result.record_count_mapping(),
+            {"projects": 1},
+        )
+
+    def test_resolve_sqlite_path_returns_absolute_source(self) -> None:
+        self.create_source_database()
+
+        resolved = resolve_sqlite_database_path(self.database_url)
+
+        self.assertEqual(resolved, self.source_path.resolve())
+
+    def test_snapshot_rejects_non_sqlite_database(self) -> None:
+        with self.assertRaises(RecoveryContractError) as context:
+            create_verified_sqlite_snapshot(
+                "postgresql://localhost/foreman",
+                self.destination_path,
+            )
+
+        self.assertEqual(
+            context.exception.code,
+            "DATABASE_BACKEND_UNSUPPORTED",
+        )
+        self.assertFalse(self.destination_path.exists())
+
+    def test_snapshot_rejects_memory_database(self) -> None:
+        with self.assertRaises(RecoveryContractError) as context:
+            create_verified_sqlite_snapshot(
+                "sqlite:///:memory:",
+                self.destination_path,
+            )
+
+        self.assertEqual(
+            context.exception.code,
+            "DATABASE_SOURCE_UNSUPPORTED",
+        )
+
+    def test_snapshot_rejects_relative_source_path(self) -> None:
+        with self.assertRaises(RecoveryContractError) as context:
+            create_verified_sqlite_snapshot(
+                "sqlite:///relative.db",
+                self.destination_path,
+            )
+
+        self.assertEqual(
+            context.exception.code,
+            "DATABASE_SOURCE_PATH_INVALID",
+        )
+
+    def test_snapshot_rejects_missing_source(self) -> None:
+        missing = self.root / "missing.db"
+
+        with self.assertRaises(RecoveryContractError) as context:
+            create_verified_sqlite_snapshot(
+                f"sqlite:///{missing}",
+                self.destination_path,
+            )
+
+        self.assertEqual(
+            context.exception.code,
+            "DATABASE_SOURCE_MISSING",
+        )
+
+    def test_snapshot_rejects_existing_destination_without_change(
+        self,
+    ) -> None:
+        self.create_source_database()
+        self.destination_path.write_bytes(b"preserve me")
+
+        with self.assertRaises(RecoveryContractError) as context:
+            create_verified_sqlite_snapshot(
+                self.database_url,
+                self.destination_path,
+            )
+
+        self.assertEqual(
+            context.exception.code,
+            "SNAPSHOT_DESTINATION_EXISTS",
+        )
+        self.assertEqual(
+            self.destination_path.read_bytes(),
+            b"preserve me",
+        )
+
+    def test_snapshot_rejects_source_as_destination(self) -> None:
+        self.create_source_database()
+        source_before = self.source_path.read_bytes()
+
+        with self.assertRaises(RecoveryContractError) as context:
+            create_verified_sqlite_snapshot(
+                self.database_url,
+                self.source_path,
+            )
+
+        self.assertEqual(
+            context.exception.code,
+            "SNAPSHOT_SOURCE_DESTINATION_CONFLICT",
+        )
+        self.assertEqual(self.source_path.read_bytes(), source_before)
+
+    def test_snapshot_rejects_relative_destination(self) -> None:
+        self.create_source_database()
+
+        with self.assertRaises(RecoveryContractError) as context:
+            create_verified_sqlite_snapshot(
+                self.database_url,
+                Path("foreman.db"),
+            )
+
+        self.assertEqual(
+            context.exception.code,
+            "SNAPSHOT_DESTINATION_INVALID",
+        )
+
+    def test_snapshot_rejects_foreign_key_violations_and_cleans_up(
+        self,
+    ) -> None:
+        self.create_source_database(foreign_key_violation=True)
+
+        with self.assertRaises(RecoveryContractError) as context:
+            create_verified_sqlite_snapshot(
+                self.database_url,
+                self.destination_path,
+            )
+
+        self.assertEqual(
+            context.exception.code,
+            "SNAPSHOT_FOREIGN_KEY_VIOLATIONS",
+        )
+        self.assertFalse(self.destination_path.exists())
+
+    def test_snapshot_cleans_up_failed_copy(self) -> None:
+        self.create_source_database()
+
+        with patch(
+            "app.services.recovery._copy_sqlite_database",
+            side_effect=sqlite3.DatabaseError("copy failed"),
+        ):
+            with self.assertRaises(RecoveryContractError) as context:
+                create_verified_sqlite_snapshot(
+                    self.database_url,
+                    self.destination_path,
+                )
+
+        self.assertEqual(
+            context.exception.code,
+            "SNAPSHOT_CREATION_FAILED",
+        )
+        self.assertFalse(self.destination_path.exists())
