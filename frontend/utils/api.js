@@ -16,14 +16,33 @@ export class BackendApiError extends Error {
 }
 
 
-export async function apiRequest(path, options = {}) {
+function getBackendErrorMessage(data, status) {
+    const detail = data?.detail;
+
+    if (typeof detail === "string") {
+        return detail;
+    }
+
+    if (
+        detail &&
+        typeof detail === "object" &&
+        typeof detail.message === "string"
+    ) {
+        return detail.message;
+    }
+
+    return `Backend returned status ${status}`;
+}
+
+
+export async function apiResponse(path, options = {}) {
     assertBusinessRequestAllowed();
 
     const requestOptions = { ...options };
     const headers = new Headers(requestOptions.headers || {});
 
     if (
-        requestOptions.body &&
+        typeof requestOptions.body === "string" &&
         !headers.has("Content-Type")
     ) {
         headers.set("Content-Type", "application/json");
@@ -48,26 +67,32 @@ export async function apiRequest(path, options = {}) {
         await verifyTransportFailure({ status: response.status });
     }
 
+    if (!response.ok) {
+        const data = await response.json().catch(() => null);
+
+        throw new BackendApiError(
+            getBackendErrorMessage(data, response.status),
+            {
+                status: response.status,
+                data
+            }
+        );
+    }
+
+    return response;
+}
+
+
+export async function apiRequest(path, options = {}) {
+    const response = await apiResponse(path, options);
+
     if (response.status === 204) {
         return null;
     }
 
-    const data = await response.json().catch(() => null);
-
-    if (!response.ok) {
-        const detail = data?.detail;
-        const message = typeof detail === "string"
-            ? detail
-            : `Backend returned status ${response.status}`;
-
-        throw new BackendApiError(message, {
-            status: response.status,
-            data
-        });
-    }
-
-    return data;
+    return response.json().catch(() => null);
 }
+
 
 async function fetchSystemStatus() {
     return apiRequest("/api/status");
