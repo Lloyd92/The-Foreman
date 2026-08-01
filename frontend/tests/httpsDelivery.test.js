@@ -257,6 +257,10 @@ test("existing Nginx remains the static and API authority", async () => {
     );
     assert.match(
         nginxSource,
+        /location = \/api\/recovery\/backups\/verify \{[\s\S]*client_max_body_size 2065m;[\s\S]*proxy_http_version 1\.1;[\s\S]*proxy_request_buffering off;[\s\S]*proxy_pass http:\/\/backend:5000;/
+    );
+    assert.match(
+        nginxSource,
         /location \/\s*\{[\s\S]*try_files \$uri \$uri\/ \/index\.html;/
     );
 });

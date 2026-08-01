@@ -210,3 +210,8 @@ class VerificationResult(ApiModel):
             )
 
         return self
+
+
+class BackupVerificationResponse(ApiModel):
+    manifest: BackupManifest | None = None
+    verification: VerificationResult

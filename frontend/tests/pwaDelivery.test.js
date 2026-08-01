@@ -115,6 +115,10 @@ test("Nginx delivers PWA files exactly and preserves SPA and API routing", async
         configuration,
         /location \/api\/ \{[\s\S]*proxy_pass http:\/\/backend:5000;[\s\S]*proxy_set_header Host \$host;[\s\S]*proxy_set_header X-Real-IP \$remote_addr;/
     );
+    assert.match(
+        configuration,
+        /location = \/api\/recovery\/backups\/verify \{[\s\S]*client_max_body_size 2065m;[\s\S]*proxy_http_version 1\.1;[\s\S]*proxy_request_buffering off;[\s\S]*proxy_pass http:\/\/backend:5000;/
+    );
 });
 
 test("application startup gates operations behind PWA and health initialization", async () => {
