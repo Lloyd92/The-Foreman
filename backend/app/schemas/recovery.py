@@ -215,3 +215,96 @@ class VerificationResult(ApiModel):
 class BackupVerificationResponse(ApiModel):
     manifest: BackupManifest | None = None
     verification: VerificationResult
+
+class RestorePreflightMetadata(ApiModel):
+    schema_version: Literal[1]
+    created_at: datetime
+    expires_at: datetime
+    source_manifest: BackupManifest
+    candidate_database: DatabaseBackupManifest
+    record_counts: dict[NonEmptyString, NonNegativeInt]
+    was_upgraded: bool = Field(strict=True)
+    package_sha256: Sha256Digest
+    candidate_sha256: Sha256Digest
+
+    @field_validator("created_at", "expires_at")
+    @classmethod
+    def require_utc_timestamp(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError(
+                "Preflight timestamps must be timezone-aware."
+            )
+
+        if value.utcoffset() != timedelta(0):
+            raise ValueError("Preflight timestamps must use UTC.")
+
+        if value.microsecond != 0:
+            raise ValueError(
+                "Preflight timestamps must use whole-second precision."
+            )
+
+        return value
+
+    @model_validator(mode="after")
+    def validate_preflight_contract(self) -> Self:
+        if self.expires_at <= self.created_at:
+            raise ValueError(
+                "Preflight expiration must follow creation time."
+            )
+
+        if (
+            list(self.record_counts)
+            != self.candidate_database.tables
+        ):
+            raise ValueError(
+                "Preflight record counts must match candidate tables."
+            )
+
+        if self.candidate_sha256 != self.candidate_database.sha256:
+            raise ValueError(
+                "Candidate checksum must match its database manifest."
+            )
+
+        return self
+
+
+class RestorePreflightSummary(ApiModel):
+    token: NonEmptyString
+    expires_at: datetime
+    confirmation_phrase: Literal["RESTORE THE FOREMAN"]
+    manifest: BackupManifest
+    candidate_database: DatabaseBackupManifest
+    record_counts: dict[NonEmptyString, NonNegativeInt]
+    was_upgraded: bool = Field(strict=True)
+
+    @field_validator("expires_at")
+    @classmethod
+    def require_utc_expiration(cls, value: datetime) -> datetime:
+        if (
+            value.tzinfo is None
+            or value.utcoffset() is None
+            or value.utcoffset() != timedelta(0)
+            or value.microsecond != 0
+        ):
+            raise ValueError(
+                "Preflight expiration must be whole-second UTC."
+            )
+
+        return value
+
+    @model_validator(mode="after")
+    def validate_candidate_counts(self) -> Self:
+        if (
+            list(self.record_counts)
+            != self.candidate_database.tables
+        ):
+            raise ValueError(
+                "Preflight record counts must match candidate tables."
+            )
+
+        return self
+
+
+class RestorePreflightConfirmation(ApiModel):
+    token: NonEmptyString
+    confirmation_phrase: Literal["RESTORE THE FOREMAN"]

@@ -204,6 +204,22 @@ Preflight must:
 
 The original backup artifact must remain unchanged.
 
+Prepared preflight sessions are retained under the live database filesystem.
+For the deployed database, the workspace is:
+
+`/data/recovery/preflight/<sha256-of-opaque-token>/`
+
+The opaque token is returned to the local client but is never persisted in
+plain text. Each workspace uses mode `0700`; the copied package, metadata,
+candidate database, and one-time consumption marker use mode `0600`.
+
+A preflight session expires 15 minutes after creation. Activation requires the
+exact confirmation phrase `RESTORE THE FOREMAN`. Successful confirmation
+atomically creates a one-time consumption marker, so a token cannot activate
+more than once. Expired sessions are removed during lookup or cleanup.
+Malformed unknown workspaces are preserved for operator inspection rather
+than deleted automatically.
+
 ## Pre-restore safety backup
 
 Immediately before replacement, The Foreman must create and verify a backup of
