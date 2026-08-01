@@ -30,6 +30,7 @@ from app.services.recovery import (
     build_verification_result,
     canonical_json_bytes,
     classify_database_compatibility,
+    create_pre_restore_safety_backup,
     create_verified_backup_package,
     create_verified_sqlite_snapshot,
     normalize_table_counts,
@@ -1636,3 +1637,214 @@ class RestoreCandidateStagingTests(unittest.TestCase):
             Path(f"{self.candidate_path}-shm"),
         ):
             self.assertFalse(sidecar.exists())
+
+
+class PreRestoreSafetyBackupTests(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary_directory.name)
+        self.source_path = self.root / "foreman.db"
+        self.database_url = f"sqlite:///{self.source_path}"
+
+        connection = sqlite3.connect(self.source_path)
+
+        try:
+            connection.executescript(
+                """
+                PRAGMA foreign_keys = ON;
+                CREATE TABLE projects (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL
+                );
+                CREATE TABLE tasks (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT,
+                    title TEXT NOT NULL,
+                    FOREIGN KEY(project_id) REFERENCES projects(id)
+                );
+                CREATE TABLE inventory_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL
+                );
+                CREATE TABLE inventory_migrations (
+                    id TEXT PRIMARY KEY
+                );
+                CREATE TABLE project_material_requirements (
+                    id TEXT PRIMARY KEY
+                );
+                CREATE TABLE project_migrations (
+                    id TEXT PRIMARY KEY
+                );
+                CREATE TABLE task_migrations (
+                    id TEXT PRIMARY KEY
+                );
+                """
+            )
+            connection.execute(
+                "INSERT INTO projects (id, name) VALUES (?, ?)",
+                ("project-1", "Safety Backup Project"),
+            )
+            connection.execute(
+                "INSERT INTO tasks (id, project_id, title) "
+                "VALUES (?, ?, ?)",
+                ("task-1", "project-1", "Safety Backup Task"),
+            )
+            connection.execute(
+                "INSERT INTO inventory_items (name) VALUES (?)",
+                ("Fastener",),
+            )
+            connection.execute("PRAGMA user_version = 2")
+            connection.commit()
+        finally:
+            connection.close()
+
+    def tearDown(self) -> None:
+        self.temporary_directory.cleanup()
+
+    def create_safety_backup(self):
+        return create_pre_restore_safety_backup(
+            self.database_url,
+            application_name="The Foreman",
+            application_version="0.7.3",
+            operational_fact_schema_version=1,
+            created_at=CREATED_AT,
+        )
+
+    def test_safety_backup_is_private_durable_and_verified(
+        self,
+    ) -> None:
+        source_checksum = sha256_file(self.source_path)
+        result = self.create_safety_backup()
+        recovery_directory = self.root / "recovery"
+        safety_directory = recovery_directory / "safety-backups"
+
+        self.assertEqual(
+            result.path,
+            (
+                safety_directory
+                / "foreman-backup-20260731T160000Z.zip"
+            ).resolve(),
+        )
+        self.assertTrue(result.verification.is_valid)
+        self.assertEqual(
+            stat.S_IMODE(recovery_directory.stat().st_mode),
+            0o700,
+        )
+        self.assertEqual(
+            stat.S_IMODE(safety_directory.stat().st_mode),
+            0o700,
+        )
+        self.assertEqual(
+            stat.S_IMODE(result.path.stat().st_mode),
+            0o600,
+        )
+        self.assertEqual(sha256_file(self.source_path), source_checksum)
+
+        verification = verify_backup_package(result.path)
+        self.assertTrue(verification.result.is_valid)
+        self.assertEqual(verification.manifest, result.manifest)
+
+    def test_safety_backup_rejects_symbolic_link_workspace(
+        self,
+    ) -> None:
+        external = self.root / "external"
+        external.mkdir()
+        (self.root / "recovery").symlink_to(
+            external,
+            target_is_directory=True,
+        )
+
+        with self.assertRaises(RecoveryContractError) as context:
+            self.create_safety_backup()
+
+        self.assertEqual(
+            context.exception.code,
+            "RECOVERY_WORKSPACE_INVALID",
+        )
+        self.assertEqual(list(external.iterdir()), [])
+
+    def test_safety_backup_requires_live_database_filesystem(
+        self,
+    ) -> None:
+        with patch(
+            "app.services.recovery._paths_share_device",
+            return_value=False,
+        ):
+            with self.assertRaises(RecoveryContractError) as context:
+                self.create_safety_backup()
+
+        self.assertEqual(
+            context.exception.code,
+            "RECOVERY_WORKSPACE_FILESYSTEM_MISMATCH",
+        )
+        safety_directory = (
+            self.root / "recovery" / "safety-backups"
+        )
+        self.assertEqual(list(safety_directory.iterdir()), [])
+
+    def test_durability_failure_removes_published_package(
+        self,
+    ) -> None:
+        with patch(
+            "app.services.recovery._fsync_file",
+            side_effect=RecoveryContractError(
+                "SAFETY_BACKUP_DURABILITY_FAILED",
+                "simulated durability failure",
+            ),
+        ):
+            with self.assertRaises(RecoveryContractError) as context:
+                self.create_safety_backup()
+
+        self.assertEqual(
+            context.exception.code,
+            "SAFETY_BACKUP_DURABILITY_FAILED",
+        )
+        safety_directory = (
+            self.root / "recovery" / "safety-backups"
+        )
+        self.assertEqual(list(safety_directory.iterdir()), [])
+
+    def test_failed_durable_verification_removes_package(
+        self,
+    ) -> None:
+        original_verify = verify_backup_package
+        call_count = 0
+
+        def fail_third_verification(path):
+            nonlocal call_count
+            call_count += 1
+            verification = original_verify(path)
+
+            if call_count < 3:
+                return verification
+
+            return BackupPackageVerification(
+                package_path=Path(path),
+                manifest=verification.manifest,
+                result=build_verification_result(
+                    [
+                        VerificationIssue(
+                            code="TEST_DURABLE_VERIFICATION_FAILED",
+                            message="Durable verification failed.",
+                        )
+                    ]
+                ),
+            )
+
+        with patch(
+            "app.services.recovery.verify_backup_package",
+            side_effect=fail_third_verification,
+        ):
+            with self.assertRaises(RecoveryContractError) as context:
+                self.create_safety_backup()
+
+        self.assertEqual(
+            context.exception.code,
+            "SAFETY_BACKUP_VERIFICATION_FAILED",
+        )
+        self.assertEqual(call_count, 3)
+        safety_directory = (
+            self.root / "recovery" / "safety-backups"
+        )
+        self.assertEqual(list(safety_directory.iterdir()), [])

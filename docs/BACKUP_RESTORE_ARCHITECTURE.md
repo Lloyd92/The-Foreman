@@ -209,7 +209,18 @@ The original backup artifact must remain unchanged.
 Immediately before replacement, The Foreman must create and verify a backup of
 the current live database.
 
-Restore must stop when that safety backup cannot be created and verified.
+The durable safety-backup workspace is derived from the live database path.
+For the deployed `/data/foreman.db`, verified safety packages are retained in:
+
+`/data/recovery/safety-backups/`
+
+The `recovery` and `safety-backups` directories use mode `0700`. Published
+safety-backup packages use mode `0600`. The workspace must be on the same
+filesystem as the live database, and the package and containing directories
+must be synchronized before activation may continue.
+
+Restore must stop when that safety backup cannot be created, synchronized, and
+independently verified.
 
 ## Maintenance boundary
 

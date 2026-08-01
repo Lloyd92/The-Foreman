@@ -1784,3 +1784,159 @@ def create_verified_backup_package(
         if published:
             final_path.unlink(missing_ok=True)
         raise
+
+RECOVERY_DIRECTORY_NAME = "recovery"
+SAFETY_BACKUP_DIRECTORY_NAME = "safety-backups"
+
+
+def _ensure_private_recovery_directory(
+    path: Path,
+    *,
+    error_code: str,
+) -> Path:
+    directory = Path(path)
+
+    if directory.is_symlink():
+        raise RecoveryContractError(
+            error_code,
+            "Recovery directory cannot be a symbolic link.",
+        )
+
+    try:
+        directory.mkdir(mode=0o700, exist_ok=True)
+
+        if directory.is_symlink() or not directory.is_dir():
+            raise RecoveryContractError(
+                error_code,
+                "Recovery path must be a private directory.",
+            )
+
+        directory.chmod(0o700)
+        return directory.resolve(strict=True)
+    except RecoveryContractError:
+        raise
+    except (FileNotFoundError, OSError) as error:
+        raise RecoveryContractError(
+            error_code,
+            "Recovery directory could not be prepared.",
+        ) from error
+
+
+def _paths_share_device(first: Path, second: Path) -> bool:
+    try:
+        return first.stat().st_dev == second.stat().st_dev
+    except OSError as error:
+        raise RecoveryContractError(
+            "RECOVERY_WORKSPACE_INVALID",
+            "Recovery filesystem could not be inspected.",
+        ) from error
+
+
+def _fsync_file(path: Path) -> None:
+    try:
+        with path.open("rb") as file:
+            os.fsync(file.fileno())
+    except OSError as error:
+        raise RecoveryContractError(
+            "SAFETY_BACKUP_DURABILITY_FAILED",
+            "Safety backup file could not be synchronized.",
+        ) from error
+
+
+def _fsync_directory(path: Path) -> None:
+    flags = os.O_RDONLY
+
+    if hasattr(os, "O_DIRECTORY"):
+        flags |= os.O_DIRECTORY
+
+    descriptor: int | None = None
+
+    try:
+        descriptor = os.open(path, flags)
+        os.fsync(descriptor)
+    except OSError as error:
+        raise RecoveryContractError(
+            "SAFETY_BACKUP_DURABILITY_FAILED",
+            "Safety backup directory could not be synchronized.",
+        ) from error
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+
+
+def create_pre_restore_safety_backup(
+    database_url: str,
+    *,
+    application_name: str,
+    application_version: str,
+    operational_fact_schema_version: int,
+    created_at: datetime | None = None,
+) -> VerifiedBackupPackage:
+    live_database_path = resolve_sqlite_database_path(database_url)
+    recovery_directory = _ensure_private_recovery_directory(
+        live_database_path.parent / RECOVERY_DIRECTORY_NAME,
+        error_code="RECOVERY_WORKSPACE_INVALID",
+    )
+    safety_backup_directory = _ensure_private_recovery_directory(
+        recovery_directory / SAFETY_BACKUP_DIRECTORY_NAME,
+        error_code="SAFETY_BACKUP_DIRECTORY_INVALID",
+    )
+
+    if not _paths_share_device(
+        live_database_path,
+        safety_backup_directory,
+    ):
+        raise RecoveryContractError(
+            "RECOVERY_WORKSPACE_FILESYSTEM_MISMATCH",
+            "Safety backup must use the live database filesystem.",
+        )
+
+    package: VerifiedBackupPackage | None = None
+
+    try:
+        package = create_verified_backup_package(
+            database_url,
+            safety_backup_directory,
+            application_name=application_name,
+            application_version=application_version,
+            operational_fact_schema_version=(
+                operational_fact_schema_version
+            ),
+            created_at=created_at,
+        )
+        package.path.chmod(0o600)
+        _fsync_file(package.path)
+        _fsync_directory(safety_backup_directory)
+        _fsync_directory(recovery_directory)
+
+        durable_verification = verify_backup_package(package.path)
+
+        if (
+            not durable_verification.result.is_valid
+            or durable_verification.manifest != package.manifest
+        ):
+            raise RecoveryContractError(
+                "SAFETY_BACKUP_VERIFICATION_FAILED",
+                "Durable safety backup failed final verification.",
+            )
+
+        return VerifiedBackupPackage(
+            path=package.path,
+            manifest=package.manifest,
+            verification=durable_verification.result,
+        )
+    except RecoveryContractError:
+        if package is not None:
+            package.path.unlink(missing_ok=True)
+        raise
+    except OSError as error:
+        if package is not None:
+            package.path.unlink(missing_ok=True)
+        raise RecoveryContractError(
+            "SAFETY_BACKUP_DURABILITY_FAILED",
+            "Safety backup could not be made durable.",
+        ) from error
+    except Exception:
+        if package is not None:
+            package.path.unlink(missing_ok=True)
+        raise
