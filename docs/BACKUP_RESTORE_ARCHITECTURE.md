@@ -220,6 +220,34 @@ more than once. Expired sessions are removed during lookup or cleanup.
 Malformed unknown workspaces are preserved for operator inspection rather
 than deleted automatically.
 
+### Controlled restore API
+
+The local recovery API exposes two separate checkpoints:
+
+- `POST /api/recovery/restores/preflight` accepts a streamed ZIP upload,
+  creates a durable preflight session, and returns the deterministic summary,
+  expiration, opaque token, and exact confirmation phrase.
+- `POST /api/recovery/restores/activate` accepts the token and confirmation,
+  consumes the session once, enters exclusive maintenance through the
+  activation service, creates the safety backup, and performs verified atomic
+  replacement.
+
+The preflight upload participates in normal database-access coordination.
+The activation endpoint must not acquire normal database access before calling
+the activation service, because activation owns the exclusive maintenance
+boundary and must not wait on its own request.
+
+Successful activation returns record counts, operational-fact count, and
+booleans confirming that a safety backup is retained and an application reload
+is required. API responses and expected failures never expose database paths,
+safety-backup paths, workspace paths, or exception text.
+
+A failed activation with verified rollback returns a stable conflict response
+and removes the consumed preflight workspace. If activation and rollback both
+fail, the response reports the emergency latch without exposing private paths;
+the consumed preflight workspace and safety artifacts remain available for
+operator recovery.
+
 ## Pre-restore safety backup
 
 Immediately before replacement, The Foreman must create and verify a backup of

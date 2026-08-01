@@ -307,4 +307,33 @@ class RestorePreflightSummary(ApiModel):
 
 class RestorePreflightConfirmation(ApiModel):
     token: NonEmptyString
-    confirmation_phrase: Literal["RESTORE THE FOREMAN"]
+    confirmation_phrase: NonEmptyString
+
+
+class RestoreActivationResponse(ApiModel):
+    status: Literal["restored"]
+    record_counts: dict[NonEmptyString, NonNegativeInt]
+    operational_fact_count: NonNegativeInt
+    safety_backup_retained: Literal[True]
+    reload_required: Literal[True]
+
+    @field_validator("record_counts")
+    @classmethod
+    def validate_record_counts(
+        cls,
+        value: dict[str, int],
+    ) -> dict[str, int]:
+        if not value:
+            raise ValueError(
+                "Restore activation record counts are required."
+            )
+
+        for table in value:
+            _validate_table_name(table)
+
+        if list(value) != sorted(value, key=_canonical_name):
+            raise ValueError(
+                "Restore activation record counts must be canonical."
+            )
+
+        return value

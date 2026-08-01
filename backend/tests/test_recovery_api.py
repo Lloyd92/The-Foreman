@@ -9,13 +9,19 @@ from app.core.config import (
     APPLICATION_VERSION,
     DATABASE_URL,
 )
+from app.core.maintenance import DatabaseMaintenanceConflict
 from app.schemas.recovery import (
     BackupManifest,
     DatabaseBackupManifest,
+    RestorePreflightSummary,
     VerificationIssue,
     VerificationResult,
 )
-from app.services.recovery import RecoveryContractError
+from app.services.recovery import (
+    RecoveryContractError,
+    RestoreActivationError,
+    RestoreActivationResult,
+)
 from test_support import ApiTestCase
 
 
@@ -57,6 +63,50 @@ def valid_verification():
             is_valid=True,
             issues=[],
         ),
+    )
+
+
+PREFLIGHT_TOKEN = "restore-preflight-token"
+CONFIRMATION_PHRASE = "RESTORE THE FOREMAN"
+
+
+def restore_preflight_summary() -> RestorePreflightSummary:
+    manifest = verification_manifest()
+    return RestorePreflightSummary(
+        token=PREFLIGHT_TOKEN,
+        expires_at=datetime(
+            2026,
+            8,
+            1,
+            22,
+            15,
+            tzinfo=timezone.utc,
+        ),
+        confirmation_phrase=CONFIRMATION_PHRASE,
+        manifest=manifest,
+        candidate_database=manifest.database,
+        record_counts=manifest.record_counts,
+        was_upgraded=False,
+    )
+
+
+def restore_preflight_session():
+    summary = restore_preflight_summary()
+    return SimpleNamespace(
+        token=PREFLIGHT_TOKEN,
+        staged_candidate=SimpleNamespace(
+            path=Path("/private/preflight/foreman.db")
+        ),
+        summary=lambda: summary,
+    )
+
+
+def restore_activation_result() -> RestoreActivationResult:
+    return RestoreActivationResult(
+        database_path=Path("/private/live/foreman.db"),
+        safety_backup_path=Path("/private/safety/backup.zip"),
+        record_counts=(("projects", 1),),
+        operational_fact_count=3,
     )
 
 
@@ -429,3 +479,364 @@ class RecoveryApiTests(ApiTestCase):
                     )
 
             self.assertFalse(temporary_directory.exists())
+    async def test_restore_preflight_returns_summary_and_cleans_upload(
+        self,
+    ) -> None:
+        session = restore_preflight_session()
+
+        with tempfile.TemporaryDirectory() as parent:
+            temporary_directory = Path(parent) / "preflight-upload"
+            temporary_directory.mkdir()
+            uploaded_path = (
+                temporary_directory / "uploaded-backup.zip"
+            )
+
+            with (
+                patch(
+                    "app.api.recovery.tempfile.mkdtemp",
+                    return_value=str(temporary_directory),
+                ),
+                patch(
+                    "app.api.recovery.create_restore_preflight",
+                    return_value=session,
+                ) as create_preflight,
+            ):
+                response = await self.client.post(
+                    "/api/recovery/restores/preflight",
+                    content=BACKUP_BYTES,
+                    headers={"Content-Type": "application/zip"},
+                )
+
+            self.assertEqual(response.status_code, 200)
+            payload = response.json()
+            self.assertEqual(payload["token"], PREFLIGHT_TOKEN)
+            self.assertEqual(
+                payload["confirmationPhrase"],
+                CONFIRMATION_PHRASE,
+            )
+            self.assertEqual(
+                payload["recordCounts"],
+                {"projects": 1},
+            )
+            self.assertEqual(
+                response.headers["cache-control"],
+                "no-store",
+            )
+            self.assertEqual(
+                response.headers["x-content-type-options"],
+                "nosniff",
+            )
+            self.assertFalse(temporary_directory.exists())
+            create_preflight.assert_called_once_with(
+                uploaded_path,
+                live_database_url=DATABASE_URL,
+            )
+
+    async def test_restore_preflight_rejects_invalid_package(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as parent:
+            temporary_directory = Path(parent) / "preflight-upload"
+            temporary_directory.mkdir()
+
+            with (
+                patch(
+                    "app.api.recovery.tempfile.mkdtemp",
+                    return_value=str(temporary_directory),
+                ),
+                patch(
+                    "app.api.recovery.create_restore_preflight",
+                    side_effect=RecoveryContractError(
+                        "RESTORE_PREFLIGHT_PACKAGE_INVALID",
+                        "Private archive detail",
+                    ),
+                ),
+            ):
+                response = await self.client.post(
+                    "/api/recovery/restores/preflight",
+                    content=BACKUP_BYTES,
+                    headers={"Content-Type": "application/zip"},
+                )
+
+            self.assertEqual(response.status_code, 422)
+            self.assertEqual(
+                response.json()["detail"],
+                {
+                    "code": "RESTORE_PREFLIGHT_PACKAGE_INVALID",
+                    "message": (
+                        "The backup package is not eligible for restore."
+                    ),
+                },
+            )
+            self.assertNotIn("Private archive detail", response.text)
+            self.assertFalse(temporary_directory.exists())
+
+    async def test_restore_preflight_storage_failure_is_stable(
+        self,
+    ) -> None:
+        with patch(
+            "app.api.recovery.tempfile.mkdtemp",
+            side_effect=OSError("Private storage path"),
+        ):
+            response = await self.client.post(
+                "/api/recovery/restores/preflight",
+                content=BACKUP_BYTES,
+                headers={"Content-Type": "application/zip"},
+            )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(
+            response.json()["detail"],
+            {
+                "code": "RESTORE_PREFLIGHT_UNAVAILABLE",
+                "message": (
+                    "The restore preflight could not be prepared."
+                ),
+            },
+        )
+        self.assertNotIn("Private storage path", response.text)
+
+    async def test_restore_activation_succeeds_without_paths(
+        self,
+    ) -> None:
+        session = restore_preflight_session()
+        result = restore_activation_result()
+
+        with (
+            patch(
+                "app.api.recovery.consume_restore_preflight",
+                return_value=session,
+            ) as consume,
+            patch(
+                "app.api.recovery.activate_staged_restore",
+                return_value=result,
+            ) as activate,
+            patch(
+                "app.api.recovery.remove_restore_preflight"
+            ) as remove,
+        ):
+            response = await self.client.post(
+                "/api/recovery/restores/activate",
+                json={
+                    "token": PREFLIGHT_TOKEN,
+                    "confirmationPhrase": CONFIRMATION_PHRASE,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "status": "restored",
+                "recordCounts": {"projects": 1},
+                "operationalFactCount": 3,
+                "safetyBackupRetained": True,
+                "reloadRequired": True,
+            },
+        )
+        self.assertEqual(
+            response.headers["cache-control"],
+            "no-store",
+        )
+        self.assertNotIn("/private", response.text)
+        consume.assert_called_once_with(
+            PREFLIGHT_TOKEN,
+            CONFIRMATION_PHRASE,
+            live_database_url=DATABASE_URL,
+        )
+        activate.assert_called_once_with(
+            session.staged_candidate,
+            live_database_url=DATABASE_URL,
+            application_name=APPLICATION_NAME,
+            application_version=APPLICATION_VERSION,
+            operational_fact_schema_version=1,
+            maintenance_timeout_seconds=30.0,
+        )
+        remove.assert_called_once_with(
+            PREFLIGHT_TOKEN,
+            live_database_url=DATABASE_URL,
+        )
+
+    async def test_restore_activation_requires_exact_confirmation(
+        self,
+    ) -> None:
+        with (
+            patch(
+                "app.api.recovery.consume_restore_preflight",
+                side_effect=RecoveryContractError(
+                    "RESTORE_PREFLIGHT_CONFIRMATION_REQUIRED",
+                    "Private confirmation detail",
+                ),
+            ),
+            patch(
+                "app.api.recovery.activate_staged_restore"
+            ) as activate,
+        ):
+            response = await self.client.post(
+                "/api/recovery/restores/activate",
+                json={
+                    "token": PREFLIGHT_TOKEN,
+                    "confirmationPhrase": "restore the foreman",
+                },
+            )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(
+            response.json()["detail"]["code"],
+            "RESTORE_PREFLIGHT_CONFIRMATION_REQUIRED",
+        )
+        self.assertNotIn("Private confirmation detail", response.text)
+        activate.assert_not_called()
+
+    async def test_restore_activation_rejects_consumed_token(
+        self,
+    ) -> None:
+        with patch(
+            "app.api.recovery.consume_restore_preflight",
+            side_effect=RecoveryContractError(
+                "RESTORE_PREFLIGHT_CONSUMED",
+                "Private consumed marker path",
+            ),
+        ):
+            response = await self.client.post(
+                "/api/recovery/restores/activate",
+                json={
+                    "token": PREFLIGHT_TOKEN,
+                    "confirmationPhrase": CONFIRMATION_PHRASE,
+                },
+            )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(
+            response.json()["detail"]["code"],
+            "RESTORE_PREFLIGHT_CONSUMED",
+        )
+        self.assertNotIn("Private consumed marker path", response.text)
+
+    async def test_restore_failure_reports_verified_rollback(
+        self,
+    ) -> None:
+        session = restore_preflight_session()
+        error = RestoreActivationError(
+            "RESTORE_ACTIVATION_FAILED_ROLLED_BACK",
+            "Private activation error",
+            safety_backup_path=Path("/private/safety.zip"),
+            rollback_succeeded=True,
+            emergency_latched=False,
+        )
+
+        with (
+            patch(
+                "app.api.recovery.consume_restore_preflight",
+                return_value=session,
+            ),
+            patch(
+                "app.api.recovery.activate_staged_restore",
+                side_effect=error,
+            ),
+            patch(
+                "app.api.recovery.remove_restore_preflight"
+            ) as remove,
+        ):
+            response = await self.client.post(
+                "/api/recovery/restores/activate",
+                json={
+                    "token": PREFLIGHT_TOKEN,
+                    "confirmationPhrase": CONFIRMATION_PHRASE,
+                },
+            )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(
+            response.json()["detail"],
+            {
+                "code": "RESTORE_ACTIVATION_FAILED_ROLLED_BACK",
+                "message": (
+                    "Restore activation failed, and the original "
+                    "database was restored successfully."
+                ),
+                "rollbackSucceeded": True,
+                "emergencyLatched": False,
+            },
+        )
+        self.assertNotIn("/private", response.text)
+        remove.assert_called_once()
+
+    async def test_restore_double_failure_retains_emergency_workspace(
+        self,
+    ) -> None:
+        session = restore_preflight_session()
+        error = RestoreActivationError(
+            "RESTORE_ACTIVATION_AND_ROLLBACK_FAILED",
+            "Private rollback error",
+            safety_backup_path=Path("/private/safety.zip"),
+            rollback_succeeded=False,
+            emergency_latched=True,
+        )
+
+        with (
+            patch(
+                "app.api.recovery.consume_restore_preflight",
+                return_value=session,
+            ),
+            patch(
+                "app.api.recovery.activate_staged_restore",
+                side_effect=error,
+            ),
+            patch(
+                "app.api.recovery.remove_restore_preflight"
+            ) as remove,
+        ):
+            response = await self.client.post(
+                "/api/recovery/restores/activate",
+                json={
+                    "token": PREFLIGHT_TOKEN,
+                    "confirmationPhrase": CONFIRMATION_PHRASE,
+                },
+            )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertFalse(
+            response.json()["detail"]["rollbackSucceeded"]
+        )
+        self.assertTrue(
+            response.json()["detail"]["emergencyLatched"]
+        )
+        self.assertNotIn("/private", response.text)
+        remove.assert_not_called()
+
+    async def test_restore_maintenance_conflict_consumes_and_cleans(
+        self,
+    ) -> None:
+        session = restore_preflight_session()
+
+        with (
+            patch(
+                "app.api.recovery.consume_restore_preflight",
+                return_value=session,
+            ),
+            patch(
+                "app.api.recovery.activate_staged_restore",
+                side_effect=DatabaseMaintenanceConflict(
+                    "Private coordinator detail"
+                ),
+            ),
+            patch(
+                "app.api.recovery.remove_restore_preflight"
+            ) as remove,
+        ):
+            response = await self.client.post(
+                "/api/recovery/restores/activate",
+                json={
+                    "token": PREFLIGHT_TOKEN,
+                    "confirmationPhrase": CONFIRMATION_PHRASE,
+                },
+            )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(
+            response.json()["detail"]["code"],
+            "RESTORE_MAINTENANCE_CONFLICT",
+        )
+        self.assertNotIn("Private coordinator detail", response.text)
+        remove.assert_called_once()
