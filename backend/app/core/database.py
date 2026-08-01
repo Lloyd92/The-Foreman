@@ -6,7 +6,10 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import DATABASE_URL
-from app.core.maintenance import maintenance_coordinator
+from app.core.maintenance import (
+    DatabaseMaintenanceCoordinator,
+    maintenance_coordinator,
+)
 from app.core.schema_upgrades import apply_schema_upgrades
 from app.models.base import Base
 
@@ -63,12 +66,12 @@ def get_database_access() -> Generator[None, None, None]:
 def database_maintenance(
     *,
     timeout_seconds: float | None = None,
-) -> Iterator[None]:
+) -> Iterator[DatabaseMaintenanceCoordinator]:
     with maintenance_coordinator.maintenance(
         timeout_seconds=timeout_seconds,
-    ):
+    ) as coordinator:
         engine.dispose()
-        yield
+        yield coordinator
 
 
 def get_session() -> Generator[Session, None, None]:

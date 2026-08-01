@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import stat
 import zipfile
@@ -11,14 +12,16 @@ from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from tempfile import TemporaryDirectory, mkdtemp
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError, SQLAlchemyError
+from sqlalchemy.orm import sessionmaker
 
+from app.core.database import database_maintenance
 from app.core.schema_upgrades import (
     CURRENT_DATABASE_SCHEMA_VERSION,
     apply_schema_upgrades,
@@ -31,6 +34,7 @@ from app.schemas.recovery import (
     VerificationIssue,
     VerificationResult,
 )
+from app.services.operations import get_operational_facts
 
 
 BACKUP_FORMAT_VERSION = 1
@@ -1940,3 +1944,410 @@ def create_pre_restore_safety_backup(
         if package is not None:
             package.path.unlink(missing_ok=True)
         raise
+
+ACTIVATION_DIRECTORY_NAME = "activation"
+
+
+class RestoreActivationError(RecoveryContractError):
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        safety_backup_path: Path,
+        rollback_succeeded: bool,
+        emergency_latched: bool,
+    ) -> None:
+        super().__init__(code, message)
+        self.safety_backup_path = Path(safety_backup_path)
+        self.rollback_succeeded = rollback_succeeded
+        self.emergency_latched = emergency_latched
+
+
+@dataclass(frozen=True)
+class RestoreActivationResult:
+    database_path: Path
+    safety_backup_path: Path
+    record_counts: tuple[tuple[str, int], ...]
+    operational_fact_count: int
+
+    def record_count_mapping(self) -> dict[str, int]:
+        return dict(self.record_counts)
+
+
+def _assert_no_sqlite_sidecars(
+    database_path: Path,
+    *,
+    code: str,
+    message: str,
+) -> None:
+    if any(path.exists() for path in _sqlite_sidecar_paths(database_path)):
+        raise RecoveryContractError(code, message)
+
+
+def _validate_staged_candidate_for_activation(
+    staged_candidate: StagedRestoreCandidate,
+    live_database_path: Path,
+) -> Path:
+    candidate_path = Path(staged_candidate.path)
+
+    if candidate_path.is_symlink():
+        raise RecoveryContractError(
+            "RESTORE_ACTIVATION_CANDIDATE_INVALID",
+            "Restore activation candidate cannot be a symbolic link.",
+        )
+
+    try:
+        candidate = candidate_path.resolve(strict=True)
+    except (FileNotFoundError, OSError) as error:
+        raise RecoveryContractError(
+            "RESTORE_ACTIVATION_CANDIDATE_INVALID",
+            "Restore activation candidate cannot be resolved.",
+        ) from error
+
+    if not candidate.is_file() or candidate == live_database_path:
+        raise RecoveryContractError(
+            "RESTORE_ACTIVATION_CANDIDATE_INVALID",
+            "Restore activation candidate must be an isolated database.",
+        )
+
+    try:
+        same_device = (
+            candidate.stat().st_dev
+            == live_database_path.parent.stat().st_dev
+        )
+    except OSError as error:
+        raise RecoveryContractError(
+            "RESTORE_ACTIVATION_CANDIDATE_INVALID",
+            "Restore activation filesystem could not be inspected.",
+        ) from error
+
+    if not same_device:
+        raise RecoveryContractError(
+            "RESTORE_ACTIVATION_FILESYSTEM_MISMATCH",
+            "Restore candidate must use the live database filesystem.",
+        )
+
+    _assert_no_sqlite_sidecars(
+        candidate,
+        code="RESTORE_ACTIVATION_CANDIDATE_SIDECAR_PRESENT",
+        message="Restore activation candidate has SQLite sidecars.",
+    )
+    user_version, tables, record_counts = _inspect_sqlite_snapshot(
+        candidate
+    )
+    manifest = staged_candidate.database_manifest
+
+    if (
+        candidate.stat().st_size != manifest.byte_size
+        or sha256_file(candidate) != manifest.sha256
+        or user_version != manifest.user_version
+        or tables != manifest.tables
+        or record_counts != staged_candidate.record_count_mapping()
+    ):
+        raise RecoveryContractError(
+            "RESTORE_ACTIVATION_CANDIDATE_CHANGED",
+            "Restore activation candidate changed after staging.",
+        )
+
+    _verify_restore_candidate_model_schema(candidate)
+    return candidate
+
+
+def _prepare_activation_workspace(live_database_path: Path) -> Path:
+    recovery_directory = _ensure_private_recovery_directory(
+        live_database_path.parent / RECOVERY_DIRECTORY_NAME,
+        error_code="RECOVERY_WORKSPACE_INVALID",
+    )
+    activation_root = _ensure_private_recovery_directory(
+        recovery_directory / ACTIVATION_DIRECTORY_NAME,
+        error_code="RESTORE_ACTIVATION_WORKSPACE_INVALID",
+    )
+
+    try:
+        workspace = Path(
+            mkdtemp(
+                prefix=".restore-",
+                dir=activation_root,
+            )
+        )
+        workspace.chmod(0o700)
+        return workspace.resolve(strict=True)
+    except OSError as error:
+        raise RecoveryContractError(
+            "RESTORE_ACTIVATION_WORKSPACE_INVALID",
+            "Restore activation workspace could not be prepared.",
+        ) from error
+
+
+def _remove_live_database_sidecars(database_path: Path) -> None:
+    try:
+        for sidecar in _sqlite_sidecar_paths(database_path):
+            sidecar.unlink(missing_ok=True)
+    except OSError as error:
+        raise RecoveryContractError(
+            "RESTORE_DATABASE_SIDECAR_CLEANUP_FAILED",
+            "SQLite sidecars could not be removed during recovery.",
+        ) from error
+
+
+def _synchronize_database_replacement(
+    database_path: Path,
+    *,
+    code: str,
+    message: str,
+) -> None:
+    try:
+        database_path.chmod(0o600)
+
+        with database_path.open("rb") as file:
+            os.fsync(file.fileno())
+
+        flags = os.O_RDONLY
+
+        if hasattr(os, "O_DIRECTORY"):
+            flags |= os.O_DIRECTORY
+
+        descriptor = os.open(database_path.parent, flags)
+
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+    except OSError as error:
+        raise RecoveryContractError(code, message) from error
+
+
+def _verify_activated_database(
+    database_path: Path,
+    *,
+    expected_manifest: DatabaseBackupManifest,
+    expected_record_counts: Mapping[str, int],
+) -> int:
+    checksum_before = sha256_file(database_path)
+    verification_engine = create_engine(
+        f"sqlite:///{database_path}",
+        connect_args={"check_same_thread": False},
+    )
+    operational_fact_count = 0
+
+    try:
+        with verification_engine.begin() as connection:
+            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+            Base.metadata.create_all(bind=connection)
+            apply_schema_upgrades(connection)
+
+        with verification_engine.connect() as connection:
+            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+
+            if connection.execute(text("SELECT 1")).scalar_one() != 1:
+                raise RecoveryContractError(
+                    "RESTORE_ACTIVATION_HEALTH_FAILED",
+                    "Activated database failed its health probe.",
+                )
+
+        session_factory = sessionmaker(
+            bind=verification_engine,
+            autoflush=False,
+            autocommit=False,
+        )
+
+        with session_factory() as session:
+            operational_fact_count = len(
+                get_operational_facts(session).facts
+            )
+    finally:
+        verification_engine.dispose()
+
+    _assert_no_sqlite_sidecars(
+        database_path,
+        code="RESTORE_ACTIVATION_SIDECAR_PRESENT",
+        message="Activated database retained SQLite sidecars.",
+    )
+    checksum_after = sha256_file(database_path)
+
+    if checksum_after != checksum_before:
+        raise RecoveryContractError(
+            "RESTORE_ACTIVATION_UNEXPECTED_CHANGE",
+            "Activated current-schema database changed during verification.",
+        )
+
+    user_version, tables, record_counts = _inspect_sqlite_snapshot(
+        database_path
+    )
+
+    if (
+        user_version != expected_manifest.user_version
+        or tables != expected_manifest.tables
+        or record_counts != dict(expected_record_counts)
+        or database_path.stat().st_size != expected_manifest.byte_size
+        or checksum_after != expected_manifest.sha256
+    ):
+        raise RecoveryContractError(
+            "RESTORE_ACTIVATION_VERIFICATION_FAILED",
+            "Activated database does not match the staged candidate.",
+        )
+
+    if not CURRENT_REQUIRED_DATABASE_TABLES.issubset(tables):
+        raise RecoveryContractError(
+            "RESTORE_ACTIVATION_REQUIRED_TABLES_MISSING",
+            "Activated database is missing required application tables.",
+        )
+
+    _verify_restore_candidate_model_schema(database_path)
+    return operational_fact_count
+
+
+def activate_staged_restore(
+    staged_candidate: StagedRestoreCandidate,
+    *,
+    live_database_url: str,
+    application_name: str,
+    application_version: str,
+    operational_fact_schema_version: int,
+    maintenance_timeout_seconds: float | None = None,
+    safety_backup_created_at: datetime | None = None,
+) -> RestoreActivationResult:
+    live_database_path = resolve_sqlite_database_path(
+        live_database_url
+    )
+    candidate_path = _validate_staged_candidate_for_activation(
+        staged_candidate,
+        live_database_path,
+    )
+    safety_backup: VerifiedBackupPackage | None = None
+    activation_workspace: Path | None = None
+    rollback_candidate: StagedRestoreCandidate | None = None
+
+    with database_maintenance(
+        timeout_seconds=maintenance_timeout_seconds,
+    ) as maintenance:
+        candidate_path = _validate_staged_candidate_for_activation(
+            staged_candidate,
+            live_database_path,
+        )
+        _assert_no_sqlite_sidecars(
+            live_database_path,
+            code="RESTORE_LIVE_DATABASE_SIDECAR_PRESENT",
+            message=(
+                "Live database has SQLite sidecars after maintenance drain."
+            ),
+        )
+        safety_backup = create_pre_restore_safety_backup(
+            live_database_url,
+            application_name=application_name,
+            application_version=application_version,
+            operational_fact_schema_version=(
+                operational_fact_schema_version
+            ),
+            created_at=safety_backup_created_at,
+        )
+        activation_workspace = _prepare_activation_workspace(
+            live_database_path
+        )
+
+        try:
+            rollback_candidate = stage_restore_candidate(
+                safety_backup.path,
+                activation_workspace / "foreman.db",
+                live_database_url=live_database_url,
+            )
+            activation_applied = False
+
+            try:
+                try:
+                    os.replace(candidate_path, live_database_path)
+                except OSError as error:
+                    raise RecoveryContractError(
+                        "RESTORE_ACTIVATION_REPLACEMENT_FAILED",
+                        "Restore candidate could not replace the live database.",
+                    ) from error
+
+                activation_applied = True
+                _synchronize_database_replacement(
+                    live_database_path,
+                    code="RESTORE_ACTIVATION_DURABILITY_FAILED",
+                    message=(
+                        "Activated database could not be synchronized."
+                    ),
+                )
+                operational_fact_count = _verify_activated_database(
+                    live_database_path,
+                    expected_manifest=(
+                        staged_candidate.database_manifest
+                    ),
+                    expected_record_counts=(
+                        staged_candidate.record_count_mapping()
+                    ),
+                )
+            except Exception as activation_error:
+                if not activation_applied:
+                    raise
+
+                try:
+                    _remove_live_database_sidecars(live_database_path)
+                    os.replace(
+                        rollback_candidate.path,
+                        live_database_path,
+                    )
+                    _synchronize_database_replacement(
+                        live_database_path,
+                        code="RESTORE_ROLLBACK_DURABILITY_FAILED",
+                        message=(
+                            "Rollback database could not be synchronized."
+                        ),
+                    )
+                    _verify_activated_database(
+                        live_database_path,
+                        expected_manifest=(
+                            rollback_candidate.database_manifest
+                        ),
+                        expected_record_counts=(
+                            rollback_candidate.record_count_mapping()
+                        ),
+                    )
+                except Exception as rollback_error:
+                    maintenance.latch_emergency()
+                    raise RestoreActivationError(
+                        "RESTORE_ACTIVATION_AND_ROLLBACK_FAILED",
+                        (
+                            "Restore activation and automatic rollback "
+                            "both failed. Database access remains disabled. "
+                            "Use the retained safety backup for emergency "
+                            "recovery."
+                        ),
+                        safety_backup_path=safety_backup.path,
+                        rollback_succeeded=False,
+                        emergency_latched=True,
+                    ) from rollback_error
+
+                raise RestoreActivationError(
+                    "RESTORE_ACTIVATION_FAILED_ROLLED_BACK",
+                    (
+                        "Restore activation failed and the original "
+                        "database was restored successfully."
+                    ),
+                    safety_backup_path=safety_backup.path,
+                    rollback_succeeded=True,
+                    emergency_latched=False,
+                ) from activation_error
+
+            return RestoreActivationResult(
+                database_path=live_database_path,
+                safety_backup_path=safety_backup.path,
+                record_counts=tuple(
+                    staged_candidate.record_count_mapping().items()
+                ),
+                operational_fact_count=operational_fact_count,
+            )
+        finally:
+            state = maintenance.snapshot()
+
+            if (
+                activation_workspace is not None
+                and not state.emergency_latched
+            ):
+                shutil.rmtree(
+                    activation_workspace,
+                    ignore_errors=True,
+                )

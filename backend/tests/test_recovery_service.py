@@ -13,6 +13,10 @@ from unittest.mock import patch
 from pydantic import ValidationError
 from sqlalchemy import create_engine, text
 
+from app.core.maintenance import (
+    DatabaseMaintenanceActive,
+    maintenance_coordinator,
+)
 from app.core.schema_upgrades import apply_schema_upgrades
 from app.models.base import Base
 from app.schemas.recovery import (
@@ -24,6 +28,11 @@ from app.schemas.recovery import (
 )
 from app.services.recovery import (
     BackupPackageVerification,
+    RestoreActivationError,
+    RestoreActivationResult,
+    StagedRestoreCandidate,
+    _verify_activated_database,
+    activate_staged_restore,
     EXPECTED_BACKUP_MEMBERS,
     RecoveryContractError,
     backup_package_filename,
@@ -1848,3 +1857,256 @@ class PreRestoreSafetyBackupTests(unittest.TestCase):
             self.root / "recovery" / "safety-backups"
         )
         self.assertEqual(list(safety_directory.iterdir()), [])
+
+
+class RestoreActivationTests(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary_directory.name)
+        self.live_path = self.root / "foreman.db"
+        self.source_path = self.root / "source.db"
+        self.package_directory = self.root / "packages"
+        self.staging_directory = self.root / "staging"
+        self.package_directory.mkdir()
+        self.staging_directory.mkdir()
+        self._create_database(
+            self.live_path,
+            project_id="live-project",
+            project_name="Live Project",
+        )
+        self._create_database(
+            self.source_path,
+            project_id="restored-project",
+            project_name="Restored Project",
+        )
+
+    def tearDown(self) -> None:
+        state = maintenance_coordinator.snapshot()
+
+        if state.emergency_latched:
+            maintenance_coordinator.clear_emergency_latch()
+
+        self.temporary_directory.cleanup()
+
+    @property
+    def live_database_url(self) -> str:
+        return f"sqlite:///{self.live_path}"
+
+    @property
+    def source_database_url(self) -> str:
+        return f"sqlite:///{self.source_path}"
+
+    def _create_database(
+        self,
+        path: Path,
+        *,
+        project_id: str,
+        project_name: str,
+    ) -> None:
+        engine = create_engine(f"sqlite:///{path}")
+
+        try:
+            with engine.begin() as connection:
+                Base.metadata.create_all(bind=connection)
+                apply_schema_upgrades(connection)
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO projects (
+                            id, name, type, status, priority, progress,
+                            start_date, target_date, estimated_cost,
+                            description, notes, created_at, updated_at,
+                            archived_at
+                        ) VALUES (
+                            :id, :name, 'other', 'active', 'medium', 0,
+                            NULL, NULL, 0, '', '', :created_at,
+                            :updated_at, NULL
+                        )
+                        """
+                    ),
+                    {
+                        "id": project_id,
+                        "name": project_name,
+                        "created_at": "2026-08-01 18:00:00",
+                        "updated_at": "2026-08-01 18:00:00",
+                    },
+                )
+        finally:
+            engine.dispose()
+
+    def _stage_candidate(self) -> StagedRestoreCandidate:
+        package = create_verified_backup_package(
+            self.source_database_url,
+            self.package_directory,
+            application_name="The Foreman",
+            application_version="0.7.3",
+            operational_fact_schema_version=1,
+            created_at=CREATED_AT,
+        )
+        return stage_restore_candidate(
+            package.path,
+            self.staging_directory / "foreman.db",
+            live_database_url=self.live_database_url,
+        )
+
+    def _activate(
+        self,
+        staged: StagedRestoreCandidate,
+    ) -> RestoreActivationResult:
+        return activate_staged_restore(
+            staged,
+            live_database_url=self.live_database_url,
+            application_name="The Foreman",
+            application_version="0.7.3",
+            operational_fact_schema_version=1,
+            safety_backup_created_at=CREATED_AT,
+        )
+
+    def _project_ids(self) -> list[str]:
+        with sqlite3.connect(self.live_path) as connection:
+            return [
+                str(row[0])
+                for row in connection.execute(
+                    "SELECT id FROM projects ORDER BY id"
+                )
+            ]
+
+    def test_activation_replaces_and_verifies_live_database(
+        self,
+    ) -> None:
+        staged = self._stage_candidate()
+        result = self._activate(staged)
+
+        self.assertEqual(self._project_ids(), ["restored-project"])
+        self.assertFalse(staged.path.exists())
+        self.assertTrue(result.safety_backup_path.exists())
+        self.assertEqual(
+            result.record_count_mapping()["projects"],
+            1,
+        )
+        self.assertGreaterEqual(result.operational_fact_count, 1)
+        state = maintenance_coordinator.snapshot()
+        self.assertFalse(state.maintenance_active)
+        self.assertFalse(state.emergency_latched)
+
+    def test_activation_failure_rolls_back_original_database(
+        self,
+    ) -> None:
+        staged = self._stage_candidate()
+        original_verify = _verify_activated_database
+        call_count = 0
+
+        def fail_first_verification(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+
+            if call_count == 1:
+                raise RecoveryContractError(
+                    "TEST_ACTIVATION_VERIFICATION_FAILED",
+                    "simulated activation verification failure",
+                )
+
+            return original_verify(*args, **kwargs)
+
+        with patch(
+            "app.services.recovery._verify_activated_database",
+            side_effect=fail_first_verification,
+        ):
+            with self.assertRaises(
+                RestoreActivationError
+            ) as context:
+                self._activate(staged)
+
+        error = context.exception
+        self.assertEqual(
+            error.code,
+            "RESTORE_ACTIVATION_FAILED_ROLLED_BACK",
+        )
+        self.assertTrue(error.rollback_succeeded)
+        self.assertFalse(error.emergency_latched)
+        self.assertTrue(error.safety_backup_path.exists())
+        self.assertEqual(self._project_ids(), ["live-project"])
+        self.assertFalse(
+            maintenance_coordinator.snapshot().maintenance_active
+        )
+
+    def test_double_failure_latches_emergency_maintenance(
+        self,
+    ) -> None:
+        staged = self._stage_candidate()
+
+        with patch(
+            "app.services.recovery._verify_activated_database",
+            side_effect=RecoveryContractError(
+                "TEST_VERIFICATION_FAILED",
+                "simulated verification failure",
+            ),
+        ):
+            with self.assertRaises(
+                RestoreActivationError
+            ) as context:
+                self._activate(staged)
+
+        error = context.exception
+        self.assertEqual(
+            error.code,
+            "RESTORE_ACTIVATION_AND_ROLLBACK_FAILED",
+        )
+        self.assertFalse(error.rollback_succeeded)
+        self.assertTrue(error.emergency_latched)
+        self.assertTrue(error.safety_backup_path.exists())
+
+        state = maintenance_coordinator.snapshot()
+        self.assertTrue(state.maintenance_active)
+        self.assertTrue(state.emergency_latched)
+
+        with self.assertRaises(DatabaseMaintenanceActive):
+            maintenance_coordinator.acquire_database_access()
+
+    def test_safety_backup_failure_stops_before_replacement(
+        self,
+    ) -> None:
+        staged = self._stage_candidate()
+        live_checksum = sha256_file(self.live_path)
+
+        with patch(
+            "app.services.recovery.create_pre_restore_safety_backup",
+            side_effect=RecoveryContractError(
+                "TEST_SAFETY_BACKUP_FAILED",
+                "simulated safety backup failure",
+            ),
+        ):
+            with self.assertRaises(RecoveryContractError) as context:
+                self._activate(staged)
+
+        self.assertEqual(
+            context.exception.code,
+            "TEST_SAFETY_BACKUP_FAILED",
+        )
+        self.assertEqual(sha256_file(self.live_path), live_checksum)
+        self.assertTrue(staged.path.exists())
+        self.assertFalse(
+            maintenance_coordinator.snapshot().maintenance_active
+        )
+
+    def test_changed_candidate_is_rejected_before_safety_backup(
+        self,
+    ) -> None:
+        staged = self._stage_candidate()
+
+        with staged.path.open("ab") as file:
+            file.write(b"tampered")
+
+        with patch(
+            "app.services.recovery.create_pre_restore_safety_backup"
+        ) as create_safety_backup:
+            with self.assertRaises(RecoveryContractError) as context:
+                self._activate(staged)
+
+        self.assertEqual(
+            context.exception.code,
+            "RESTORE_ACTIVATION_CANDIDATE_CHANGED",
+        )
+        create_safety_backup.assert_not_called()
+        self.assertEqual(self._project_ids(), ["live-project"])

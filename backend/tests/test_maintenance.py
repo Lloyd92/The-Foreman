@@ -177,3 +177,27 @@ class DatabaseMaintenanceApiTests(ApiTestCase):
                 pass
 
         dispose.assert_called_once_with()
+
+    def test_emergency_latch_keeps_database_access_closed(
+        self,
+    ) -> None:
+        coordinator = DatabaseMaintenanceCoordinator()
+
+        with coordinator.maintenance() as maintenance:
+            maintenance.latch_emergency()
+
+        state = coordinator.snapshot()
+        self.assertTrue(state.maintenance_active)
+        self.assertTrue(state.emergency_latched)
+
+        with self.assertRaises(DatabaseMaintenanceActive):
+            with coordinator.database_access():
+                pass
+
+        coordinator.clear_emergency_latch()
+        cleared = coordinator.snapshot()
+        self.assertFalse(cleared.maintenance_active)
+        self.assertFalse(cleared.emergency_latched)
+
+        with coordinator.database_access():
+            pass

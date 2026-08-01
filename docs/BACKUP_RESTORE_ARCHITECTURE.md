@@ -255,8 +255,17 @@ After replacement, The Foreman must verify:
 If activation or verification fails, The Foreman must atomically restore the
 pre-restore database and verify the rollback.
 
-If rollback also fails, normal operations must remain disabled and explicit
-emergency-recovery instructions must be provided.
+Activation owns the exclusive maintenance boundary from the final candidate
+check through post-replacement verification. The activated database must pass
+schema initialization, integrity and foreign-key inspection, required-table
+and record-count comparison, a direct database health probe, and operational-
+fact calculation before normal access resumes.
+
+If rollback also fails, the maintenance coordinator enters an emergency latch.
+The latch keeps all database-backed routes unavailable after the restore call
+returns. The durable safety package and activation workspace are retained for
+explicit operator recovery; normal access cannot resume until the emergency
+latch is deliberately cleared after repair.
 
 ## Compatibility
 

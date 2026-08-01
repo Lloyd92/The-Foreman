@@ -17,9 +17,14 @@ class DatabaseMaintenanceDrainTimeout(TimeoutError):
     """Raised when active database work does not drain in time."""
 
 
+class DatabaseMaintenanceEmergencyLatched(RuntimeError):
+    """Raised when emergency recovery keeps maintenance engaged."""
+
+
 @dataclass(frozen=True)
 class DatabaseMaintenanceState:
     maintenance_active: bool
+    emergency_latched: bool
     active_database_operations: int
 
 
@@ -27,12 +32,14 @@ class DatabaseMaintenanceCoordinator:
     def __init__(self) -> None:
         self._condition = Condition()
         self._maintenance_active = False
+        self._emergency_latched = False
         self._active_database_operations = 0
 
     def snapshot(self) -> DatabaseMaintenanceState:
         with self._condition:
             return DatabaseMaintenanceState(
                 maintenance_active=self._maintenance_active,
+                emergency_latched=self._emergency_latched,
                 active_database_operations=(
                     self._active_database_operations
                 ),
@@ -106,24 +113,58 @@ class DatabaseMaintenanceCoordinator:
 
                 self._condition.wait(timeout=remaining)
 
-    def exit_maintenance(self) -> None:
+    def latch_emergency(self) -> None:
+        with self._condition:
+            if not self._maintenance_active:
+                raise RuntimeError(
+                    "Emergency latch requires active maintenance."
+                )
+
+            if self._active_database_operations != 0:
+                raise RuntimeError(
+                    "Emergency latch requires drained database access."
+                )
+
+            self._emergency_latched = True
+
+    def clear_emergency_latch(self) -> None:
+        with self._condition:
+            if not self._emergency_latched:
+                raise RuntimeError(
+                    "Database maintenance emergency is not latched."
+                )
+
+            if self._active_database_operations != 0:
+                raise RuntimeError(
+                    "Emergency latch cannot clear with active access."
+                )
+
+            self._emergency_latched = False
+            self._maintenance_active = False
+            self._condition.notify_all()
+
+    def exit_maintenance(self) -> bool:
         with self._condition:
             if not self._maintenance_active:
                 raise RuntimeError("Database maintenance is not active.")
 
+            if self._emergency_latched:
+                return False
+
             self._maintenance_active = False
             self._condition.notify_all()
+            return True
 
     @contextmanager
     def maintenance(
         self,
         *,
         timeout_seconds: float | None = None,
-    ) -> Iterator[None]:
+    ) -> Iterator["DatabaseMaintenanceCoordinator"]:
         self.enter_maintenance(timeout_seconds=timeout_seconds)
 
         try:
-            yield
+            yield self
         finally:
             self.exit_maintenance()
 
