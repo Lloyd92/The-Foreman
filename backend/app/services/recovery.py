@@ -15,10 +15,15 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine import make_url
-from sqlalchemy.exc import ArgumentError
+from sqlalchemy.exc import ArgumentError, SQLAlchemyError
 
-from app.core.schema_upgrades import CURRENT_DATABASE_SCHEMA_VERSION
+from app.core.schema_upgrades import (
+    CURRENT_DATABASE_SCHEMA_VERSION,
+    apply_schema_upgrades,
+)
+from app.models.base import Base
 from app.schemas.recovery import (
     BackupCompatibility,
     BackupManifest,
@@ -92,6 +97,18 @@ class VerifiedBackupPackage:
     path: Path
     manifest: BackupManifest
     verification: VerificationResult
+
+
+@dataclass(frozen=True)
+class StagedRestoreCandidate:
+    path: Path
+    source_manifest: BackupManifest
+    database_manifest: DatabaseBackupManifest
+    record_counts: tuple[tuple[str, int], ...]
+    was_upgraded: bool
+
+    def record_count_mapping(self) -> dict[str, int]:
+        return dict(self.record_counts)
 
 
 class _DuplicateJsonKeyError(ValueError):
@@ -1157,6 +1174,421 @@ def verify_backup_package(
             ),
         )
 
+
+def _sqlite_sidecar_paths(database_path: Path) -> tuple[Path, ...]:
+    return tuple(
+        Path(f"{database_path}{suffix}")
+        for suffix in ("-journal", "-wal", "-shm")
+    )
+
+
+def _remove_restore_candidate_artifacts(
+    candidate_path: Path,
+) -> None:
+    candidate_path.unlink(missing_ok=True)
+
+    for sidecar in _sqlite_sidecar_paths(candidate_path):
+        sidecar.unlink(missing_ok=True)
+
+
+def _validate_restore_candidate_destination(
+    destination_path: Path,
+    live_database_url: str,
+) -> Path:
+    destination = Path(destination_path)
+
+    if not destination.is_absolute():
+        raise RecoveryContractError(
+            "RESTORE_CANDIDATE_DESTINATION_INVALID",
+            "Restore candidate destination must be absolute.",
+        )
+
+    if destination.is_symlink():
+        raise RecoveryContractError(
+            "RESTORE_CANDIDATE_DESTINATION_INVALID",
+            "Restore candidate cannot be a symbolic link.",
+        )
+
+    parent = destination.parent
+
+    if parent.is_symlink():
+        raise RecoveryContractError(
+            "RESTORE_CANDIDATE_DESTINATION_INVALID",
+            "Restore candidate directory cannot be a symbolic link.",
+        )
+
+    try:
+        resolved_parent = parent.resolve(strict=True)
+    except (FileNotFoundError, OSError) as error:
+        raise RecoveryContractError(
+            "RESTORE_CANDIDATE_DESTINATION_INVALID",
+            "Restore candidate directory cannot be resolved.",
+        ) from error
+
+    if not resolved_parent.is_dir():
+        raise RecoveryContractError(
+            "RESTORE_CANDIDATE_DESTINATION_INVALID",
+            "Restore candidate directory must already exist.",
+        )
+
+    resolved_destination = resolved_parent / destination.name
+    live_database_path = resolve_sqlite_database_path(
+        live_database_url
+    )
+
+    if resolved_destination == live_database_path:
+        raise RecoveryContractError(
+            "RESTORE_CANDIDATE_LIVE_DATABASE_CONFLICT",
+            "Restore candidate cannot use the live database path.",
+        )
+
+    if destination.name != "foreman.db":
+        raise RecoveryContractError(
+            "RESTORE_CANDIDATE_DESTINATION_INVALID",
+            "Restore candidate filename must be foreman.db.",
+        )
+
+    if (
+        resolved_destination.exists()
+        or resolved_destination.is_symlink()
+    ):
+        raise RecoveryContractError(
+            "RESTORE_CANDIDATE_DESTINATION_EXISTS",
+            "Restore candidate destination must not already exist.",
+        )
+
+    return resolved_destination
+
+
+def _extract_restore_candidate(
+    package_path: Path,
+    destination_path: Path,
+) -> tuple[int, str]:
+    try:
+        with zipfile.ZipFile(package_path, "r") as archive:
+            members = archive.infolist()
+            validate_archive_member_names(
+                member.filename
+                for member in members
+            )
+
+            for member in members:
+                _validate_zip_member(member)
+
+            member = {
+                item.filename: item
+                for item in members
+            }["foreman.db"]
+            size, checksum = _extract_database_member(
+                archive,
+                member,
+                destination_path,
+            )
+    except RecoveryContractError:
+        raise
+    except (
+        KeyError,
+        OSError,
+        RuntimeError,
+        zipfile.BadZipFile,
+    ) as error:
+        raise RecoveryContractError(
+            "RESTORE_CANDIDATE_EXTRACTION_FAILED",
+            "Restore candidate database could not be extracted.",
+        ) from error
+
+    try:
+        destination_path.chmod(0o600)
+    except OSError as error:
+        raise RecoveryContractError(
+            "RESTORE_CANDIDATE_DESTINATION_INVALID",
+            "Restore candidate permissions could not be secured.",
+        ) from error
+
+    return size, checksum
+
+
+def _normalize_restore_candidate_journal(
+    candidate_path: Path,
+) -> None:
+    try:
+        with closing(sqlite3.connect(candidate_path)) as connection:
+            mode = connection.execute(
+                "PRAGMA journal_mode=DELETE"
+            ).fetchone()
+
+            if (
+                mode is None
+                or str(mode[0]).lower() != "delete"
+            ):
+                raise RecoveryContractError(
+                    "RESTORE_CANDIDATE_JOURNAL_INVALID",
+                    "Restore candidate journal mode could not be normalized.",
+                )
+    except RecoveryContractError:
+        raise
+    except sqlite3.Error as error:
+        raise RecoveryContractError(
+            "RESTORE_CANDIDATE_JOURNAL_INVALID",
+            "Restore candidate journal mode could not be normalized.",
+        ) from error
+
+
+def _prepare_restore_candidate_schema(
+    candidate_path: Path,
+) -> None:
+    import app.models  # noqa: F401
+
+    engine = create_engine(
+        f"sqlite:///{candidate_path}",
+        connect_args={"check_same_thread": False},
+    )
+
+    try:
+        with engine.begin() as connection:
+            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+            Base.metadata.create_all(bind=connection)
+            apply_schema_upgrades(connection)
+    finally:
+        engine.dispose()
+
+
+def _verify_restore_candidate_model_schema(
+    candidate_path: Path,
+) -> None:
+    import app.models  # noqa: F401
+
+    engine = create_engine(
+        f"sqlite:///{candidate_path}",
+        connect_args={"check_same_thread": False},
+    )
+
+    try:
+        with engine.connect() as connection:
+            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+            database_inspector = inspect(connection)
+            actual_tables = set(
+                database_inspector.get_table_names()
+            )
+            expected_tables = set(Base.metadata.tables)
+
+            if actual_tables != expected_tables:
+                raise RecoveryContractError(
+                    "RESTORE_CANDIDATE_SCHEMA_INVALID",
+                    "Restore candidate table inventory does not match "
+                    "the application schema.",
+                )
+
+            for table_name in sorted(expected_tables):
+                model_table = Base.metadata.tables[table_name]
+                expected_columns = {
+                    column.name
+                    for column in model_table.columns
+                }
+                actual_columns = {
+                    column["name"]
+                    for column in (
+                        database_inspector.get_columns(table_name)
+                    )
+                }
+
+                if actual_columns != expected_columns:
+                    raise RecoveryContractError(
+                        "RESTORE_CANDIDATE_SCHEMA_INVALID",
+                        "Restore candidate columns do not match "
+                        "the application schema.",
+                        location=table_name,
+                    )
+
+                expected_primary_key = {
+                    column.name
+                    for column in model_table.primary_key.columns
+                }
+                actual_primary_key = set(
+                    database_inspector.get_pk_constraint(
+                        table_name
+                    ).get("constrained_columns")
+                    or []
+                )
+
+                if actual_primary_key != expected_primary_key:
+                    raise RecoveryContractError(
+                        "RESTORE_CANDIDATE_SCHEMA_INVALID",
+                        "Restore candidate primary key does not match "
+                        "the application schema.",
+                        location=table_name,
+                    )
+    finally:
+        engine.dispose()
+
+
+def _validate_staged_record_counts(
+    source_manifest: BackupManifest,
+    staged_tables: list[str],
+    staged_record_counts: dict[str, int],
+) -> None:
+    source_counts = source_manifest.record_counts
+
+    for table, expected_count in source_counts.items():
+        if staged_record_counts.get(table) != expected_count:
+            raise RecoveryContractError(
+                "RESTORE_CANDIDATE_RECORD_COUNT_MISMATCH",
+                "Restore candidate did not preserve source records.",
+                location=table,
+            )
+
+    new_tables = set(staged_tables) - set(source_counts)
+
+    for table in sorted(new_tables):
+        if staged_record_counts[table] != 0:
+            raise RecoveryContractError(
+                "RESTORE_CANDIDATE_NEW_TABLE_NOT_EMPTY",
+                "New restore candidate tables must begin empty.",
+                location=table,
+            )
+
+
+def stage_restore_candidate(
+    package_path: Path,
+    destination_path: Path,
+    *,
+    live_database_url: str,
+) -> StagedRestoreCandidate:
+    verification = verify_backup_package(Path(package_path))
+
+    if (
+        not verification.result.is_valid
+        or verification.manifest is None
+        or verification.result.compatibility is None
+        or not verification.result.compatibility.is_supported
+    ):
+        raise RecoveryContractError(
+            "RESTORE_CANDIDATE_PACKAGE_INVALID",
+            "Backup package is not eligible for restore staging.",
+        )
+
+    source_manifest = verification.manifest
+    compatibility = verification.result.compatibility
+    destination = _validate_restore_candidate_destination(
+        Path(destination_path),
+        live_database_url,
+    )
+
+    try:
+        extracted_size, extracted_checksum = (
+            _extract_restore_candidate(
+                verification.package_path,
+                destination,
+            )
+        )
+        source_version, source_tables, source_counts = (
+            _inspect_sqlite_snapshot(destination)
+        )
+
+        if (
+            extracted_size
+            != source_manifest.database.byte_size
+            or extracted_checksum
+            != source_manifest.database.sha256
+            or source_version
+            != source_manifest.database.user_version
+            or source_tables
+            != source_manifest.database.tables
+            or source_counts
+            != source_manifest.record_counts
+        ):
+            raise RecoveryContractError(
+                "RESTORE_CANDIDATE_SOURCE_MISMATCH",
+                "Extracted restore candidate does not match "
+                "the verified package manifest.",
+            )
+
+        source_database_checksum = sha256_file(destination)
+        _normalize_restore_candidate_journal(destination)
+        _prepare_restore_candidate_schema(destination)
+
+        if (
+            not compatibility.requires_upgrade
+            and sha256_file(destination)
+            != source_database_checksum
+        ):
+            raise RecoveryContractError(
+                "RESTORE_CANDIDATE_CURRENT_SCHEMA_CHANGED",
+                "A current-schema backup required unexpected changes.",
+            )
+
+        for sidecar in _sqlite_sidecar_paths(destination):
+            if sidecar.exists():
+                raise RecoveryContractError(
+                    "RESTORE_CANDIDATE_SIDECAR_PRESENT",
+                    "Restore candidate has uncommitted SQLite sidecar data.",
+                )
+
+        (
+            staged_user_version,
+            staged_tables,
+            staged_record_counts,
+        ) = _inspect_sqlite_snapshot(destination)
+
+        if staged_user_version != CURRENT_DATABASE_SCHEMA_VERSION:
+            raise RecoveryContractError(
+                "RESTORE_CANDIDATE_VERSION_INVALID",
+                "Restore candidate did not reach the current schema version.",
+            )
+
+        if not CURRENT_REQUIRED_DATABASE_TABLES.issubset(
+            staged_tables
+        ):
+            raise RecoveryContractError(
+                "RESTORE_CANDIDATE_REQUIRED_TABLES_MISSING",
+                "Restore candidate is missing required application tables.",
+            )
+
+        _verify_restore_candidate_model_schema(destination)
+        _validate_staged_record_counts(
+            source_manifest,
+            staged_tables,
+            staged_record_counts,
+        )
+
+        byte_size = destination.stat().st_size
+        database_manifest = DatabaseBackupManifest(
+            filename="foreman.db",
+            byte_size=byte_size,
+            sha256=sha256_file(destination),
+            user_version=staged_user_version,
+            integrity_check="ok",
+            foreign_key_violation_count=0,
+            tables=staged_tables,
+        )
+
+        return StagedRestoreCandidate(
+            path=destination.resolve(strict=True),
+            source_manifest=source_manifest,
+            database_manifest=database_manifest,
+            record_counts=tuple(
+                staged_record_counts.items()
+            ),
+            was_upgraded=compatibility.requires_upgrade,
+        )
+    except RecoveryContractError:
+        _remove_restore_candidate_artifacts(destination)
+        raise
+    except (
+        OSError,
+        RuntimeError,
+        sqlite3.Error,
+        SQLAlchemyError,
+        zipfile.BadZipFile,
+    ) as error:
+        _remove_restore_candidate_artifacts(destination)
+        raise RecoveryContractError(
+            "RESTORE_CANDIDATE_STAGING_FAILED",
+            "Restore candidate could not be prepared.",
+        ) from error
+    except Exception:
+        _remove_restore_candidate_artifacts(destination)
+        raise
 
 def _zip_info(name: str, created_at: datetime) -> zipfile.ZipInfo:
     info = zipfile.ZipInfo(

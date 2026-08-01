@@ -11,7 +11,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 from pydantic import ValidationError
+from sqlalchemy import create_engine, text
 
+from app.core.schema_upgrades import apply_schema_upgrades
+from app.models.base import Base
 from app.schemas.recovery import (
     BackupCompatibility,
     BackupManifest,
@@ -35,6 +38,7 @@ from app.services.recovery import (
     sha256_file,
     sha256_hex,
     sort_verification_issues,
+    stage_restore_candidate,
     validate_archive_member_names,
     verify_backup_package,
 )
@@ -1288,3 +1292,347 @@ class BackupPackageTests(unittest.TestCase):
         )
         self.assertFalse(self.package_path.exists())
         self.assertEqual(list(self.destination_directory.iterdir()), [])
+
+LEGACY_RESTORE_SCHEMA = """
+CREATE TABLE projects (
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    name VARCHAR(120) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    progress FLOAT NOT NULL,
+    notes TEXT NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    archived_at DATETIME
+);
+
+CREATE TABLE tasks (
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    title VARCHAR(120) NOT NULL,
+    priority VARCHAR(10) NOT NULL,
+    completed BOOLEAN NOT NULL,
+    project_id VARCHAR(36),
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    FOREIGN KEY(project_id) REFERENCES projects (id) ON DELETE SET NULL
+);
+"""
+
+
+class RestoreCandidateStagingTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary_directory.name)
+        self.live_path = self.root / "live.db"
+        self.source_path = self.root / "source.db"
+        self.backup_directory = self.root / "backups"
+        self.candidate_directory = self.root / "candidate"
+        self.backup_directory.mkdir()
+        self.candidate_directory.mkdir()
+        self.candidate_path = (
+            self.candidate_directory / "foreman.db"
+        )
+
+        with sqlite3.connect(self.live_path) as connection:
+            connection.execute(
+                "CREATE TABLE sentinel (value TEXT NOT NULL)"
+            )
+            connection.execute(
+                "INSERT INTO sentinel (value) VALUES ('live')"
+            )
+            connection.commit()
+
+    def tearDown(self) -> None:
+        self.temporary_directory.cleanup()
+
+    @property
+    def live_database_url(self) -> str:
+        return f"sqlite:///{self.live_path}"
+
+    @property
+    def source_database_url(self) -> str:
+        return f"sqlite:///{self.source_path}"
+
+    def create_current_source_database(self) -> None:
+        import app.models  # noqa: F401
+
+        engine = create_engine(self.source_database_url)
+
+        try:
+            with engine.begin() as connection:
+                Base.metadata.create_all(bind=connection)
+                apply_schema_upgrades(connection)
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO projects (
+                            id, name, type, status, priority, progress,
+                            start_date, target_date, estimated_cost,
+                            description, notes, created_at, updated_at,
+                            archived_at
+                        ) VALUES (
+                            :id, :name, :type, :status, :priority,
+                            :progress, NULL, NULL, :estimated_cost,
+                            :description, :notes, :created_at,
+                            :updated_at, NULL
+                        )
+                        """
+                    ),
+                    {
+                        "id": "project-1",
+                        "name": "Current Project",
+                        "type": "other",
+                        "status": "active",
+                        "priority": "medium",
+                        "progress": 25,
+                        "estimated_cost": 0,
+                        "description": "",
+                        "notes": "Preserve current data",
+                        "created_at": "2026-07-31 16:00:00",
+                        "updated_at": "2026-07-31 16:00:00",
+                    },
+                )
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO tasks (
+                            id, title, priority, completed, project_id,
+                            created_at, updated_at
+                        ) VALUES (
+                            :id, :title, :priority, :completed,
+                            :project_id, :created_at, :updated_at
+                        )
+                        """
+                    ),
+                    {
+                        "id": "task-1",
+                        "title": "Current Task",
+                        "priority": "high",
+                        "completed": False,
+                        "project_id": "project-1",
+                        "created_at": "2026-07-31 16:00:00",
+                        "updated_at": "2026-07-31 16:00:00",
+                    },
+                )
+        finally:
+            engine.dispose()
+
+    def create_legacy_source_database(self) -> None:
+        with sqlite3.connect(self.source_path) as connection:
+            connection.executescript(LEGACY_RESTORE_SCHEMA)
+            connection.execute(
+                """
+                INSERT INTO projects (
+                    id, name, status, progress, notes,
+                    created_at, updated_at, archived_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "legacy-project",
+                    "Legacy Project",
+                    "active",
+                    37.5,
+                    "Preserve legacy data",
+                    "2026-07-01 10:00:00",
+                    "2026-07-02 10:00:00",
+                    None,
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO tasks (
+                    id, title, priority, completed, project_id,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "legacy-task",
+                    "Legacy Task",
+                    "high",
+                    False,
+                    "legacy-project",
+                    "2026-07-01 11:00:00",
+                    "2026-07-01 11:00:00",
+                ),
+            )
+            connection.execute("PRAGMA user_version = 1")
+            connection.commit()
+
+    def create_package(self):
+        return create_verified_backup_package(
+            self.source_database_url,
+            self.backup_directory,
+            application_name="The Foreman",
+            application_version="0.7.3",
+            operational_fact_schema_version=1,
+            created_at=CREATED_AT,
+        )
+
+    def test_stage_current_package_is_exact_and_non_destructive(
+        self,
+    ) -> None:
+        self.create_current_source_database()
+        package = self.create_package()
+        package_checksum = sha256_file(package.path)
+        live_checksum = sha256_file(self.live_path)
+
+        with zipfile.ZipFile(package.path, "r") as archive:
+            packaged_database = archive.read("foreman.db")
+
+        staged = stage_restore_candidate(
+            package.path,
+            self.candidate_path,
+            live_database_url=self.live_database_url,
+        )
+
+        self.assertFalse(staged.was_upgraded)
+        self.assertEqual(
+            self.candidate_path.read_bytes(),
+            packaged_database,
+        )
+        self.assertEqual(
+            staged.database_manifest.user_version,
+            2,
+        )
+        self.assertEqual(
+            staged.record_count_mapping()["projects"],
+            1,
+        )
+        self.assertEqual(
+            staged.record_count_mapping()["tasks"],
+            1,
+        )
+        self.assertEqual(sha256_file(package.path), package_checksum)
+        self.assertEqual(sha256_file(self.live_path), live_checksum)
+
+    def test_stage_legacy_package_upgrades_and_preserves_records(
+        self,
+    ) -> None:
+        self.create_legacy_source_database()
+        package = self.create_package()
+        package_checksum = sha256_file(package.path)
+        live_checksum = sha256_file(self.live_path)
+
+        staged = stage_restore_candidate(
+            package.path,
+            self.candidate_path,
+            live_database_url=self.live_database_url,
+        )
+
+        self.assertTrue(staged.was_upgraded)
+        self.assertEqual(
+            staged.source_manifest.database.user_version,
+            1,
+        )
+        self.assertEqual(
+            staged.database_manifest.user_version,
+            2,
+        )
+        counts = staged.record_count_mapping()
+        self.assertEqual(counts["projects"], 1)
+        self.assertEqual(counts["tasks"], 1)
+
+        for table in set(counts) - {"projects", "tasks"}:
+            self.assertEqual(counts[table], 0)
+
+        with sqlite3.connect(self.candidate_path) as connection:
+            project = connection.execute(
+                """
+                SELECT name, type, priority, description, notes
+                FROM projects
+                WHERE id = 'legacy-project'
+                """
+            ).fetchone()
+
+        self.assertEqual(
+            project,
+            (
+                "Legacy Project",
+                "other",
+                "medium",
+                "",
+                "Preserve legacy data",
+            ),
+        )
+        self.assertEqual(sha256_file(package.path), package_checksum)
+        self.assertEqual(sha256_file(self.live_path), live_checksum)
+
+    def test_invalid_package_is_rejected_before_destination(
+        self,
+    ) -> None:
+        invalid_package = self.root / "invalid.zip"
+        invalid_package.write_bytes(b"not a zip")
+        live_checksum = sha256_file(self.live_path)
+
+        with self.assertRaises(RecoveryContractError) as context:
+            stage_restore_candidate(
+                invalid_package,
+                self.candidate_path,
+                live_database_url=self.live_database_url,
+            )
+
+        self.assertEqual(
+            context.exception.code,
+            "RESTORE_CANDIDATE_PACKAGE_INVALID",
+        )
+        self.assertFalse(self.candidate_path.exists())
+        self.assertEqual(sha256_file(self.live_path), live_checksum)
+
+    def test_live_database_destination_is_rejected(self) -> None:
+        self.create_current_source_database()
+        package = self.create_package()
+        live_checksum = sha256_file(self.live_path)
+
+        with self.assertRaises(RecoveryContractError) as context:
+            stage_restore_candidate(
+                package.path,
+                self.live_path,
+                live_database_url=self.live_database_url,
+            )
+
+        self.assertEqual(
+            context.exception.code,
+            "RESTORE_CANDIDATE_LIVE_DATABASE_CONFLICT",
+        )
+        self.assertEqual(sha256_file(self.live_path), live_checksum)
+
+    def test_upgrade_failure_removes_candidate_and_sidecars(
+        self,
+    ) -> None:
+        self.create_legacy_source_database()
+        package = self.create_package()
+
+        def fail_upgrade(_connection) -> None:
+            Path(f"{self.candidate_path}-journal").write_bytes(
+                b"temporary"
+            )
+            Path(f"{self.candidate_path}-wal").write_bytes(
+                b"temporary"
+            )
+            Path(f"{self.candidate_path}-shm").write_bytes(
+                b"temporary"
+            )
+            raise RuntimeError("simulated upgrade failure")
+
+        with patch(
+            "app.services.recovery.apply_schema_upgrades",
+            side_effect=fail_upgrade,
+        ):
+            with self.assertRaises(RecoveryContractError) as context:
+                stage_restore_candidate(
+                    package.path,
+                    self.candidate_path,
+                    live_database_url=self.live_database_url,
+                )
+
+        self.assertEqual(
+            context.exception.code,
+            "RESTORE_CANDIDATE_STAGING_FAILED",
+        )
+        self.assertFalse(self.candidate_path.exists())
+
+        for sidecar in (
+            Path(f"{self.candidate_path}-journal"),
+            Path(f"{self.candidate_path}-wal"),
+            Path(f"{self.candidate_path}-shm"),
+        ):
+            self.assertFalse(sidecar.exists())
