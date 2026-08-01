@@ -3,7 +3,14 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+    status,
+)
 from starlette.background import BackgroundTask
 from starlette.responses import FileResponse
 
@@ -12,6 +19,7 @@ from app.core.config import (
     APPLICATION_VERSION,
     DATABASE_URL,
 )
+from app.core.database import get_database_access
 from app.schemas.recovery import BackupVerificationResponse
 from app.services.recovery import (
     MAX_BACKUP_PACKAGE_BYTES,
@@ -103,6 +111,7 @@ def _validate_backup_upload_request(request: Request) -> None:
 @router.post(
     "/recovery/backups",
     response_class=FileResponse,
+    dependencies=[Depends(get_database_access)],
 )
 def create_backup_download() -> FileResponse:
     try:

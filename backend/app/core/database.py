@@ -1,10 +1,12 @@
-from collections.abc import Generator
+from collections.abc import Generator, Iterator
+from contextlib import contextmanager
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import DATABASE_URL
+from app.core.maintenance import maintenance_coordinator
 from app.core.schema_upgrades import apply_schema_upgrades
 from app.models.base import Base
 
@@ -46,10 +48,34 @@ def initialize_database() -> None:
         apply_schema_upgrades(connection)
 
 
-def get_session() -> Generator[Session, None, None]:
-    session = SessionLocal()
+@contextmanager
+def database_access() -> Iterator[None]:
+    with maintenance_coordinator.database_access():
+        yield
 
-    try:
-        yield session
-    finally:
-        session.close()
+
+def get_database_access() -> Generator[None, None, None]:
+    with database_access():
+        yield
+
+
+@contextmanager
+def database_maintenance(
+    *,
+    timeout_seconds: float | None = None,
+) -> Iterator[None]:
+    with maintenance_coordinator.maintenance(
+        timeout_seconds=timeout_seconds,
+    ):
+        engine.dispose()
+        yield
+
+
+def get_session() -> Generator[Session, None, None]:
+    with database_access():
+        session = SessionLocal()
+
+        try:
+            yield session
+        finally:
+            session.close()

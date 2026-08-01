@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 
 from app.api.data_export import router as data_export_router
 from app.api.inventory import router as inventory_router
@@ -13,6 +14,7 @@ from app.api.system import router as system_router
 from app.api.task_migrations import router as task_migrations_router
 from app.api.tasks import router as tasks_router
 from app.core.database import initialize_database
+from app.core.maintenance import DatabaseMaintenanceActive
 
 
 @asynccontextmanager
@@ -26,6 +28,31 @@ app = FastAPI(
     version="0.7.3",
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(DatabaseMaintenanceActive)
+async def database_maintenance_active_handler(
+    _: Request,
+    __: DatabaseMaintenanceActive,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={
+            "detail": {
+                "code": "DATABASE_MAINTENANCE_ACTIVE",
+                "message": (
+                    "The Foreman is temporarily unavailable while "
+                    "database maintenance is in progress."
+                ),
+            }
+        },
+        headers={
+            "Cache-Control": "no-store",
+            "Retry-After": "1",
+        },
+    )
+
+
 app.include_router(system_router)
 app.include_router(data_export_router)
 app.include_router(inventory_router)
