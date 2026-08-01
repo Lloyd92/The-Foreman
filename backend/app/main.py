@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.api.data_export import router as data_export_router
 from app.api.inventory import router as inventory_router
 from app.api.inventory_migrations import router as inventory_migrations_router
 from app.api.operations import router as operations_router
@@ -26,6 +27,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(system_router)
+app.include_router(data_export_router)
 app.include_router(inventory_router)
 app.include_router(inventory_migrations_router)
 app.include_router(projects_router)
