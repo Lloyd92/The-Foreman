@@ -13,3 +13,11 @@
 *.cer
 *.p12
 *.pfx
+
+# Local Firefox browser E2E environment and diagnostics
+/.venv-e2e/
+/artifacts/e2e/
+
+# Python bytecode
+__pycache__/
+*.py[cod]

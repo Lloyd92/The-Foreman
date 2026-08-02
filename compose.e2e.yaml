@@ -1,0 +1,32 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      FOREMAN_DATABASE_URL: sqlite:////tmp/foreman-e2e.db
+      PYTHONDONTWRITEBYTECODE: "1"
+    restart: "no"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=256m
+    networks:
+      - e2e
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: "no"
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:${FOREMAN_E2E_PORT:?FOREMAN_E2E_PORT is required}:80"
+    networks:
+      - e2e
+      - edge
+
+networks:
+  e2e:
+    internal: true
+  edge:
+    driver: bridge
+    internal: false
