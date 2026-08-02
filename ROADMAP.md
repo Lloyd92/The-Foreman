@@ -356,9 +356,30 @@ Explicitly excluded:
 
 ### v0.7.5 — Frontend Hardening and Browser E2E
 
-Status: Planned
+Status: In Progress
 
-This is the next implementation milestone after v0.7.4.
+This is the current implementation milestone after v0.7.4.
+
+Architecture:
+
+- Use Firefox and geckodriver as the first supported browser path
+- Keep automation dependencies outside production runtime images
+- Run mutating E2E workflows only against an isolated disposable deployment
+- Fail closed unless live data and deployment material are excluded
+- Assert backend-authoritative outcomes through stable browser selectors
+- Capture bounded, non-sensitive diagnostics when workflows fail
+- Normalize migration reporting without creating another persistence authority
+
+Planned sequence:
+
+1. Define browser-E2E architecture and acceptance boundaries
+2. Add the isolated Firefox/WebDriver harness
+3. Add clean-deployment startup and navigation smoke coverage
+4. Add backend-authoritative browser CRUD workflows
+5. Add deterministic connection-loss and safe-recovery coverage
+6. Normalize migration reporting and improve diagnostics
+7. Complete isolated clean-deployment browser acceptance
+8. Finalize and release v0.7.5
 
 Objectives:
 
@@ -366,6 +387,15 @@ Objectives:
 - Harden frontend failure and recovery behavior
 - Improve migration reporting and diagnostics
 - Verify supported browser workflows from clean deployments
+
+Explicitly excluded:
+
+- Morning Briefing, Capacity, or Priority behavior
+- Authentication or external access
+- Mobile Safari and additional browser automation
+- Cloud CI infrastructure
+- Live-data mutation or restore activation
+- Legacy browser-storage retirement
 
 Deferred Project work:
 

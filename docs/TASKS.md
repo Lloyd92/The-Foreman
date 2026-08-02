@@ -53,12 +53,23 @@ Tasks should remain small, testable, and compatible with a Green Build.
       disposable container.
 - [x] Complete v0.7.4 release validation.
 
-## Planned v0.7.5
+## Active v0.7.5
 
-- [ ] Establish repeatable browser end-to-end testing.
-- [ ] Harden frontend failure and recovery behavior.
-- [ ] Improve migration reporting and diagnostics.
-- [ ] Verify supported browser workflows from clean deployments.
+- [x] Define browser-E2E architecture and acceptance boundaries.
+- [ ] Add an isolated Firefox and geckodriver harness.
+- [ ] Add guards that reject live data and deployment material.
+- [ ] Add clean-deployment startup and navigation smoke coverage.
+- [ ] Add backend-authoritative Inventory browser CRUD coverage.
+- [ ] Add Project and material browser CRUD coverage.
+- [ ] Add Task and Project compatibility browser coverage.
+- [ ] Add deterministic connection-loss and safe-recovery coverage.
+- [ ] Verify dirty-form and open-dialog reload protection.
+- [ ] Normalize Inventory, Project, and Task migration reporting.
+- [ ] Add bounded non-sensitive failure diagnostics.
+- [ ] Prove diagnostic capture through a controlled failure.
+- [ ] Complete isolated clean-deployment browser acceptance.
+- [ ] Reconcile v0.7.5 documentation and release metadata.
+- [ ] Complete v0.7.5 release validation.
 
 ## Completed
 
