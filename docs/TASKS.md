@@ -56,9 +56,9 @@ Tasks should remain small, testable, and compatible with a Green Build.
 ## Active v0.7.5
 
 - [x] Define browser-E2E architecture and acceptance boundaries.
-- [ ] Add an isolated Firefox and geckodriver harness.
-- [ ] Add guards that reject live data and deployment material.
-- [ ] Add clean-deployment startup and navigation smoke coverage.
+- [x] Add an isolated Firefox and geckodriver harness.
+- [x] Add guards that reject live data and deployment material.
+- [x] Add clean-deployment startup and navigation smoke coverage.
 - [ ] Add backend-authoritative Inventory browser CRUD coverage.
 - [ ] Add Project and material browser CRUD coverage.
 - [ ] Add Task and Project compatibility browser coverage.
