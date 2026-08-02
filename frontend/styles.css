@@ -1443,3 +1443,178 @@ footer {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+/* Backup and Recovery */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+}
+
+.utility-nav {
+    margin-top: auto;
+    padding-top: 24px;
+    grid-template-columns: 1fr;
+    border-top: 1px solid var(--border);
+}
+
+.recovery-page {
+    display: grid;
+    gap: 22px;
+}
+
+.recovery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.recovery-card {
+    min-height: 0;
+}
+
+.recovery-card-wide {
+    grid-column: 1 / -1;
+}
+
+.recovery-action-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.recovery-status {
+    min-height: 20px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.recovery-status[data-state="working"] {
+    color: var(--orange);
+}
+
+.recovery-status[data-state="success"] {
+    color: var(--green);
+}
+
+.recovery-status[data-state="error"] {
+    color: #ff8a80;
+}
+
+.recovery-warning {
+    margin-bottom: 20px;
+    padding: 16px;
+    background: rgba(255, 82, 82, 0.09);
+    border: 1px solid rgba(255, 103, 103, 0.55);
+    border-radius: 10px;
+}
+
+.recovery-warning strong {
+    color: #ffaaa3;
+}
+
+.recovery-warning p {
+    margin: 7px 0 0;
+}
+
+.recovery-form {
+    display: grid;
+    gap: 16px;
+}
+
+.recovery-form input[type="file"] {
+    padding: 9px;
+}
+
+.recovery-review {
+    margin-top: 24px;
+    padding-top: 22px;
+    display: grid;
+    gap: 18px;
+    border-top: 1px solid var(--border);
+}
+
+.recovery-review[hidden] {
+    display: none;
+}
+
+.recovery-review h4 {
+    margin: 4px 0 0;
+    font-size: 20px;
+}
+
+.recovery-summary {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.recovery-summary div {
+    min-width: 0;
+    padding: 13px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+}
+
+.recovery-summary dt {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.recovery-summary dd {
+    margin: 6px 0 0;
+    overflow-wrap: anywhere;
+}
+
+.recovery-record-counts {
+    margin: 0;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+}
+
+.recovery-confirmation-form code {
+    color: #ffaaa3;
+}
+
+.danger-button {
+    min-height: 42px;
+    padding: 10px 17px;
+    color: #ffffff;
+    background: #b63737;
+    border: 1px solid #ff6767;
+    border-radius: 8px;
+    font: inherit;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.danger-button:hover:not(:disabled) {
+    filter: brightness(1.1);
+}
+
+.primary-button:disabled,
+.secondary-button:disabled,
+.danger-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+@media (max-width: 850px) {
+    .utility-nav {
+        margin-top: 18px;
+        padding-top: 18px;
+    }
+
+    .recovery-grid,
+    .recovery-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .recovery-card-wide {
+        grid-column: auto;
+    }
+}

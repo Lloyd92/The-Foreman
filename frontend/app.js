@@ -10,6 +10,7 @@ import {
     migrateLegacyInventory
 } from "./pages/inventory.js";
 import { initializeProjectsPage } from "./pages/projects.js";
+import { initializeRecoveryPage } from "./pages/recovery.js";
 import {
     migrateProjectsAfterInventory
 } from "./utils/migrationOrchestrator.js";
@@ -37,6 +38,7 @@ async function initializeOperationalApplication() {
         ),
         initializeTasksPage(Promise.resolve(taskMigrationResult)),
         initializeProjectsPage(Promise.resolve(projectMigrationResult)),
+        initializeRecoveryPage(),
         initializeSystemStatus()
     ]);
 }

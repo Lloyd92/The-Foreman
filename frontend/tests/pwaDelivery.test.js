@@ -147,6 +147,7 @@ test("application startup gates operations behind PWA and health initialization"
     assert.match(app, /initializeInventoryPage\(/);
     assert.match(app, /initializeTasksPage\(/);
     assert.match(app, /initializeProjectsPage\(/);
+    assert.match(app, /initializeRecoveryPage\(\)/);
     assert.match(app, /initializeSystemStatus\(\)/);
 
     const pwa = app.indexOf("await initializePwa()");

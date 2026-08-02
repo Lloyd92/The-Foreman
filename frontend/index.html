@@ -191,6 +191,18 @@
                     Budget
                 </a>
             </nav>
+
+            <nav
+                class="utility-nav"
+                aria-label="Application utilities"
+            >
+                <a
+                    href="#recovery"
+                    data-route="recovery"
+                >
+                    Backup &amp; Recovery
+                </a>
+            </nav>
         </aside>
 
         <!-- Main application shell -->
@@ -1572,23 +1584,6 @@
 
                     <p>
                         Rack, tub, colony, feeding, harvest, and production
-                   
-
-            <!-- Mealworms page -->
-            <main
-                class="content page-view"
-                data-page="mealworms"
-                hidden
-            >
-                <section class="page-heading">
-                    <p class="section-eyebrow">
-                        Insect Husbandry
-                    </p>
-
-                    <h2>Mealworm Production</h2>
-
-                    <p>
-                        Rack, tub, colony, feeding, harvest, and production
                         management will live here.
                     </p>
                 </section>
@@ -1611,6 +1606,230 @@
                         Business funds, expenses, revenue, purchasing, and
                         project-cost tools will live here.
                     </p>
+                </section>
+            </main>
+
+            <!-- Backup and Recovery page -->
+            <main
+                class="content page-view recovery-page"
+                data-page="recovery"
+                hidden
+            >
+                <section class="inventory-header recovery-header">
+                    <div>
+                        <p class="section-eyebrow">
+                            System Continuity
+                        </p>
+
+                        <h2>Backup &amp; Recovery</h2>
+
+                        <p class="inventory-description">
+                            Create verified recovery packages, export portable
+                            business data, or inspect a backup before a
+                            controlled restore.
+                        </p>
+                    </div>
+                </section>
+
+                <section class="recovery-grid">
+                    <article class="card recovery-card">
+                        <div class="card-heading">
+                            <h3>Verified Backup</h3>
+                            <span>RECOVERY ZIP</span>
+                        </div>
+
+                        <p>
+                            Creates a verified package containing the database
+                            and its integrity manifest.
+                        </p>
+
+                        <div class="recovery-action-row">
+                            <button
+                                id="recovery-download-backup"
+                                class="primary-button"
+                                type="button"
+                            >
+                                Download Backup
+                            </button>
+
+                            <p
+                                id="recovery-backup-status"
+                                class="recovery-status"
+                                role="status"
+                                aria-live="polite"
+                            ></p>
+                        </div>
+                    </article>
+
+                    <article class="card recovery-card">
+                        <div class="card-heading">
+                            <h3>Portable Data Export</h3>
+                            <span>JSON</span>
+                        </div>
+
+                        <p>
+                            Downloads deterministic business records in a
+                            portable, human-readable format.
+                        </p>
+
+                        <div class="recovery-action-row">
+                            <button
+                                id="recovery-download-export"
+                                class="secondary-button"
+                                type="button"
+                            >
+                                Download Export
+                            </button>
+
+                            <p
+                                id="recovery-export-status"
+                                class="recovery-status"
+                                role="status"
+                                aria-live="polite"
+                            ></p>
+                        </div>
+                    </article>
+
+                    <article class="card recovery-card recovery-card-wide">
+                        <div class="card-heading">
+                            <h3>Controlled Restore</h3>
+                            <span>DESTRUCTIVE</span>
+                        </div>
+
+                        <div class="recovery-warning" role="note">
+                            <strong>Restoring replaces the live database.</strong>
+                            <p>
+                                The Foreman verifies and stages the package
+                                first. Activation creates a safety backup and
+                                automatically rolls back if verification fails.
+                            </p>
+                        </div>
+
+                        <form
+                            id="recovery-restore-form"
+                            class="recovery-form"
+                        >
+                            <div class="form-field form-field-wide">
+                                <label for="recovery-backup-file">
+                                    Foreman backup ZIP
+                                </label>
+
+                                <input
+                                    id="recovery-backup-file"
+                                    name="recovery-backup-file"
+                                    type="file"
+                                    accept=".zip,application/zip"
+                                    required
+                                >
+                            </div>
+
+                            <div class="recovery-action-row form-field-wide">
+                                <button
+                                    id="recovery-prepare-submit"
+                                    class="secondary-button"
+                                    type="submit"
+                                >
+                                    Inspect Backup
+                                </button>
+
+                                <p
+                                    id="recovery-prepare-status"
+                                    class="recovery-status"
+                                    role="status"
+                                    aria-live="polite"
+                                >
+                                    Choose a verified Foreman backup ZIP.
+                                </p>
+                            </div>
+                        </form>
+
+                        <section
+                            id="recovery-preflight-review"
+                            class="recovery-review"
+                            aria-labelledby="recovery-review-title"
+                            hidden
+                        >
+                            <div>
+                                <p class="section-eyebrow">
+                                    Verified Candidate
+                                </p>
+
+                                <h4 id="recovery-review-title">
+                                    Review before activation
+                                </h4>
+                            </div>
+
+                            <dl class="recovery-summary">
+                                <div>
+                                    <dt>Source application</dt>
+                                    <dd id="recovery-preflight-version">—</dd>
+                                </div>
+
+                                <div>
+                                    <dt>Database schema</dt>
+                                    <dd id="recovery-preflight-schema">—</dd>
+                                </div>
+
+                                <div>
+                                    <dt>Session expires</dt>
+                                    <dd id="recovery-preflight-expiration">—</dd>
+                                </div>
+
+                                <div>
+                                    <dt>Upgrade prepared</dt>
+                                    <dd id="recovery-preflight-upgrade">—</dd>
+                                </div>
+                            </dl>
+
+                            <p
+                                id="recovery-preflight-counts"
+                                class="recovery-record-counts"
+                            >
+                                —
+                            </p>
+
+                            <form
+                                id="recovery-confirmation-form"
+                                class="recovery-form recovery-confirmation-form"
+                            >
+                                <div class="form-field form-field-wide">
+                                    <label for="recovery-confirmation">
+                                        Type
+                                        <code>RESTORE THE FOREMAN</code>
+                                        exactly
+                                    </label>
+
+                                    <input
+                                        id="recovery-confirmation"
+                                        name="recovery-confirmation"
+                                        type="text"
+                                        autocomplete="off"
+                                        spellcheck="false"
+                                        disabled
+                                        required
+                                    >
+                                </div>
+
+                                <div class="recovery-action-row form-field-wide">
+                                    <button
+                                        id="recovery-activate-submit"
+                                        class="danger-button"
+                                        type="submit"
+                                        disabled
+                                    >
+                                        Activate Verified Restore
+                                    </button>
+
+                                    <p
+                                        id="recovery-activation-status"
+                                        class="recovery-status"
+                                        role="status"
+                                        aria-live="assertive"
+                                    ></p>
+                                </div>
+                            </form>
+                        </section>
+                    </article>
                 </section>
             </main>
 
