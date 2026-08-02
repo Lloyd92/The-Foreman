@@ -26,14 +26,15 @@ rather than replace it.
 
 **Current Version**
 
-v0.7.3 — Unified Operational Facts
+v0.7.4 — Backup, Export, Restore, and Verification
 
 Current focus:
 
-- Backend-authoritative operational facts
-- Shared Project-readiness and Inventory-stock interpretation
-- Deterministic, explainable current-state evidence
-- Local-first continuity across Dashboard, Projects, and Inventory
+- Verified manual SQLite backup packages
+- Deterministic portable JSON export
+- Durable restore preflight and explicit confirmation
+- Atomic activation, safety backup, verification, and rollback
+- Local-first recovery through the Backup & Recovery workspace
 
 ---
 
@@ -276,9 +277,9 @@ Version 1.0 also requires shared system capabilities including the Morning
 Briefing, Capacity Engine, explainable recommendations, continued persistence
 and testing maturity, and backup and restore.
 
-Backup, export, restore, and verification are the next v0.7.4 milestone.
+Backup, export, restore, and verification are implemented in v0.7.4.
 Next-action identification and Morning Briefing narration remain future
-capabilities. AI is not part of v0.7.3.
+capabilities. AI is not part of v0.7.4.
 
 See `ROADMAP.md` for additional details.
 
@@ -331,8 +332,8 @@ The backend currently provides validated APIs for system status, Inventory,
 Projects, Project materials, Tasks, browser-data migration, and operational
 facts. Its service, repository, Pydantic schema, SQLAlchemy model, SQLite
 persistence, versioned schema-upgrade, and automated-test foundations are
-implemented. Capacity, Priority, the complete Morning Briefing, and backup and
-restore remain target work.
+implemented. Capacity, Priority, the complete Morning Briefing, and scheduled
+backup automation remain target work.
 
 ## Version 1.0 Target
 

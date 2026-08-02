@@ -280,16 +280,16 @@ test("release version and shell cache are finalized", async () => {
 
     assert.match(
         indexSource,
-        /id="footer-version">\s*0\.7\.3\s*<\/span>/
+        /id="footer-version">\s*0\.7\.4\s*<\/span>/
     );
-    assert.match(backendSource, /APPLICATION_VERSION = "0\.7\.3"/);
+    assert.match(backendSource, /APPLICATION_VERSION = "0\.7\.4"/);
     assert.match(
         workerSource,
-        /SHELL_CACHE_NAME = "foreman-shell-v0\.7\.3-c5"/
+        /SHELL_CACHE_NAME = "foreman-shell-v0\.7\.4-c1"/
     );
 });
 
-test("v0.7.3 release documentation preserves continuity and boundaries", async () => {
+test("v0.7.4 release documentation preserves continuity and boundaries", async () => {
     const [
         readme,
         architecture,
@@ -306,17 +306,17 @@ test("v0.7.3 release documentation preserves continuity and boundaries", async (
         readRepositoryFile("docs/FOUNDERS_LETTER.md")
     ]);
 
-    assert.match(readme, /v0\.7\.3 — Unified Operational Facts/);
+    assert.match(readme, /v0\.7\.4 — Backup, Export, Restore, and Verification/);
     assert.match(
         readme,
         /external working\s+memory and continuity system/
     );
-    assert.match(readme, /AI is not part of v0\.7\.3/);
+    assert.match(readme, /AI is not part of v0\.7\.4/);
     assert.match(architecture, /continuity system/i);
     assert.match(architecture, /AI interpretation must remain[\s\S]*authoritative records/);
     assert.match(
         roadmap,
-        /v0\.7\.3 — Unified Operational Facts ✅[\s\S]*Status: Complete/
+        /v0\.7\.4 — Backup, Export, Restore, and Verification ✅[\s\S]*Status: Complete/
     );
     assert.ok(
         roadmap.indexOf("v0.7.4 — Backup, Export, Restore, and Verification") <
@@ -324,12 +324,12 @@ test("v0.7.3 release documentation preserves continuity and boundaries", async (
     );
     assert.match(
         roadmap,
-        /v0\.7\.4 — Backup, Export, Restore, and Verification[\s\S]*Status: Planned/
+        /v0\.7\.4 — Backup, Export, Restore, and Verification ✅[\s\S]*Status: Complete/
     );
-    assert.match(changelog, /# v0\.7\.3 — 2026-07-30/);
+    assert.match(changelog, /# v0\.7\.4 — 2026-08-01/);
     assert.match(changelog, /# v0\.7\.2/);
-    assert.match(tasks, /- \[x\] Complete v0\.7\.3 release validation\./);
-    assert.match(tasks, /- \[ \] Add manual backup and export\./);
+    assert.match(tasks, /- \[x\] Complete v0\.7\.4 release validation\./);
+    assert.match(tasks, /- \[x\] Add verified manual backup packages\./);
     assert.match(foundersLetter, /external working memory and continuity system/);
     assert.match(foundersLetter, /continue rather than restart/);
 });

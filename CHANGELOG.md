@@ -23,6 +23,56 @@ Each release represents a stable, working version of the application.
 
 ---
 
+# v0.7.4 — 2026-08-01
+
+## Added
+
+- Added verified SQLite backup snapshots and canonical recovery ZIP packages
+- Added deterministic portable JSON export
+- Added backup download, uploaded-package verification, restore-preflight, and
+  restore-activation APIs
+- Added durable expiring restore-preflight sessions with exact typed
+  confirmation
+- Added pre-restore safety backups, atomic activation, verification, automatic
+  rollback, and emergency maintenance latching
+- Added the Backup & Recovery utility workspace
+- Added isolated destructive API round-trip validation using a disposable
+  container and temporary SQLite database
+
+## Changed
+
+- Updated the application and visible release version to 0.7.4
+- Advanced the exact application shell to
+  `foreman-shell-v0.7.4-c1`
+- Added a separate utility-navigation area without changing the primary module
+  navigation
+- Kept recovery transport centralized in frontend API utilities and free of
+  browser persistence
+
+## Reliability
+
+- Kept backup, restore, and validation local-first
+- Preserved non-sensitive recovery responses without exposing private paths
+- Required verification before restore activation
+- Required a durable safety backup before replacement
+- Restored the original database automatically when activation verification
+  failed
+- Kept database access disabled through an emergency latch when activation and
+  rollback both failed
+- Prevented the recovery workflow from mixing application-shell generations
+
+## Validation
+
+- Completed 200 backend tests
+- Completed 132 frontend tests
+- Completed controlled Firefox backup download, portable export, and restore
+  preflight validation
+- Completed an isolated destructive round trip with no network, mounts,
+  volumes, or access to the live `/data/foreman.db`
+- Deliberately did not activate a restore against the live household database
+
+---
+
 # v0.7.3 — 2026-07-30
 
 ## Added

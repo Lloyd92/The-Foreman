@@ -497,7 +497,7 @@ Foreman/
 ├── frontend/
 │   ├── pages/
 │   └── utils/
-├── scripts/                 # Planned operational and backup scripts
+├── scripts/                 # Operational validation and recovery scripts
 ├── tests/                   # Planned automated tests
 ├── ARCHITECTURE.md
 ├── CHANGELOG.md
@@ -671,19 +671,32 @@ grounded in authoritative records and deterministic operational facts.
 
 Backup and restore are Version 1.0 requirements.
 
-Version 1.0 must support:
+v0.7.4 establishes the deterministic recovery foundation:
 
-- Manual backup
-- Scheduled backup
-- Restore
-- Restore verification
+- Manual verified backup packages containing authoritative SQLite data and a
+  canonical integrity manifest
+- Deterministic portable JSON export for user-owned business records
+- Uploaded-package verification before restore preparation
+- Durable, expiring restore-preflight sessions on the live database filesystem
+- Exact typed confirmation before destructive activation
+- A durable verified safety backup before replacement begins
+- Atomic same-filesystem database replacement
+- Post-activation schema, checksum, record-count, and operational-fact
+  verification
+- Automatic rollback to the verified safety backup when activation
+  verification fails
+- An emergency maintenance latch when both activation and rollback fail
+- A Backup & Recovery workspace that exposes downloads, preflight review, and
+  controlled activation without revealing private filesystem paths
+- An isolated destructive round-trip validator that uses a disposable
+  container and temporary SQLite database without mounting live data
 
-Backup and restore must preserve user ownership of local data and support
+Scheduled backup automation remains Version 1.0 work.
+
+Backup and restore preserve user ownership of local data and support
 recoverability. Backups preserve the continuity system itself: authoritative
-records, migration evidence, and the context required to resume work must be
+records, migration evidence, and the context required to resume work remain
 restorable and verifiable.
-
----
 
 # 12. Testing Mode
 

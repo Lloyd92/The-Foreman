@@ -31,12 +31,34 @@ Tasks should remain small, testable, and compatible with a Green Build.
 - [x] Reconcile documentation, continuity principles, and version metadata.
 - [x] Complete v0.7.3 release validation.
 
-## Planned v0.7.4
+## Completed v0.7.4
 
-- [ ] Add manual backup and export.
-- [ ] Add restore with explicit verification.
-- [ ] Preserve migration evidence and authoritative SQLite data.
-- [ ] Establish recoverable data-safety workflows.
+- [x] Add verified manual backup packages.
+- [x] Add deterministic portable JSON export.
+- [x] Add uploaded backup verification.
+- [x] Add durable restore preflight sessions.
+- [x] Require exact confirmation before activation.
+- [x] Add exclusive database-maintenance coordination.
+- [x] Create durable pre-restore safety backups.
+- [x] Add atomic restore activation and post-activation verification.
+- [x] Add automatic verified rollback.
+- [x] Add emergency maintenance latching for double failure.
+- [x] Add controlled restore API endpoints.
+- [x] Add frontend recovery API utilities.
+- [x] Add the Backup & Recovery utility workspace.
+- [x] Advance the PWA shell for recovery delivery.
+- [x] Validate backup and export downloads in the browser.
+- [x] Validate restore preflight in the browser without live activation.
+- [x] Validate the complete destructive API round trip in an isolated
+      disposable container.
+- [x] Complete v0.7.4 release validation.
+
+## Planned v0.7.5
+
+- [ ] Establish repeatable browser end-to-end testing.
+- [ ] Harden frontend failure and recovery behavior.
+- [ ] Improve migration reporting and diagnostics.
+- [ ] Verify supported browser workflows from clean deployments.
 
 ## Completed
 
@@ -115,10 +137,10 @@ module remains incomplete:
 - [x] Establish the service layer foundation.
 - [x] Establish the repository layer foundation.
 - [x] Establish the SQLite database foundation.
-- [ ] Implement manual backup.
+- [x] Implement manual backup.
 - [ ] Implement scheduled backup.
-- [ ] Implement restore.
-- [ ] Implement restore verification.
+- [x] Implement restore.
+- [x] Implement restore verification.
 - [x] Establish automated frontend and backend testing.
 - [x] Keep completed foundation increments runnable and verifiable.
 

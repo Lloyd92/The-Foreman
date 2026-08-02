@@ -321,24 +321,44 @@ Explicitly excluded:
 - Authentication or external access
 - Database schema migration
 
-### v0.7.4 — Backup, Export, Restore, and Verification
+### v0.7.4 — Backup, Export, Restore, and Verification ✅
 
-Status: Planned
+Status: Complete
 
-This is the next implementation milestone after v0.7.3.
+Completed:
 
-Objectives:
+- Added verified SQLite snapshots and canonical recovery ZIP packages
+- Added deterministic portable JSON export
+- Added download and uploaded-package verification APIs
+- Added durable restore preflight sessions with exact confirmation
+- Added pre-restore safety backups on the live database filesystem
+- Added exclusive database-maintenance coordination
+- Added atomic activation, post-activation verification, automatic rollback,
+  and emergency maintenance latching
+- Added the Backup & Recovery utility workspace
+- Added frontend recovery API utilities with fail-closed contract validation
+- Added explicit PWA update protection while recovery forms are active
+- Added isolated destructive API round-trip validation against a disposable
+  temporary database
+- Completed automated and controlled browser validation without activating a
+  restore against live data
+- Advanced the exact application shell to
+  `foreman-shell-v0.7.4-c1` for release finalization
 
-- Add manual backup and export
-- Add restore with explicit verification
-- Preserve migration evidence and authoritative SQLite data
-- Establish recoverable data-safety workflows
+Explicitly excluded:
+
+- Scheduled or automatic backups
+- Cloud storage or remote backup destinations
+- Authentication or external access
+- Public recovery endpoints
+- Testing Mode orchestration
+- Legacy browser-storage retirement
 
 ### v0.7.5 — Frontend Hardening and Browser E2E
 
 Status: Planned
 
-This milestone follows v0.7.4.
+This is the next implementation milestone after v0.7.4.
 
 Objectives:
 

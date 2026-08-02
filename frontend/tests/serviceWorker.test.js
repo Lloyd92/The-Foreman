@@ -167,7 +167,7 @@ test("install atomically precaches the exact versioned shell", async () => {
     assert.equal(expectedShellAssets.includes("/index.html"), true);
     assert.deepEqual(
         harness.calls.cacheOpens,
-        ["foreman-shell-v0.7.3-c5"]
+        ["foreman-shell-v0.7.4-c1"]
     );
     assert.deepEqual(
         harness.calls.addAll,
@@ -248,6 +248,7 @@ test("activate removes only stale Foreman shell caches", async () => {
             "foreman-shell-v0.7.3-c3",
             "foreman-shell-v0.7.3-c4",
             "foreman-shell-v0.7.3-c5",
+            "foreman-shell-v0.7.4-c1",
             "unrelated-cache"
         ]
     });
@@ -266,17 +267,17 @@ test("activate removes only stale Foreman shell caches", async () => {
             "foreman-shell-v0.7.3-c1",
             "foreman-shell-v0.7.3-c2",
             "foreman-shell-v0.7.3-c3",
-            "foreman-shell-v0.7.3-c4"
+            "foreman-shell-v0.7.3-c4",
+            "foreman-shell-v0.7.3-c5"
         ]
     );
     assert.equal(harness.calls.skipWaiting, 0);
     assert.doesNotMatch(workerSource, /clients\.claim/);
 });
 
-test("c4 shell updates to c5 with repaired recovery page structure", async () => {
-    const installedC4Index = `
-        <main data-page="mealworms"></main>
-        <main data-page="mealworms"></main>
+test("v0.7.3 c5 shell updates to the finalized v0.7.4 shell", async () => {
+    const installedC5Index = `
+        <span id="footer-version">0.7.3</span>
     `;
     const indexSource = await readFile(
         path.join(frontendDirectory, "index.html"),
@@ -284,15 +285,19 @@ test("c4 shell updates to c5 with repaired recovery page structure", async () =>
     );
     const harness = createWorkerHarness({
         cacheNames: [
-            "foreman-shell-v0.7.3-c4",
+            "foreman-shell-v0.7.3-c5",
             "unrelated-cache"
         ]
     });
     const install = harness.dispatch("install");
 
-    assert.equal(
-        [...installedC4Index.matchAll(/data-page="mealworms"/g)].length,
-        2
+    assert.match(
+        installedC5Index,
+        /id="footer-version">\s*0\.7\.3\s*<\/span>/
+    );
+    assert.doesNotMatch(
+        installedC5Index,
+        /id="footer-version">\s*0\.7\.4\s*<\/span>/
     );
 
     await install.waitPromise;
@@ -300,17 +305,13 @@ test("c4 shell updates to c5 with repaired recovery page structure", async () =>
     const activation = harness.dispatch("activate");
     await activation.waitPromise;
 
-    const currentRoutes = [
-        ...indexSource.matchAll(/data-page="([^"]+)"/g)
-    ].map(match => match[1]);
-
-    assert.equal(
-        currentRoutes.length,
-        new Set(currentRoutes).size
+    assert.match(
+        indexSource,
+        /id="footer-version">\s*0\.7\.4\s*<\/span>/
     );
     assert.deepEqual(
         harness.calls.cacheOpens,
-        ["foreman-shell-v0.7.3-c5"]
+        ["foreman-shell-v0.7.4-c1"]
     );
     assert.equal(
         harness.calls.addAll[0].includes("/pages/recovery.js"),
@@ -318,7 +319,7 @@ test("c4 shell updates to c5 with repaired recovery page structure", async () =>
     );
     assert.deepEqual(
         harness.calls.cacheDeletes,
-        ["foreman-shell-v0.7.3-c4"]
+        ["foreman-shell-v0.7.3-c5"]
     );
     assert.equal(harness.calls.skipWaiting, 0);
 });
@@ -381,7 +382,7 @@ test("exact shell assets are served only from the current cache", async () => {
     assert.equal(await fetchEvent.responsePromise, cachedResponse);
     assert.deepEqual(
         harness.calls.cacheOpens,
-        ["foreman-shell-v0.7.3-c5"]
+        ["foreman-shell-v0.7.4-c1"]
     );
     assert.deepEqual(harness.calls.cacheMatches, ["/app.js"]);
     assert.deepEqual(harness.calls.fetches, []);
