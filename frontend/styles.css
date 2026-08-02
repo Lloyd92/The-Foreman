@@ -45,6 +45,14 @@ body {
     display: none;
 }
 
+/*
+ * An available PWA update must never obstruct an active form.
+ * The notice becomes visible again when the dialog closes.
+ */
+body.dialog-open .pwa-update-notice {
+    display: none;
+}
+
 .pwa-update-notice strong {
     display: block;
     margin-bottom: 5px;

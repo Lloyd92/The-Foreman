@@ -59,9 +59,9 @@ Tasks should remain small, testable, and compatible with a Green Build.
 - [x] Add an isolated Firefox and geckodriver harness.
 - [x] Add guards that reject live data and deployment material.
 - [x] Add clean-deployment startup and navigation smoke coverage.
-- [ ] Add backend-authoritative Inventory browser CRUD coverage.
-- [ ] Add Project and material browser CRUD coverage.
-- [ ] Add Task and Project compatibility browser coverage.
+- [x] Add backend-authoritative Inventory browser CRUD coverage.
+- [x] Add Project and material browser CRUD coverage.
+- [x] Add Task and Project compatibility browser coverage.
 - [ ] Add deterministic connection-loss and safe-recovery coverage.
 - [ ] Verify dirty-form and open-dialog reload protection.
 - [ ] Normalize Inventory, Project, and Task migration reporting.
