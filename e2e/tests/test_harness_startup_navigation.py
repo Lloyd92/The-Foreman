@@ -62,10 +62,10 @@ class StartupNavigationTests(BrowserE2ETestCase):
             self.app.text_by_id("api-status"),
             "ONLINE",
         )
-        self.assertEqual(self.app.text_by_id("version"), "0.7.4")
+        self.assertEqual(self.app.text_by_id("version"), "0.7.5")
         self.assertEqual(
             self.app.text_by_id("footer-version"),
-            "0.7.4",
+            "0.7.5",
         )
         # Mutating browser modules share this disposable database.
         # Release and operational checks must not depend on test order.

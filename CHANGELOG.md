@@ -23,6 +23,52 @@ Each release represents a stable, working version of the application.
 
 ---
 
+# v0.7.5 — 2026-08-03
+
+## Added
+
+- Added an isolated Firefox and geckodriver browser-E2E harness
+- Added fail-closed guards that reject live data and deployment material
+- Added clean-deployment startup and navigation smoke coverage
+- Added backend-authoritative Inventory, Project, material, and Task browser
+  workflows
+- Added deterministic connection-loss, safe-recovery, dirty-form, and
+  open-dialog reload coverage
+- Added verified clean-state and disposable-resource cleanup acceptance
+
+## Changed
+
+- Normalized Inventory, Project, and Task migration reporting through one
+  shared aggregate reporter
+- Updated the application and visible release version to 0.7.5
+- Advanced the exact application shell to
+  `foreman-shell-v0.7.5-c1`
+
+## Reliability
+
+- Added bounded, non-sensitive browser failure diagnostics
+- Proved diagnostic capture through a controlled child Firefox failure
+- Prevented browser automation from accessing live databases, mounts,
+  volumes, trust material, or deployment secrets
+- Required disposable acceptance deployments to begin with empty Inventory,
+  Project, and Task collections
+- Required disposable project containers, networks, and images to be absent
+  after cleanup
+- Preserved all persistent Docker volumes during browser-E2E teardown
+
+## Validation
+
+- Completed 200 backend tests against an isolated temporary SQLite database
+- Completed 139 frontend tests
+- Completed 39 Firefox browser-acceptance tests against a verified-empty
+  disposable deployment
+- Verified disposable cleanup left zero project containers, networks, or
+  images
+- Deliberately avoided live data, persistent volumes, trust material, and
+  deployment secrets
+
+---
+
 # v0.7.4 — 2026-08-01
 
 ## Added

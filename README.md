@@ -26,15 +26,15 @@ rather than replace it.
 
 **Current Version**
 
-v0.7.4 — Backup, Export, Restore, and Verification
+v0.7.5 — Frontend Hardening and Browser E2E
 
 Current focus:
 
-- Verified manual SQLite backup packages
-- Deterministic portable JSON export
-- Durable restore preflight and explicit confirmation
-- Atomic activation, safety backup, verification, and rollback
-- Local-first recovery through the Backup & Recovery workspace
+- Isolated Firefox and geckodriver browser acceptance
+- Backend-authoritative CRUD and compatibility workflows
+- Deterministic connection-loss and reload-protection coverage
+- Normalized migration reporting
+- Bounded diagnostics and verified disposable cleanup
 
 ---
 
@@ -278,8 +278,9 @@ Briefing, Capacity Engine, explainable recommendations, continued persistence
 and testing maturity, and backup and restore.
 
 Backup, export, restore, and verification are implemented in v0.7.4.
-Next-action identification and Morning Briefing narration remain future
-capabilities. AI is not part of v0.7.4.
+Frontend hardening and verified browser-E2E acceptance are implemented in
+v0.7.5. Next-action identification and Morning Briefing narration remain
+future capabilities. AI is not part of v0.7.5.
 
 See `ROADMAP.md` for additional details.
 

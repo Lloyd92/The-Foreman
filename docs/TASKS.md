@@ -53,7 +53,7 @@ Tasks should remain small, testable, and compatible with a Green Build.
       disposable container.
 - [x] Complete v0.7.4 release validation.
 
-## Active v0.7.5
+## Completed v0.7.5
 
 - [x] Define browser-E2E architecture and acceptance boundaries.
 - [x] Add an isolated Firefox and geckodriver harness.
@@ -68,8 +68,8 @@ Tasks should remain small, testable, and compatible with a Green Build.
 - [x] Add bounded non-sensitive failure diagnostics.
 - [x] Prove diagnostic capture through a controlled failure.
 - [x] Complete isolated clean-deployment browser acceptance.
-- [ ] Reconcile v0.7.5 documentation and release metadata.
-- [ ] Complete v0.7.5 release validation.
+- [x] Reconcile v0.7.5 documentation and release metadata.
+- [x] Complete v0.7.5 release validation.
 
 ## Completed
 

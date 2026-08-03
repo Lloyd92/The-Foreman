@@ -47,7 +47,7 @@ test("index includes approved PWA and Apple metadata", async () => {
         /name="viewport"[\s\S]*content="[^"]*viewport-fit=cover[^"]*"/
     );
     assert.match(html, /<title>The Foreman \| HardHead Works<\/title>/);
-    assert.match(html, /0\.7\.4/);
+    assert.match(html, /0\.7\.5/);
 });
 
 test("application shell respects dynamic safe areas without changing widths", async () => {

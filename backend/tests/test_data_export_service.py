@@ -169,7 +169,7 @@ class PortableDataExportServiceTests(DatabaseTestCase):
         )
         self.assertFalse(payload["restorable"])
         self.assertEqual(payload["applicationName"], "The Foreman")
-        self.assertEqual(payload["applicationVersion"], "0.7.4")
+        self.assertEqual(payload["applicationVersion"], "0.7.5")
         self.assertEqual(
             payload["createdAt"],
             "2026-08-01T20:00:00Z",

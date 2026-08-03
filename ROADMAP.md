@@ -354,11 +354,11 @@ Explicitly excluded:
 - Testing Mode orchestration
 - Legacy browser-storage retirement
 
-### v0.7.5 — Frontend Hardening and Browser E2E
+### v0.7.5 — Frontend Hardening and Browser E2E ✅
 
-Status: In Progress
+Status: Complete
 
-This is the current implementation milestone after v0.7.4.
+This completed milestone follows v0.7.4.
 
 Architecture:
 
@@ -370,7 +370,7 @@ Architecture:
 - Capture bounded, non-sensitive diagnostics when workflows fail
 - Normalize migration reporting without creating another persistence authority
 
-Planned sequence:
+Completed sequence:
 
 1. Define browser-E2E architecture and acceptance boundaries
 2. Add the isolated Firefox/WebDriver harness

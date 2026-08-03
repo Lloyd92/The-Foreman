@@ -281,16 +281,16 @@ test("release version and shell cache are finalized", async () => {
 
     assert.match(
         indexSource,
-        /id="footer-version">\s*0\.7\.4\s*<\/span>/
+        /id="footer-version">\s*0\.7\.5\s*<\/span>/
     );
-    assert.match(backendSource, /APPLICATION_VERSION = "0\.7\.4"/);
+    assert.match(backendSource, /APPLICATION_VERSION = "0\.7\.5"/);
     assert.match(
         workerSource,
-        /SHELL_CACHE_NAME = "foreman-shell-v0\.7\.4-c1"/
+        /SHELL_CACHE_NAME = "foreman-shell-v0\.7\.5-c1"/
     );
 });
 
-test("v0.7.4 release documentation preserves continuity and boundaries", async () => {
+test("v0.7.5 release documentation preserves continuity and boundaries", async () => {
     const [
         readme,
         architecture,
@@ -307,30 +307,44 @@ test("v0.7.4 release documentation preserves continuity and boundaries", async (
         readRepositoryFile("docs/FOUNDERS_LETTER.md")
     ]);
 
-    assert.match(readme, /v0\.7\.4 — Backup, Export, Restore, and Verification/);
+    assert.match(
+        readme,
+        /v0\.7\.5 — Frontend Hardening and Browser E2E/
+    );
     assert.match(
         readme,
         /external working\s+memory and continuity system/
     );
-    assert.match(readme, /AI is not part of v0\.7\.4/);
+    assert.match(readme, /AI is not part of v0\.7\.5/);
     assert.match(architecture, /continuity system/i);
-    assert.match(architecture, /AI interpretation must remain[\s\S]*authoritative records/);
+    assert.match(
+        architecture,
+        /AI interpretation must remain[\s\S]*authoritative records/
+    );
     assert.match(
         roadmap,
         /v0\.7\.4 — Backup, Export, Restore, and Verification ✅[\s\S]*Status: Complete/
+    );
+    assert.match(
+        roadmap,
+        /v0\.7\.5 — Frontend Hardening and Browser E2E ✅[\s\S]*Status: Complete/
     );
     assert.ok(
         roadmap.indexOf("v0.7.4 — Backup, Export, Restore, and Verification") <
         roadmap.indexOf("v0.7.5 — Frontend Hardening and Browser E2E")
     );
-    assert.match(
-        roadmap,
-        /v0\.7\.4 — Backup, Export, Restore, and Verification ✅[\s\S]*Status: Complete/
-    );
+    assert.match(changelog, /# v0\.7\.5 — 2026-08-03/);
     assert.match(changelog, /# v0\.7\.4 — 2026-08-01/);
     assert.match(changelog, /# v0\.7\.2/);
+    assert.match(
+        tasks,
+        /- \[x\] Reconcile v0\.7\.5 documentation and release metadata\./
+    );
+    assert.match(
+        tasks,
+        /- \[x\] Complete v0\.7\.5 release validation\./
+    );
     assert.match(tasks, /- \[x\] Complete v0\.7\.4 release validation\./);
-    assert.match(tasks, /- \[x\] Add verified manual backup packages\./);
     assert.match(foundersLetter, /external working memory and continuity system/);
     assert.match(foundersLetter, /continue rather than restart/);
 });
