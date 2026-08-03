@@ -67,7 +67,7 @@ Tasks should remain small, testable, and compatible with a Green Build.
 - [x] Normalize Inventory, Project, and Task migration reporting.
 - [x] Add bounded non-sensitive failure diagnostics.
 - [x] Prove diagnostic capture through a controlled failure.
-- [ ] Complete isolated clean-deployment browser acceptance.
+- [x] Complete isolated clean-deployment browser acceptance.
 - [ ] Reconcile v0.7.5 documentation and release metadata.
 - [ ] Complete v0.7.5 release validation.
 

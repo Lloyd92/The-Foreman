@@ -161,7 +161,10 @@ A v0.7.5 Green Build requires:
 - Existing backend tests pass
 - Existing frontend Node tests pass
 - Browser-harness safety tests pass
-- Approved Firefox workflows pass against an isolated clean deployment
+- Approved Firefox workflows pass against a verified-empty isolated clean
+  deployment
+- Disposable project containers, networks, and images are verified absent
+  after cleanup
 - Failure diagnostics are proven with a controlled failing fixture
 - No live data or private deployment material is attached
 - Documentation matches the implemented commands

@@ -34,9 +34,12 @@ The runner:
    elevated container access.
 5. Builds and starts only disposable backend and frontend services.
 6. Waits for `/api/health`.
-7. Starts Firefox with a fresh WebDriver session.
-8. Runs the E2E test suite.
-9. Removes the disposable containers, network, and locally built images.
+7. Verifies that Inventory, Projects, and Tasks begin empty.
+8. Starts Firefox with a fresh WebDriver session.
+9. Runs the E2E test suite.
+10. Explicitly removes the disposable containers, network, and locally built
+    images.
+11. Verifies that no project containers, networks, or images remain.
 
 ## Focused safety tests
 

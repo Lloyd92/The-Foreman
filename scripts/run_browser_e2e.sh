@@ -82,6 +82,22 @@ PYTHONPATH="$repository_root/e2e" \
     "$venv_python" -m foreman_e2e.wait_for_health
 
 PYTHONPATH="$repository_root/e2e" \
+    "$venv_python" -m foreman_e2e.acceptance clean-state
+
+PYTHONPATH="$repository_root/e2e" \
     "$venv_python" -m unittest discover \
     --start-directory "$repository_root/e2e/tests" \
     --pattern 'test_*.py'
+
+
+"${compose[@]}" down \
+    --remove-orphans \
+    --rmi local
+
+PYTHONPATH="$repository_root/e2e" \
+    "$venv_python" -m foreman_e2e.acceptance cleanup
+
+rm -f "$resolved_config"
+trap - EXIT INT TERM
+
+echo "Clean deployment browser acceptance passed."
