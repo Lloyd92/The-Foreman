@@ -18,6 +18,7 @@ const SHELL_ASSETS = Object.freeze([
     "/utils/inventoryApi.js",
     "/utils/inventoryStorage.js",
     "/utils/migrationOrchestrator.js",
+    "/utils/migrationReporting.js",
     "/utils/projectMigration.js",
     "/utils/operationsApi.js",
     "/utils/recoveryApi.js",

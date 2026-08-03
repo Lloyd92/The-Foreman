@@ -64,9 +64,9 @@ Tasks should remain small, testable, and compatible with a Green Build.
 - [x] Add Task and Project compatibility browser coverage.
 - [x] Add deterministic connection-loss and safe-recovery coverage.
 - [x] Verify dirty-form and open-dialog reload protection.
-- [ ] Normalize Inventory, Project, and Task migration reporting.
-- [ ] Add bounded non-sensitive failure diagnostics.
-- [ ] Prove diagnostic capture through a controlled failure.
+- [x] Normalize Inventory, Project, and Task migration reporting.
+- [x] Add bounded non-sensitive failure diagnostics.
+- [x] Prove diagnostic capture through a controlled failure.
 - [ ] Complete isolated clean-deployment browser acceptance.
 - [ ] Reconcile v0.7.5 documentation and release metadata.
 - [ ] Complete v0.7.5 release validation.

@@ -12,6 +12,9 @@ import {
     getInventoryStockLevelFact,
     getOperationalFacts
 } from "../utils/operationsApi.js";
+import {
+    inventoryMigrationReport
+} from "../utils/migrationReporting.js";
 
 let editingItemId = null;
 let inventoryItems = [];
@@ -90,11 +93,12 @@ function getItemById(itemId) {
     return inventoryItems.find(item => item.id === itemId);
 }
 
-function showPageMessage(message) {
+function showPageMessage(message, isError = false) {
     const element = document.getElementById("inventory-page-message");
 
     if (element) {
         element.textContent = message;
+        element.classList.toggle("error", isError);
     }
 }
 
@@ -128,7 +132,8 @@ async function removeInventoryItem(itemId) {
     } catch (error) {
         console.error("Unable to delete inventory item:", error);
         showPageMessage(
-            "The item was not deleted. Backend data and browser-local data were unchanged."
+            "The item was not deleted. Backend data and browser-local data were unchanged.",
+            true
         );
     }
 }
@@ -489,20 +494,15 @@ async function initializePersistence(inventoryMigration) {
         ]);
         persistenceMode = "backend";
 
-        if (migration?.errors?.length) {
+        const report = inventoryMigrationReport({
+            browserRecordCount,
+            migration
+        });
+
+        if (report) {
             showPageMessage(
-                `Inventory migration ${migration.status}: ` +
-                `${migration.migrated} migrated, ` +
-                `${migration.alreadyMigrated} previously migrated, ` +
-                `${migration.duplicates} duplicate, ` +
-                `${migration.malformed} malformed. ` +
-                "Browser-local records were retained for review."
-            );
-        } else if (browserRecordCount) {
-            showPageMessage(
-                `Inventory migration successful: ${migration.migrated} migrated, ` +
-                `${migration.alreadyMigrated} previously migrated. ` +
-                "Browser-local records were retained."
+                report.message,
+                report.severity === "error"
             );
         }
 
@@ -517,7 +517,8 @@ async function initializePersistence(inventoryMigration) {
         persistenceMode = "unavailable";
         showPageMessage(
             "HardHead Inventory is unavailable. Browser-local records " +
-            "were not loaded as operational data."
+            "were not loaded as operational data.",
+            true
         );
         return {
             status: "unavailable",

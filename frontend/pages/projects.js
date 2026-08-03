@@ -20,6 +20,9 @@ import {
     mergePersistedProject,
     removePersistedProject
 } from "../utils/projectRuntime.js";
+import {
+    projectMigrationReport
+} from "../utils/migrationReporting.js";
 
 let editingProjectId = null;
 let materialsProjectId = null;
@@ -1367,8 +1370,12 @@ export async function initializeProjectsPage(
 
     setProjectsLoading();
 
+    let migrationReport = null;
+
     try {
-        await projectMigration;
+        migrationReport = projectMigrationReport(
+            await projectMigration
+        );
     } catch (error) {
         console.error(
             "Project migration did not complete before page load:",
@@ -1386,6 +1393,11 @@ export async function initializeProjectsPage(
         setProjectsMessage(
             "Project operational facts are unavailable or malformed.",
             true
+        );
+    } else if (migrationReport) {
+        setProjectsMessage(
+            migrationReport.message,
+            migrationReport.severity === "error"
         );
     }
 }

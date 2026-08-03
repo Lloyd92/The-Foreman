@@ -713,6 +713,10 @@ footer {
     font-size: 14px;
 }
 
+.inventory-page-message.error {
+    color: #ff8a80;
+}
+
 @media (max-width: 850px) {
     .inventory-header {
         flex-direction: column;

@@ -13,6 +13,9 @@ import {
 import {
     migrateTasksAfterProjects
 } from "../utils/migrationOrchestrator.js";
+import {
+    taskMigrationReport
+} from "../utils/migrationReporting.js";
 
 let currentTasks = [];
 let backendAvailable = false;
@@ -138,27 +141,21 @@ export async function migrateLegacyTasks(projectMigration) {
 
 async function initializeTaskPersistence(taskMigration) {
     try {
-        const { migration = null } = await taskMigration;
+        const migrationResult = await taskMigration;
+        const report = taskMigrationReport(migrationResult);
 
-        if (migration?.errors?.length > 0) {
+        if (report) {
             setTaskMessage(
-                `${migration.migrated} browser task(s) migrated; ` +
-                `${migration.skipped} need attention. ` +
-                "Browser data was kept only as migration source.",
-                true
+                report.message,
+                report.severity === "error"
             );
 
-            migration.errors.forEach(error => {
-                console.error(
-                    "Task migration record was not imported:",
-                    error
+            if (report.attentionCount > 0) {
+                console.warn(
+                    "Task browser migration completed with records " +
+                    "requiring attention."
                 );
-            });
-        } else if (migration?.migrated > 0) {
-            setTaskMessage(
-                `${migration.migrated} browser task(s) migrated. ` +
-                "The browser copy was retained only as migration source."
-            );
+            }
         }
 
         backendAvailable = true;

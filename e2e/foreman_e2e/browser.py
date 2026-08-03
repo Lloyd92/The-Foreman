@@ -77,5 +77,13 @@ def firefox_session(
         try:
             driver.quit()
         finally:
-            if not session.preserve_artifacts and not config.keep_artifacts:
+            retain_artifacts = (
+                session.preserve_artifacts or config.keep_artifacts
+            )
+
+            if retain_artifacts:
+                from .diagnostics import finalize_driver_log
+
+                finalize_driver_log(directory)
+            else:
                 shutil.rmtree(directory, ignore_errors=True)

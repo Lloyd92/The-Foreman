@@ -102,41 +102,44 @@ Failure simulation must not interrupt the live household deployment.
 
 ### Migration Reporting
 
-Inventory, Project, and Task migration currently expose different result
-shapes and page-specific messages.
+Inventory, Project, and Task migration use one normalized frontend report
+containing only bounded aggregate evidence:
 
-v0.7.5 must establish one normalized frontend migration-report contract that
-can represent:
+- Module name and normalized severity
+- Imported and previously confirmed counts
+- Aggregate records requiring attention
+- Retryable failure and warning counts
+- One consistent browser-record retention statement
 
-- Domain and migration source
-- Overall status
-- Migrated, already-migrated, skipped, duplicate, and malformed counts
-- Warning counts and missing-reference warnings
-- Retryable and non-retryable failures
-- Stable non-sensitive record references
-- Whether retained browser data requires attention
+User-facing reports exclude raw errors, record identifiers, payloads,
+validation details, paths, and backend response objects.
 
-Migration reports are diagnostic evidence. They must not become a second
-persistence authority or rewrite retained source records.
+Migration reports remain diagnostic evidence only. They do not become a
+second persistence authority or rewrite retained source records.
 
 ## Failure Diagnostics
 
-A failed E2E workflow should retain a run-specific diagnostic directory with
-non-sensitive evidence such as:
+Failed E2E workflows retain only bounded, allowlisted evidence:
 
-- Screenshot
-- Current URL and page title
-- Sanitized visible failure text
-- Browser console messages when available
-- geckodriver log
-- Test name and timestamp
-- Relevant HTTP status summaries
+- Redacted diagnostic-overlay screenshot
+- Route-only local location with query values removed
+- Document readiness and connection state
+- Counts of visible pages, dialogs, and dirty forms
+- Approved body-state flags
+- Browser-console severity counts without messages
+- Bounded geckodriver severity summary replacing the raw log
+- Sanitized test identifier, failure type, and UTC timestamp
 
-Diagnostics must not include databases, secrets, private keys, certificates,
-environment files, or raw household records.
+Diagnostics exclude page titles, visible application text, assertion values,
+raw console messages, raw geckodriver content, page source, databases,
+environment files, certificates, private keys, secrets, payloads, record
+identifiers, and household records.
 
-Successful runs should remove temporary artifacts unless an explicit keep
-option is enabled.
+A controlled failing Firefox fixture proves safe capture, browser shutdown,
+driver-log replacement, artifact inspection, and cleanup.
+
+Successful runs remove temporary artifacts unless the explicit keep option is
+enabled.
 
 ## Determinism
 

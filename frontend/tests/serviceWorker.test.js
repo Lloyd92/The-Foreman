@@ -27,6 +27,7 @@ const expectedShellAssets = [
     "/utils/inventoryApi.js",
     "/utils/inventoryStorage.js",
     "/utils/migrationOrchestrator.js",
+    "/utils/migrationReporting.js",
     "/utils/projectMigration.js",
     "/utils/operationsApi.js",
     "/utils/recoveryApi.js",
@@ -147,7 +148,7 @@ test("install atomically precaches the exact versioned shell", async () => {
 
     await install.waitPromise;
 
-    assert.equal(expectedShellAssets.length, 31);
+    assert.equal(expectedShellAssets.length, 32);
     assert.equal(
         expectedShellAssets.includes("/utils/operationsApi.js"),
         true

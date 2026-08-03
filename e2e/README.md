@@ -50,8 +50,23 @@ PYTHONPATH=e2e python3 -m unittest discover \
 ## Diagnostics
 
 Failed browser tests retain bounded diagnostics under `artifacts/e2e/`.
-Successful runs remove their temporary run directory unless
-`FOREMAN_E2E_KEEP_ARTIFACTS=1` is set.
+Successful runs remove their directory unless
+`FOREMAN_E2E_KEEP_ARTIFACTS=1` is enabled.
 
-Diagnostics deliberately exclude databases, environment files, certificates,
-private keys, and raw page source.
+Retained evidence is allowlisted: a redacted overlay screenshot, route-only
+location, application-state counts, browser-log severity counts, sanitized
+test metadata, and an aggregate geckodriver summary.
+
+Raw application text, assertion values, console messages, driver logs, page
+source, secrets, payloads, identifiers, and household records are excluded.
+
+Focused diagnostics safety tests:
+
+```bash
+PYTHONPATH=e2e python3 -m unittest discover \
+  -s e2e/tests -p 'test_harness_diagnostics.py'
+```
+
+The complete disposable browser suite also proves this lifecycle through a
+controlled failing Firefox fixture whose safe artifacts are inspected and
+removed by a passing parent test.
