@@ -96,23 +96,55 @@ class InventoryPage:
             element.clear()
             element.send_keys(str(values.get(key, "")))
 
-    def submit_form(self) -> None:
-        from selenium.webdriver.support.ui import WebDriverWait
-
+    def click_submit(self) -> None:
         self.driver.find_element(
             "css selector",
             '#inventory-form button[type="submit"]',
         ).click()
 
+    def dialog_is_open(self) -> bool:
+        # The availability gate hides the application visually, but an
+        # unhidden backdrop remains logically open and must still block reload.
+        return self.driver.find_element(
+            "id",
+            "inventory-dialog-backdrop",
+        ).get_dom_attribute("hidden") is None
+
+    def wait_for_dialog_closed(self) -> None:
+        from selenium.webdriver.support.ui import WebDriverWait
+
         WebDriverWait(
             self.driver,
             self.timeout_seconds,
         ).until(
-            lambda driver: not driver.find_element(
-                "id",
-                "inventory-dialog-backdrop",
-            ).is_displayed()
+            lambda _driver: not self.dialog_is_open()
         )
+
+    def wait_for_form_error(self, expected_text: str) -> None:
+        from selenium.webdriver.support.ui import WebDriverWait
+
+        WebDriverWait(
+            self.driver,
+            self.timeout_seconds,
+        ).until(
+            lambda driver: expected_text in (
+                driver.find_element(
+                    "id",
+                    "inventory-form-error",
+                ).get_attribute("textContent")
+                or ""
+            )
+        )
+
+    def close_dialog_with_escape(self) -> None:
+        from selenium.webdriver import ActionChains, Keys
+
+        ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
+        self.wait_for_dialog_closed()
+
+    def submit_form(self) -> None:
+        self.click_submit()
+        self.wait_for_dialog_closed()
 
     def create_item(self, values: dict[str, object]) -> None:
         self.open_add_dialog()

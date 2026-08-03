@@ -65,6 +65,8 @@ export FOREMAN_E2E_ORIGIN="http://127.0.0.1:$port"
 export FOREMAN_E2E_RUN_ID="$run_id"
 export FOREMAN_E2E_ARTIFACTS_ROOT="$repository_root/artifacts/e2e"
 export FOREMAN_E2E_RUNTIME=1
+export FOREMAN_E2E_COMPOSE_PROJECT="$project_name"
+export FOREMAN_E2E_COMPOSE_FILE="$compose_file"
 
 "${compose[@]}" config --format json > "$resolved_config"
 

@@ -46,10 +46,11 @@ body {
 }
 
 /*
- * An available PWA update must never obstruct an active form.
- * The notice becomes visible again when the dialog closes.
+ * An available PWA update must never obstruct an active form or the
+ * fail-closed HardHead availability gate.
  */
-body.dialog-open .pwa-update-notice {
+body.dialog-open .pwa-update-notice,
+body.connection-blocked .pwa-update-notice {
     display: none;
 }
 

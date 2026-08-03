@@ -173,6 +173,7 @@ test("repository source contains no certificate or private-key artifact", async 
         ".agents",
         ".codex",
         ".git",
+        ".venv-e2e",
         "certificates",
         "local",
         "secrets"

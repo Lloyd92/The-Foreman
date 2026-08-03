@@ -62,8 +62,8 @@ Tasks should remain small, testable, and compatible with a Green Build.
 - [x] Add backend-authoritative Inventory browser CRUD coverage.
 - [x] Add Project and material browser CRUD coverage.
 - [x] Add Task and Project compatibility browser coverage.
-- [ ] Add deterministic connection-loss and safe-recovery coverage.
-- [ ] Verify dirty-form and open-dialog reload protection.
+- [x] Add deterministic connection-loss and safe-recovery coverage.
+- [x] Verify dirty-form and open-dialog reload protection.
 - [ ] Normalize Inventory, Project, and Task migration reporting.
 - [ ] Add bounded non-sensitive failure diagnostics.
 - [ ] Prove diagnostic capture through a controlled failure.

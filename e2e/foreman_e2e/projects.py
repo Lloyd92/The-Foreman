@@ -391,20 +391,40 @@ class ProjectsPage:
         return None
 
     def wait_for_material(self, item_name: str) -> Any:
+        from selenium.common.exceptions import (
+            StaleElementReferenceException,
+        )
         from selenium.webdriver.support.ui import WebDriverWait
+
+        def locate(_driver: Any) -> Any | bool:
+            try:
+                return self.find_material(item_name) or False
+            except StaleElementReferenceException:
+                # Material rendering replaces requirement rows atomically.
+                return False
 
         return WebDriverWait(
             self.driver,
             self.timeout_seconds,
-        ).until(lambda _driver: self.find_material(item_name))
+        ).until(locate)
 
     def wait_for_material_absent(self, item_name: str) -> None:
+        from selenium.common.exceptions import (
+            StaleElementReferenceException,
+        )
         from selenium.webdriver.support.ui import WebDriverWait
+
+        def absent(_driver: Any) -> bool:
+            try:
+                return self.find_material(item_name) is None
+            except StaleElementReferenceException:
+                # Wait for a stable material list before accepting absence.
+                return False
 
         WebDriverWait(
             self.driver,
             self.timeout_seconds,
-        ).until(lambda _driver: self.find_material(item_name) is None)
+        ).until(absent)
 
     def wait_for_materials_empty(self) -> None:
         from selenium.webdriver.support.ui import WebDriverWait
