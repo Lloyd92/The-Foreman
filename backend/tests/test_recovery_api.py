@@ -10,6 +10,7 @@ from app.core.config import (
     DATABASE_URL,
 )
 from app.core.maintenance import DatabaseMaintenanceConflict
+from app.core.schema_upgrades import CURRENT_DATABASE_SCHEMA_VERSION
 from app.schemas.recovery import (
     BackupManifest,
     DatabaseBackupManifest,
@@ -27,6 +28,25 @@ from test_support import ApiTestCase
 
 BACKUP_FILENAME = "foreman-backup-20260731T220000Z.zip"
 BACKUP_BYTES = b"verified-backup-package"
+CURRENT_TABLES = [
+    "inventory_items",
+    "inventory_migrations",
+    "members",
+    "module_states",
+    "organization_space_relationships",
+    "organizations",
+    "people",
+    "project_material_requirements",
+    "project_migrations",
+    "projects",
+    "spaces",
+    "task_migrations",
+    "tasks",
+]
+CURRENT_RECORD_COUNTS = {
+    table_name: 1 if table_name == "projects" else 0
+    for table_name in CURRENT_TABLES
+}
 
 
 def verification_manifest() -> BackupManifest:
@@ -47,12 +67,12 @@ def verification_manifest() -> BackupManifest:
             filename="foreman.db",
             byte_size=4096,
             sha256="a" * 64,
-            user_version=2,
+            user_version=CURRENT_DATABASE_SCHEMA_VERSION,
             integrity_check="ok",
             foreign_key_violation_count=0,
-            tables=["projects"],
+            tables=CURRENT_TABLES,
         ),
-        record_counts={"projects": 1},
+        record_counts=CURRENT_RECORD_COUNTS,
     )
 
 
@@ -516,7 +536,7 @@ class RecoveryApiTests(ApiTestCase):
             )
             self.assertEqual(
                 payload["recordCounts"],
-                {"projects": 1},
+                CURRENT_RECORD_COUNTS,
             )
             self.assertEqual(
                 response.headers["cache-control"],

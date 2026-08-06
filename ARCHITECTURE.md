@@ -85,6 +85,10 @@ Persistence:
   the Projects workspace's runtime authority.
 - Project material requirements persist in SQLite and link to Inventory by
   item ID.
+- The universal foundation schema persists Spaces, People, Organizations,
+  Organization-Space relationships, Members, and mutable local module state.
+  It does not yet create the default Space or associate existing operational
+  records with a Space.
 - Unified Operational Facts derive current lifecycle, material-readiness,
   Task-work, and Inventory-stock conclusions from one authoritative database
   snapshot. Dashboard, Projects, and Inventory consume these facts rather than
@@ -154,6 +158,7 @@ The implemented backend foundation currently includes:
 - SQLAlchemy persistence models
 - SQLite application persistence
 - Versioned, idempotent SQLite schema upgrades
+- Typed universal-foundation and static module-definition contracts
 - Automated backend API tests
 - Operational-facts aggregation across backend Inventory, Projects, and Tasks
 
@@ -246,14 +251,17 @@ commit successful mutations and roll back failed mutations; repositories
 remain responsible for database queries and record access. Application startup
 creates missing tables from SQLAlchemy metadata and applies versioned,
 idempotent SQLite schema upgrades. The current internal SQLite schema version
-is 2. Startup refuses a database whose schema version is newer than the
-application supports and verifies the required Project schema after upgrades.
+is 3. Startup refuses a database whose schema version is newer than the
+application supports before table creation can mutate it, then verifies the
+required Project and universal-foundation schemas before advancing the schema
+version.
 
 The versioned `GET /api/operational-facts` endpoint derives normalized facts
 from backend Inventory, Projects, materials, and Tasks. One explicit
 transaction supplies the authoritative snapshot for each request. Facts are
 computed on demand; there is no persisted fact table and the SQLite schema
-version remains 2.
+version is 3. The operational-fact schema remains version 1, and existing
+operational records do not yet contain `space_id` fields.
 
 The operational-fact schema version is numeric 1. Its current vocabulary is
 `project.lifecycle`, `project.material-readiness`, `task.work-state`, and

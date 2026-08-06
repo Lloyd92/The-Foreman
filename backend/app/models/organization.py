@@ -1,0 +1,49 @@
+from datetime import datetime, timezone
+from uuid import uuid4
+
+from sqlalchemy import CheckConstraint, DateTime, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.models.base import Base
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+class Organization(Base):
+    __tablename__ = "organizations"
+    __table_args__ = (
+        CheckConstraint(
+            "length(trim(name)) > 0",
+            name="ck_organizations_name_not_blank",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+    name: Mapped[str] = mapped_column(
+        String(120),
+        nullable=False,
+        index=True,
+    )
+    description: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        default="",
+        server_default="",
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        onupdate=utc_now,
+    )

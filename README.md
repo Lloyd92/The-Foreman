@@ -227,7 +227,8 @@ The implemented fact vocabulary is:
 Each fact has a stable identity, typed state, reason codes, evidence, and
 source-record references. Facts are computed on demand and are not persisted.
 The operational-fact schema version is 1 while the SQLite database schema
-remains version 2.
+is version 3. The version 3 foundation tables do not change the implemented
+operational-fact vocabulary or add `space_id` to existing operational records.
 
 Dashboard, Projects, and Inventory consume these shared facts instead of
 independently reconstructing readiness or stock state from quantities.

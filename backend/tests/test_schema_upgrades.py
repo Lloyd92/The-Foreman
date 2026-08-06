@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,6 +12,7 @@ from app.core.schema_upgrades import (
     get_database_schema_version,
 )
 from app.models.base import Base
+from app.models.space import Space
 
 
 LEGACY_SCHEMA = """
@@ -36,6 +38,16 @@ CREATE TABLE tasks (
     FOREIGN KEY(project_id) REFERENCES projects (id) ON DELETE SET NULL
 );
 """
+
+VERSION_TWO_TABLES = (
+    "inventory_items",
+    "inventory_migrations",
+    "projects",
+    "project_material_requirements",
+    "project_migrations",
+    "tasks",
+    "task_migrations",
+)
 
 
 class SchemaUpgradeTests(unittest.TestCase):
@@ -111,6 +123,103 @@ class SchemaUpgradeTests(unittest.TestCase):
             raw_connection.commit()
         finally:
             raw_connection.close()
+
+    def create_version_two_database(self) -> None:
+        import app.models  # noqa: F401
+
+        timestamp = datetime(2026, 8, 1, 12, 0, tzinfo=timezone.utc)
+        tables = [Base.metadata.tables[name] for name in VERSION_TWO_TABLES]
+
+        with self.engine.begin() as connection:
+            Base.metadata.create_all(bind=connection, tables=tables)
+            connection.execute(
+                Base.metadata.tables["inventory_items"].insert(),
+                {
+                    "id": "inventory-v2",
+                    "name": "Fastener",
+                    "category": "Hardware",
+                    "quantity": 10,
+                    "unit": "each",
+                    "minimum": 2,
+                    "location": "Bin",
+                    "cost": 1,
+                    "supplier": "",
+                    "notes": "Preserve inventory",
+                    "created_at": timestamp,
+                    "updated_at": timestamp,
+                },
+            )
+            connection.execute(
+                Base.metadata.tables["projects"].insert(),
+                {
+                    "id": "project-v2",
+                    "name": "Version 2 Project",
+                    "type": "other",
+                    "status": "active",
+                    "priority": "medium",
+                    "progress": 25,
+                    "start_date": None,
+                    "target_date": None,
+                    "estimated_cost": 0,
+                    "description": "",
+                    "notes": "Preserve project",
+                    "created_at": timestamp,
+                    "updated_at": timestamp,
+                    "archived_at": None,
+                },
+            )
+            connection.execute(
+                Base.metadata.tables[
+                    "project_material_requirements"
+                ].insert(),
+                {
+                    "project_id": "project-v2",
+                    "inventory_item_id": "inventory-v2",
+                    "required_quantity": 3,
+                    "note": "Preserve material",
+                },
+            )
+            connection.execute(
+                Base.metadata.tables["tasks"].insert(),
+                {
+                    "id": "task-v2",
+                    "title": "Version 2 Task",
+                    "priority": "high",
+                    "completed": False,
+                    "project_id": "project-v2",
+                    "created_at": timestamp,
+                    "updated_at": timestamp,
+                },
+            )
+            connection.execute(
+                Base.metadata.tables["inventory_migrations"].insert(),
+                {
+                    "source": "browser-local",
+                    "source_record_id": "inventory-source-v2",
+                    "inventory_item_id": "inventory-v2",
+                    "migrated_at": timestamp,
+                },
+            )
+            connection.execute(
+                Base.metadata.tables["project_migrations"].insert(),
+                {
+                    "source": "browser-local",
+                    "source_record_id": "project-source-v2",
+                    "project_id": "project-v2",
+                    "payload_hash": "a" * 64,
+                    "migrated_at": timestamp,
+                },
+            )
+            connection.execute(
+                Base.metadata.tables["task_migrations"].insert(),
+                {
+                    "source": "browser-local",
+                    "source_record_id": "task-source-v2",
+                    "task_id": "task-v2",
+                    "migrated_at": timestamp,
+                },
+            )
+            connection.exec_driver_sql("PRAGMA user_version = 2")
 
     def run_upgrade(self) -> None:
         import app.models  # noqa: F401
@@ -218,6 +327,187 @@ class SchemaUpgradeTests(unittest.TestCase):
         self.assertIn(
             "uq_project_migration_source_record",
             unique_constraints,
+        )
+
+    def test_version_two_database_adds_empty_foundation_without_changes(
+        self,
+    ) -> None:
+        self.create_version_two_database()
+
+        with self.engine.connect() as connection:
+            version_two_definitions = {
+                row.name: row.sql
+                for row in connection.execute(
+                    text(
+                        "SELECT name, sql FROM sqlite_master "
+                        "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+                    )
+                )
+                if row.name in VERSION_TWO_TABLES
+            }
+
+        self.run_upgrade()
+        self.run_upgrade()
+
+        with self.engine.connect() as connection:
+            self.assertEqual(
+                get_database_schema_version(connection),
+                CURRENT_DATABASE_SCHEMA_VERSION,
+            )
+            preserved = {
+                table_name: connection.execute(
+                    text(f'SELECT COUNT(*) FROM "{table_name}"')
+                ).scalar_one()
+                for table_name in VERSION_TWO_TABLES
+            }
+            self.assertEqual(
+                preserved,
+                {table_name: 1 for table_name in VERSION_TWO_TABLES},
+            )
+            upgraded_definitions = {
+                row.name: row.sql
+                for row in connection.execute(
+                    text(
+                        "SELECT name, sql FROM sqlite_master "
+                        "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+                    )
+                )
+                if row.name in VERSION_TWO_TABLES
+            }
+            self.assertEqual(
+                upgraded_definitions,
+                version_two_definitions,
+            )
+
+            for table_name in (
+                "spaces",
+                "people",
+                "organizations",
+                "organization_space_relationships",
+                "members",
+                "module_states",
+            ):
+                self.assertEqual(
+                    connection.execute(
+                        text(f'SELECT COUNT(*) FROM "{table_name}"')
+                    ).scalar_one(),
+                    0,
+                )
+
+    def test_partial_foundation_creation_resumes_idempotently(self) -> None:
+        self.create_version_two_database()
+        timestamp = datetime(2026, 8, 1, 13, 0, tzinfo=timezone.utc)
+
+        with self.engine.begin() as connection:
+            Space.__table__.create(bind=connection)
+            connection.execute(
+                Space.__table__.insert(),
+                {
+                    "id": "space-before-resume",
+                    "name": "Workshop",
+                    "description": "Preserve partial state",
+                    "created_at": timestamp,
+                    "updated_at": timestamp,
+                },
+            )
+
+        self.run_upgrade()
+        self.run_upgrade()
+
+        with self.engine.connect() as connection:
+            self.assertEqual(
+                connection.execute(
+                    text(
+                        "SELECT description FROM spaces "
+                        "WHERE id = 'space-before-resume'"
+                    )
+                ).scalar_one(),
+                "Preserve partial state",
+            )
+            self.assertEqual(
+                get_database_schema_version(connection),
+                CURRENT_DATABASE_SCHEMA_VERSION,
+            )
+
+    def test_missing_foundation_indexes_are_repaired_idempotently(
+        self,
+    ) -> None:
+        self.create_version_two_database()
+
+        with self.engine.begin() as connection:
+            Base.metadata.create_all(bind=connection)
+            connection.exec_driver_sql(
+                "DROP INDEX ix_people_display_name"
+            )
+            connection.exec_driver_sql(
+                "DROP INDEX "
+                "ix_organization_space_relationships_space_id"
+            )
+
+        self.run_upgrade()
+        self.run_upgrade()
+
+        expected_indexes = {
+            "people": {
+                "ix_people_display_name": ("display_name",),
+            },
+            "organization_space_relationships": {
+                "ix_organization_space_relationships_space_id": (
+                    "space_id",
+                ),
+            },
+        }
+        database_inspector = inspect(self.engine)
+
+        for table_name, expected in expected_indexes.items():
+            actual = {
+                index["name"]: tuple(index["column_names"])
+                for index in database_inspector.get_indexes(table_name)
+            }
+
+            for index_name, columns in expected.items():
+                self.assertEqual(actual[index_name], columns)
+
+        with self.engine.connect() as connection:
+            self.assertEqual(
+                get_database_schema_version(connection),
+                CURRENT_DATABASE_SCHEMA_VERSION,
+            )
+
+    def test_unrepaired_foundation_index_keeps_version_below_three(
+        self,
+    ) -> None:
+        self.create_version_two_database()
+
+        with self.engine.begin() as connection:
+            Base.metadata.create_all(bind=connection)
+            connection.exec_driver_sql(
+                "DROP INDEX ix_members_person_id"
+            )
+
+        with patch(
+            "app.core.schema_upgrades.FOUNDATION_INDEX_UPGRADES",
+            (),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "members indexes are incomplete",
+            ):
+                with self.engine.begin() as connection:
+                    apply_schema_upgrades(connection)
+
+        with self.engine.connect() as connection:
+            self.assertEqual(get_database_schema_version(connection), 2)
+
+        self.run_upgrade()
+
+        repaired_indexes = {
+            index["name"]: tuple(index["column_names"])
+            for index in inspect(self.engine).get_indexes("members")
+        }
+        self.assertEqual(
+            repaired_indexes["ix_members_person_id"],
+            ("person_id",),
         )
 
     def test_failed_upgrade_retains_version_and_can_resume(self) -> None:

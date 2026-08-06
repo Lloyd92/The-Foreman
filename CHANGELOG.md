@@ -10,6 +10,39 @@ Each release represents a stable, working version of the application.
 
 # [Unreleased]
 
+## Added
+
+- Added SQLite models and minimal typed contracts for Spaces, People,
+  Organizations, Organization-Space relationships, Members, and mutable local
+  module state.
+- Added the typed static module-definition boundary without registering
+  modules or adding module-management behavior.
+
+## Changed
+
+- Advanced the internal SQLite schema from version 2 to version 3 without
+  changing existing Project, Task, Inventory, material-requirement, or
+  migration-provenance structures.
+- Included all six universal-foundation tables in backup and restore
+  required-table and record-count handling while preserving portable export
+  format 1.
+
+## Reliability
+
+- Rejected future SQLite schema versions before metadata-driven table creation
+  can mutate a database.
+- Added structural verification for foundation columns, primary keys, indexes,
+  unique and check constraints, foreign keys, and restricted root deletion.
+- Made version 2 restore staging and partial foundation creation resume safely
+  into the empty version 3 foundation.
+
+## Validation
+
+- Added focused schema, constraint, idempotence, future-version, recovery, and
+  typed-contract coverage for the universal foundation.
+- Verified version 2 records and structures remain unchanged during upgrade and
+  version 3 backup round trips preserve foundation records.
+
 ## Documentation
 
 - Established the Constitution-first documentation authority order.
@@ -29,6 +62,7 @@ Each release represents a stable, working version of the application.
   persistence terminology.
 - Confirmed FastAPI, SQLAlchemy, Pydantic, and SQLite as the Version 1.0 target
   stack.
+- Reconciled current persistence documentation with SQLite schema version 3.
 
 ---
 

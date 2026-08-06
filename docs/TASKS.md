@@ -127,8 +127,9 @@ Tasks should remain small, testable, and compatible with a Green Build.
 
 v0.8.0 is divided into nine reviewable commits:
 
-- [ ] Commit 1 — Reconcile architecture contracts and documentation.
-- [ ] Commit 2 — Add Space, Person, Organization, Member, and module-registry schema.
+- [x] Commit 1 — Reconcile architecture contracts and documentation.
+- [x] Commit 2 — Add Space, Person, Organization, Member, and module-registry
+  schema.
 - [ ] Commit 3 — Migrate existing records into the default Space.
 - [ ] Commit 4 — Add backend services and Space-authoritative APIs.
 - [ ] Commit 5 — Add the permanent navigation shell.
@@ -140,6 +141,10 @@ v0.8.0 is divided into nine reviewable commits:
 Commit 1 is documentation-only. It must not change schema, APIs, frontend
 navigation, migration behavior, runtime version metadata, cache identity,
 Docker deployment, or live data.
+
+Commit 2 establishes schema and typed contracts only. It creates no default
+Space record, adds no `space_id` to existing operational records, and adds no
+CRUD routes, active-Space selection, navigation, or module-management behavior.
 
 ## Approved Universal Foundation Sequence
 

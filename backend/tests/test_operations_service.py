@@ -1027,4 +1027,3 @@ class OperationalSnapshotDatabaseTests(DatabaseTestCase):
                 "PRAGMA user_version"
             ).scalar_one()
         self.assertEqual(version, CURRENT_DATABASE_SCHEMA_VERSION)
-        self.assertEqual(version, 2)

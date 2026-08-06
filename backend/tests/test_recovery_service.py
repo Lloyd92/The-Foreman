@@ -17,7 +17,10 @@ from app.core.maintenance import (
     DatabaseMaintenanceActive,
     maintenance_coordinator,
 )
-from app.core.schema_upgrades import apply_schema_upgrades
+from app.core.schema_upgrades import (
+    CURRENT_DATABASE_SCHEMA_VERSION,
+    apply_schema_upgrades,
+)
 from app.models.base import Base
 from app.schemas.recovery import (
     BackupCompatibility,
@@ -55,6 +58,14 @@ from app.services.recovery import (
 
 
 CREATED_AT = datetime(2026, 7, 31, 16, 0, tzinfo=timezone.utc)
+FOUNDATION_TABLE_SCHEMA = """
+CREATE TABLE spaces (id TEXT PRIMARY KEY);
+CREATE TABLE people (id TEXT PRIMARY KEY);
+CREATE TABLE organizations (id TEXT PRIMARY KEY);
+CREATE TABLE organization_space_relationships (id TEXT PRIMARY KEY);
+CREATE TABLE members (id TEXT PRIMARY KEY);
+CREATE TABLE module_states (module_id TEXT PRIMARY KEY);
+"""
 TABLES = [
     "inventory_items",
     "projects",
@@ -787,7 +798,11 @@ class BackupPackageTests(unittest.TestCase):
             "foreman-backup-20260731T160000Z.zip"
         )
 
-    def create_source_database(self, *, user_version: int = 2) -> None:
+    def create_source_database(
+        self,
+        *,
+        user_version: int = CURRENT_DATABASE_SCHEMA_VERSION,
+    ) -> None:
         connection = sqlite3.connect(self.source_path)
 
         try:
@@ -822,6 +837,7 @@ class BackupPackageTests(unittest.TestCase):
                 );
                 """
             )
+            connection.executescript(FOUNDATION_TABLE_SCHEMA)
             connection.execute(
                 "INSERT INTO projects (id, name) VALUES (?, ?)",
                 ("project-1", "Backup Project"),
@@ -840,7 +856,11 @@ class BackupPackageTests(unittest.TestCase):
         finally:
             connection.close()
 
-    def create_package(self, *, user_version: int = 2):
+    def create_package(
+        self,
+        *,
+        user_version: int = CURRENT_DATABASE_SCHEMA_VERSION,
+    ):
         self.create_source_database(user_version=user_version)
         return create_verified_backup_package(
             self.database_url,
@@ -982,7 +1002,9 @@ class BackupPackageTests(unittest.TestCase):
     def test_create_package_rejects_future_database_and_cleans_up(
         self,
     ) -> None:
-        self.create_source_database(user_version=3)
+        self.create_source_database(
+            user_version=CURRENT_DATABASE_SCHEMA_VERSION + 1
+        )
 
         with self.assertRaises(RecoveryContractError) as context:
             create_verified_backup_package(
@@ -1423,8 +1445,107 @@ class RestoreCandidateStagingTests(unittest.TestCase):
                         "updated_at": "2026-07-31 16:00:00",
                     },
                 )
+                timestamp = "2026-07-31 16:00:00"
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO spaces (
+                            id, name, description, created_at, updated_at
+                        ) VALUES (
+                            'space-1', 'Household', '', :timestamp, :timestamp
+                        )
+                        """
+                    ),
+                    {"timestamp": timestamp},
+                )
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO people (
+                            id, display_name, given_name, family_name,
+                            description, created_at, updated_at
+                        ) VALUES (
+                            'person-1', 'Amber', 'Amber', '', '',
+                            :timestamp, :timestamp
+                        )
+                        """
+                    ),
+                    {"timestamp": timestamp},
+                )
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO organizations (
+                            id, name, description, created_at, updated_at
+                        ) VALUES (
+                            'organization-1', 'Utility', '',
+                            :timestamp, :timestamp
+                        )
+                        """
+                    ),
+                    {"timestamp": timestamp},
+                )
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO organization_space_relationships (
+                            id, space_id, organization_id, role,
+                            created_at, updated_at
+                        ) VALUES (
+                            'relationship-1', 'space-1', 'organization-1',
+                            'utility', :timestamp, :timestamp
+                        )
+                        """
+                    ),
+                    {"timestamp": timestamp},
+                )
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO members (
+                            id, space_id, person_id, role, responsibilities,
+                            created_at, updated_at
+                        ) VALUES (
+                            'member-1', 'space-1', 'person-1', 'member', '',
+                            :timestamp, :timestamp
+                        )
+                        """
+                    ),
+                    {"timestamp": timestamp},
+                )
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO module_states (
+                            module_id, enabled, created_at, updated_at
+                        ) VALUES (
+                            'inventory', 1, :timestamp, :timestamp
+                        )
+                        """
+                    ),
+                    {"timestamp": timestamp},
+                )
         finally:
             engine.dispose()
+
+    def create_version_two_source_database(self) -> None:
+        self.create_current_source_database()
+
+        with sqlite3.connect(self.source_path) as connection:
+            connection.execute("PRAGMA foreign_keys=OFF")
+
+            for table_name in (
+                "members",
+                "organization_space_relationships",
+                "module_states",
+                "people",
+                "organizations",
+                "spaces",
+            ):
+                connection.execute(f'DROP TABLE "{table_name}"')
+
+            connection.execute("PRAGMA user_version = 2")
+            connection.commit()
 
     def create_legacy_source_database(self) -> None:
         with sqlite3.connect(self.source_path) as connection:
@@ -1501,7 +1622,7 @@ class RestoreCandidateStagingTests(unittest.TestCase):
         )
         self.assertEqual(
             staged.database_manifest.user_version,
-            2,
+            CURRENT_DATABASE_SCHEMA_VERSION,
         )
         self.assertEqual(
             staged.record_count_mapping()["projects"],
@@ -1511,6 +1632,17 @@ class RestoreCandidateStagingTests(unittest.TestCase):
             staged.record_count_mapping()["tasks"],
             1,
         )
+        self.assertEqual(staged.record_count_mapping()["spaces"], 1)
+        self.assertEqual(staged.record_count_mapping()["people"], 1)
+        self.assertEqual(staged.record_count_mapping()["organizations"], 1)
+        self.assertEqual(staged.record_count_mapping()["members"], 1)
+        self.assertEqual(staged.record_count_mapping()["module_states"], 1)
+
+        with sqlite3.connect(self.candidate_path) as connection:
+            member = connection.execute(
+                "SELECT space_id, person_id, role FROM members"
+            ).fetchone()
+            self.assertEqual(member, ("space-1", "person-1", "member"))
         self.assertEqual(sha256_file(package.path), package_checksum)
         self.assertEqual(sha256_file(self.live_path), live_checksum)
 
@@ -1535,7 +1667,7 @@ class RestoreCandidateStagingTests(unittest.TestCase):
         )
         self.assertEqual(
             staged.database_manifest.user_version,
-            2,
+            CURRENT_DATABASE_SCHEMA_VERSION,
         )
         counts = staged.record_count_mapping()
         self.assertEqual(counts["projects"], 1)
@@ -1565,6 +1697,39 @@ class RestoreCandidateStagingTests(unittest.TestCase):
         )
         self.assertEqual(sha256_file(package.path), package_checksum)
         self.assertEqual(sha256_file(self.live_path), live_checksum)
+
+    def test_stage_version_two_package_adds_empty_foundation_tables(
+        self,
+    ) -> None:
+        self.create_version_two_source_database()
+        package = self.create_package()
+
+        staged = stage_restore_candidate(
+            package.path,
+            self.candidate_path,
+            live_database_url=self.live_database_url,
+        )
+
+        self.assertTrue(staged.was_upgraded)
+        self.assertEqual(staged.source_manifest.database.user_version, 2)
+        self.assertEqual(
+            staged.database_manifest.user_version,
+            CURRENT_DATABASE_SCHEMA_VERSION,
+        )
+
+        counts = staged.record_count_mapping()
+        self.assertEqual(counts["projects"], 1)
+        self.assertEqual(counts["tasks"], 1)
+
+        for table_name in (
+            "spaces",
+            "people",
+            "organizations",
+            "organization_space_relationships",
+            "members",
+            "module_states",
+        ):
+            self.assertEqual(counts[table_name], 0)
 
     def test_invalid_package_is_rejected_before_destination(
         self,
@@ -1624,7 +1789,7 @@ class RestoreCandidateStagingTests(unittest.TestCase):
             raise RuntimeError("simulated upgrade failure")
 
         with patch(
-            "app.services.recovery.apply_schema_upgrades",
+            "app.core.database.apply_schema_upgrades",
             side_effect=fail_upgrade,
         ):
             with self.assertRaises(RecoveryContractError) as context:
@@ -1690,6 +1855,7 @@ class PreRestoreSafetyBackupTests(unittest.TestCase):
                 );
                 """
             )
+            connection.executescript(FOUNDATION_TABLE_SCHEMA)
             connection.execute(
                 "INSERT INTO projects (id, name) VALUES (?, ?)",
                 ("project-1", "Safety Backup Project"),
@@ -1703,7 +1869,9 @@ class PreRestoreSafetyBackupTests(unittest.TestCase):
                 "INSERT INTO inventory_items (name) VALUES (?)",
                 ("Fastener",),
             )
-            connection.execute("PRAGMA user_version = 2")
+            connection.execute(
+                f"PRAGMA user_version = {CURRENT_DATABASE_SCHEMA_VERSION}"
+            )
             connection.commit()
         finally:
             connection.close()

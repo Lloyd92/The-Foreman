@@ -21,11 +21,8 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError, SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
-from app.core.database import database_maintenance
-from app.core.schema_upgrades import (
-    CURRENT_DATABASE_SCHEMA_VERSION,
-    apply_schema_upgrades,
-)
+from app.core.database import database_maintenance, prepare_database_schema
+from app.core.schema_upgrades import CURRENT_DATABASE_SCHEMA_VERSION
 from app.models.base import Base
 from app.schemas.recovery import (
     BackupCompatibility,
@@ -52,11 +49,17 @@ CURRENT_REQUIRED_DATABASE_TABLES = frozenset(
     {
         "inventory_items",
         "inventory_migrations",
+        "members",
+        "module_states",
+        "organization_space_relationships",
+        "organizations",
+        "people",
         "project_material_requirements",
         "project_migrations",
         "projects",
         "task_migrations",
         "tasks",
+        "spaces",
     }
 )
 
@@ -1351,8 +1354,7 @@ def _prepare_restore_candidate_schema(
     try:
         with engine.begin() as connection:
             connection.exec_driver_sql("PRAGMA foreign_keys=ON")
-            Base.metadata.create_all(bind=connection)
-            apply_schema_upgrades(connection)
+            prepare_database_schema(connection)
     finally:
         engine.dispose()
 
@@ -2134,8 +2136,7 @@ def _verify_activated_database(
     try:
         with verification_engine.begin() as connection:
             connection.exec_driver_sql("PRAGMA foreign_keys=ON")
-            Base.metadata.create_all(bind=connection)
-            apply_schema_upgrades(connection)
+            prepare_database_schema(connection)
 
         with verification_engine.connect() as connection:
             connection.exec_driver_sql("PRAGMA foreign_keys=ON")

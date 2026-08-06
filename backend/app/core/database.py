@@ -10,7 +10,10 @@ from app.core.maintenance import (
     DatabaseMaintenanceCoordinator,
     maintenance_coordinator,
 )
-from app.core.schema_upgrades import apply_schema_upgrades
+from app.core.schema_upgrades import (
+    apply_schema_upgrades,
+    assert_supported_database_version,
+)
 from app.models.base import Base
 
 connect_args = (
@@ -43,12 +46,17 @@ def enable_sqlite_foreign_keys(
     cursor.close()
 
 
-def initialize_database() -> None:
+def prepare_database_schema(connection) -> None:
     import app.models  # noqa: F401
 
+    assert_supported_database_version(connection)
+    Base.metadata.create_all(bind=connection)
+    apply_schema_upgrades(connection)
+
+
+def initialize_database() -> None:
     with engine.begin() as connection:
-        Base.metadata.create_all(bind=connection)
-        apply_schema_upgrades(connection)
+        prepare_database_schema(connection)
 
 
 @contextmanager

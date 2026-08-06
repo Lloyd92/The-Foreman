@@ -113,7 +113,6 @@ class OperationalFactsApiTests(ApiTestCase):
                 "PRAGMA user_version"
             ).scalar_one()
         self.assertEqual(version, CURRENT_DATABASE_SCHEMA_VERSION)
-        self.assertEqual(version, 2)
 
         status_response = await self.client.get("/api/status")
         self.assertEqual(status_response.status_code, 200)
