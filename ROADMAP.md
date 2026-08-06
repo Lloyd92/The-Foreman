@@ -410,98 +410,300 @@ These items remain outside v0.7.1 and must be scheduled explicitly.
 
 ---
 
-# Later Module Releases
+# Universal Foundation Roadmap
 
-Mealworm Management follows the v0.7 Core Convergence sequence rather than
-serving as the immediate v0.7 milestone. Its release number will be assigned
-when the foundation milestones are complete.
+The v0.8 series establishes a universal operating structure before The Foreman
+adds deterministic Capacity, Priority, and Morning Briefing behavior.
 
-## Mealworm Management
+The approved dependency sequence is documented in
+`docs/V0_8_UNIVERSAL_ARCHITECTURE.md`.
 
-Objectives:
+## v0.8.0 — Universal Navigation & Spaces
 
-- Colony management
-- Rack visualization
-- Feeding schedules
-- Harvest planning
-- Production reporting
+Status: Planned
 
-Future integrations:
+Purpose:
 
-- Inventory
-- Budget
-- Sales
+Establish the stable application structure and authoritative Space context
+required by every later universal capability.
 
----
+Scope:
 
-## Budget
+- Install the permanent primary navigation:
+  - Today
+  - Calendar
+  - Work
+  - Resources
+  - Money
+  - Library
+- Keep Settings and Account separate below primary navigation
+- Add Personal, Household, Workshop, and future HardHead Works Space support
+- Use one clearly selected active Space for ordinary operational workflows
+- Enforce Space isolation through backend services and APIs
+- Add minimal People and Organizations foundations
+- Add Members as operational Space-participation records
+- Keep Members separate from authentication and authorization
+- Add local module registration under Settings
+- Migrate existing Projects, Tasks, Inventory, and related records into one
+  approved deterministic default Space
+- Preserve backup, restore, export, migration, and browser acceptance behavior
 
-Objectives
+Explicitly excluded:
 
-- Business budget
-- Expense tracking
-- Revenue tracking
-- Material costing
-- Profit estimation
+- Complete universal Work convergence
+- Tools and Care Plans
+- Calendar scheduling behavior
+- Money and Library behavior
+- Completed Today aggregation
+- Capacity, Priority, and Morning Briefing behavior
+- Authentication, authorization, or remote access
+- CRM, purchasing, sales, and supplier-management workflows
+- Subscriptions, billing, commercial entitlements, and SaaS tenancy
 
-Future integrations
+## v0.8.1 — Universal Work System
 
-- Inventory
-- Projects
-- Purchasing
+Status: Planned
 
----
+Purpose:
 
-## Settings
+Unify operational work beneath the permanent Work category.
 
-Objectives
+Scope:
 
-- User preferences
-- Workshop configuration
-- Backup options
-- Data import/export
-- Appearance
-- Module management
-
----
-
-## v1.0 — Initial Stable Release: Trustworthy Deterministic Decision Support
-
-Goals
-
-Deliver a reliable workshop operating system suitable for daily use.
-
-Constitutional foundations:
-
-- The Dashboard is the application shell.
-- The Morning Briefing is the Dashboard's default workspace.
-- Capacity evaluation occurs before scheduling or recommendation.
-- Priority ranks work only after Capacity determines realistic eligibility.
-- Recommendations are explainable.
-- Core operation remains useful without Artificial Intelligence.
-
-Core modules:
-
-- Dashboard
 - Tasks
-- Inventory
 - Projects
-- Budget
-- Mealworms
+- Requirements
+- Dependencies
+- Progress
+- Shared Space, responsibility, status, date, relationship, and lifecycle concepts
+- Compatibility with existing Tasks and Projects
 
-Additional goals:
+Work may reference Calendar routines or scheduled occurrences through stable
+IDs and relationships, but it does not own routine definitions.
 
-- Documentation complete
-- Stable API
-- Tested release
-- Installation guide
-- SQLite database
-- Backup and restore
-- Release notes
+Explicitly excluded:
 
-Visible user interface alone does not make a feature complete when required
-behavior is missing. Completion requires implemented behavior, verification,
-and current documentation.
+- Capacity eligibility
+- Priority ranking
+- Automatic recommendations
+
+## v0.8.2 — Tools, Inventory & Care
+
+Status: Planned
+
+Purpose:
+
+Establish the permanent Resources category while preserving separate
+authorities for durable equipment, consumable stock, and upkeep.
+
+Scope:
+
+- Tools as durable equipment
+- Inventory as consumable stock, quantities, thresholds, locations, and usage
+- Locations and availability
+- Tool condition and maintenance history
+- Care Plans for service, inspections, cleaning, property upkeep, and
+  future husbandry care definitions
+- Defined relationships to Work without cross-module ownership
+
+Explicitly excluded:
+
+- Purchasing workflows
+- Capacity eligibility
+- Priority ranking
+- Automatic recommendations
+
+## v0.8.3 — Calendar & Scheduling
+
+Status: Planned
+
+Purpose:
+
+Record commitments, availability, and schedule information without claiming
+that optional Work is feasible.
+
+Scope:
+
+- Events and fixed commitments
+- Availability windows
+- Routines and recurring schedule records
+- Work-to-Calendar relationships
+- Configured IANA timezone
+- Selected-Space Calendar views
+- Deterministic date, time, and recurrence handling
+
+Explicitly excluded:
+
+- Capacity eligibility
+- Automatic placement of optional Work
+- Claims that optional Work fits available time
+- Priority ranking
+- Recommendation logic
+
+## v0.8.4 — Money
+
+Status: Planned
+
+Purpose:
+
+Provide universal household and business financial records beneath the
+permanent Money category.
+
+Scope:
+
+- Income and revenue
+- Expenses
+- Accounts or funding sources
+- Budgets
+- Obligations and recurring costs
+- Transaction categorization
+- Contextual household and business terminology
+- Relationships to Spaces, Work, Resources, People, and Organizations
+
+Money provides operational financial decision support and does not replace
+complete accounting software.
+
+## v0.8.5 — Library, Records & Search
+
+Status: Planned
+
+Purpose:
+
+Create the permanent Library category for durable records, references, and
+search without transferring ownership from other modules.
+
+Scope:
+
+- Notes
+- Documents
+- Manuals
+- Receipts
+- Photos
+- Decisions
+- Measurements
+- CAD references
+- Universal Search
+- Relationships to Spaces and other entities
+
+Other modules may reference Library records without duplicating or owning
+their stored content.
+
+## v0.8.6 — Today Workspace & Household Proving Ground
+
+Status: Planned
+
+Purpose:
+
+Create the factual daily workspace and validate the universal architecture
+through real household use.
+
+Scope:
+
+- Selected-Space factual aggregation
+- Today’s Calendar commitments
+- Due and overdue Work
+- Active Projects
+- Resource shortages
+- Care alerts
+- Money obligations
+- Recent changes
+- Relevant Library records
+- Household proving with the owner and spouse
+- Workflow corrections based on real daily use
+
+Explicitly excluded:
+
+- Capacity eligibility
+- Claims that optional Work fits available time
+- Priority ranking
+- Recommended next actions
+- Complete Morning Briefing narration
+- Hidden or AI-generated priority logic
+
+## v0.9.0 — Capacity Engine
+
+Status: Planned
+
+Purpose:
+
+Determine realistic Work eligibility from authoritative operational facts and
+real constraints.
+
+Scope:
+
+- Eligible Work
+- Blocked Work
+- Realistic fit within available time and constraints
+- Explainable eligibility reason codes
+- Calendar commitments used as constraints
+- Resources, Money, workload, and other approved facts used as inputs
+- Deterministic results without AI dependency
+
+Capacity reads source facts but does not own or rewrite them.
+
+## v0.9.1 — Priority Engine
+
+Status: Planned
+
+Purpose:
+
+Rank only Work that Capacity has already determined is realistically eligible.
+
+Scope:
+
+- Explainable deterministic ranking
+- Approved urgency, importance, dependency, and consequence inputs
+- User-controlled overrides
+- Stable ranking reasons
+- No promotion of blocked or infeasible Work
+
+Priority ranks eligible Work but does not rewrite authoritative source facts.
+
+## v0.9.2 — Morning Briefing
+
+Status: Planned
+
+Purpose:
+
+Present Capacity, Priority, commitments, alerts, explanations, and recommended
+next actions through the primary daily experience.
+
+Scope:
+
+- Capacity results
+- Priority results
+- Calendar commitments
+- Operational alerts
+- Explainable recommended next actions
+- Source and reason visibility
+- Natural-language narration where appropriate
+- Deterministic core operation without required AI
+
+The Morning Briefing presents results but does not replace the authority of
+the modules, Calendar, Capacity, or Priority.
+
+## Cross-Cutting Architecture Boundaries
+
+- Normal operational pages use one clearly selected active Space.
+- Backend APIs enforce Space context; frontend filtering alone is insufficient.
+- People and Organizations remain minimal universal foundations in v0.8.0.
+- Person, Member, operational role, authentication, and authorization remain separate.
+- Module registration under Settings is local configuration, not monetization.
+- Modules communicate through stable relationships, APIs, services, and operational facts.
+- Modules do not manipulate one another’s private tables or duplicate authority.
+- Today presents authoritative current facts without performing Capacity or Priority behavior.
+- Calendar may record commitments and availability before Capacity exists.
+- Capacity precedes feasibility claims, optional-work placement, ranking, and recommendations.
+- The backend remains authoritative throughout the v0.8 and v0.9 series.
+- v0.7.5 isolated-browser, diagnostics, cleanup, and data-safety standards remain mandatory.
+
+## Deployment and Commercial Boundaries
+
+- HardHead remains local and LAN-only through v1.0.
+- Secure remote access begins in v1.1 after authentication, authorization, and permissions.
+- Gregg receives no persistent remote access before v1.1.
+- AI remains optional and is never required for core operation.
+- Subscription, billing, entitlement, managed-hosting, and public SaaS work remains deferred until after v3.0.
 
 ---
 
@@ -529,22 +731,33 @@ The Foreman must first become trustworthy before it becomes adaptive.
 
 ---
 
-# Potential Platform and Workshop Expansion
+# Future Platform and Specialized Expansion
 
-These exploratory ideas do not reorder the approved trust progression or the
-v0.7.4 and v0.7.5 milestones.
+These exploratory ideas do not reorder:
+
+- The approved v0.8.0 through v0.9.2 dependency sequence
+- The Version 1.0 deterministic trust target
+- The v1.5, v2.0, and v3.0 trust progression
+- The LAN-only-through-v1.0 deployment boundary
+- The post-v3.0 commercialization boundary
 
 ## Platform Options
 
-- PostgreSQL database as a later consideration after the Version 1.0 SQLite
-  foundation
-- User accounts
-- Multi-user support
-- Mobile companion app
-- Cloud synchronization
+- PostgreSQL as a later consideration after the Version 1.0 SQLite foundation
+- Authentication identities and authorization as explicit future security work
+- Secure remote access beginning in v1.1
+- Mobile companion applications
+- Cloud synchronization only when local-first operation and data ownership remain intact
 - Notifications
 - REST API expansion
-- Plugin architecture
+- Stable plugin or module interfaces
+- Intentional cross-Space administrative views
+
+Members remain operational Space-participation records and must not be treated
+as authentication identities.
+
+Public SaaS tenancy, customer provisioning, billing, subscriptions, licensing,
+and commercial entitlements remain deferred until after v3.0.
 
 ---
 

@@ -1,6 +1,6 @@
 # Project Vision
 
-*"Build software that grows with the workshop."*
+*"Build software that grows with real work."*
 
 ---
 
@@ -12,9 +12,11 @@ It is more than a task manager.
 
 It is more than business software.
 
-The long-term vision is to create a modular workshop operating system that helps people build, organize, manufacture, and grow their businesses.
+The long-term vision is a modular operating system that preserves continuity
+across personal, household, workshop, and small-business work.
 
-The Foreman should become the digital foreman every workshop wishes they had.
+The Foreman should bring the clarity of a trusted foreman to every supported
+Space without losing its workshop roots.
 
 ---
 
@@ -34,7 +36,9 @@ Remember what needs to be built next.
 
 As HardHead Works grows, The Foreman will grow alongside it.
 
-Every feature should begin by solving a real need inside the shop before expanding for broader use.
+The workshop remains a proving ground, while the architecture supports
+practical needs across personal, household, workshop, and later business
+Spaces.
 
 ---
 
@@ -61,18 +65,30 @@ The craftsman spends time building instead of searching.
 
 # The Morning Briefing
 
-The Morning Briefing is the central daily experience of The Foreman.
+Today is the target default daily workspace. Through v0.8.6, it presents
+authoritative factual current state without claiming feasibility, ranking
+Work, recommending next actions, or performing capacity-aware scheduling.
 
-It is presented through the Dashboard, which serves as the application shell.
-The Morning Briefing is the Dashboard's default workspace.
+The Morning Briefing becomes the capacity-aware primary daily experience in
+v0.9.2 and is presented through Today.
 
-Every operational module contributes relevant facts to the Morning Briefing.
-Those facts become useful daily guidance through a clear decision flow:
+The authoritative decision flow is:
 
-1. Capacity evaluates reality before recommendations are generated.
-2. Priority ranks only work that is realistically achievable.
-3. The Morning Briefing presents what is possible, what matters most, and what
-   the owner needs to know before beginning.
+```text
+Modules provide authoritative facts
+        |
+        v
+Calendar records commitments and availability
+        |
+        v
+Capacity determines realistic eligibility
+        |
+        v
+Priority ranks eligible Work
+        |
+        v
+Morning Briefing presents explainable recommendations
+```
 
 Recommendations should remain explainable so the owner understands why work is
 being surfaced. By organizing operational facts and reducing unnecessary
@@ -81,33 +97,36 @@ judgment.
 
 ---
 
-# A Workshop Operating System
+# A Universal Operating Structure
 
-The Foreman is designed to become the central operating system for HardHead Works.
+Ordinary workflows use one clearly selected active Space. Initial and planned
+contexts include Personal, Household, Workshop, and later HardHead Works when
+business needs justify a distinct Space.
 
-Future modules may include:
+The permanent navigation is:
 
-- Dashboard
-- Tasks
-- Inventory
-- Projects
-- Budget
-- Mealworm Production
-- Customer Management
-- Purchasing
-- Equipment Maintenance
-- CNC Job Management
-- Reporting
-- Automation
-- Artificial Intelligence
+- Today
+- Calendar
+- Work
+- Resources
+- Money
+- Library
 
-Each module should work independently while sharing information through well-defined interfaces.
+Settings and Account remain below the primary navigation. Module management
+belongs under Settings. Enabled modules contribute within the permanent
+categories rather than creating top-level entries by default.
+
+Each module owns its authoritative records and communicates through stable
+identifiers, relationships, services, APIs, and approved operational facts.
 
 ---
 
 # Artificial Intelligence
 
 Artificial intelligence is intended to assist—not replace—the craftsman.
+
+AI remains optional. Deterministic core operation must remain useful without
+it, and AI must never become factual authority.
 
 Its purpose is to reduce repetitive work, improve planning, and surface useful information.
 
@@ -131,11 +150,16 @@ Final decisions belong to the user.
 
 # Local First
 
-The Foreman should function without an Internet connection whenever possible.
+The Foreman remains local and LAN-only through Version 1.0.
 
 A workshop should not stop operating because cloud services are unavailable.
 
-Cloud synchronization, mobile applications, and remote access are valuable additions—but they should enhance the local experience, not replace it.
+Persistent secure remote access begins no earlier than Version 1.1 and only
+after deliberate authentication, authorization, and permission boundaries.
+
+Subscriptions, billing, managed hosting, commercial SaaS, and public product
+infrastructure remain deferred until after Version 3.0 unless the founder
+explicitly reopens commercialization.
 
 Ownership of data remains with the user.
 
@@ -147,19 +171,10 @@ The architecture is intentionally modular.
 
 New systems should be added without disrupting existing ones.
 
-Today's installation may only use:
-
-- Dashboard
-- Tasks
-- Inventory
-
-Tomorrow it may add:
-
-- Budget
-- Projects
-- Mealworms
-
-Later it may include dozens of additional modules.
+Projects and Tasks contribute within Work. Inventory and Tools contribute
+within Resources. Financial behavior belongs within Money, and stored records
+and notes belong within Library. Calendar and Today retain their permanent
+categories as capabilities grow.
 
 Growth should feel natural rather than overwhelming.
 
@@ -189,7 +204,9 @@ New ideas are tested in real projects before becoming permanent features.
 
 This ensures the software evolves through experience rather than assumptions.
 
-As HardHead Works expands into woodworking, CNC machining, insect husbandry, fabrication, outdoor products, and future ventures, The Foreman should adapt without losing its simplicity.
+As HardHead Works expands into woodworking, CNC machining, insect husbandry,
+fabrication, outdoor products, and future ventures, The Foreman should adapt
+without losing its simplicity.
 
 ---
 

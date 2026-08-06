@@ -123,62 +123,94 @@ Tasks should remain small, testable, and compatible with a Green Build.
 - [x] Reconcile v0.7.2 version metadata and release documentation.
 - [x] Complete v0.7.2 final release validation.
 
-## Current Feature Work
+## Current Work — v0.8.0 Universal Navigation & Spaces
 
-The Projects workspace now uses backend persistence, but the wider Projects
-module remains incomplete:
+v0.8.0 is divided into nine reviewable commits:
 
-- [x] Implement project creation.
-- [x] Implement project persistence.
-- [x] Implement material requirements.
-- [x] Implement progress tracking.
-- [ ] Implement estimated completion.
-- [ ] Implement project templates.
-- [x] Implement project notes.
-- [x] Verify completed v0.7.1 Projects behavior.
-- [ ] Add expanded Task-to-Project editing and display.
-- [ ] Retire legacy Project storage only after an approved recovery plan.
-- [ ] Complete archive cleanup.
+- [ ] Commit 1 — Reconcile architecture contracts and documentation.
+- [ ] Commit 2 — Add Space, Person, Organization, Member, and module-registry schema.
+- [ ] Commit 3 — Migrate existing records into the default Space.
+- [ ] Commit 4 — Add backend services and Space-authoritative APIs.
+- [ ] Commit 5 — Add the permanent navigation shell.
+- [ ] Commit 6 — Present active-Space-scoped operational data.
+- [ ] Commit 7 — Add local module registration and enablement behavior.
+- [ ] Commit 8 — Add compatibility and isolated browser acceptance coverage.
+- [ ] Commit 9 — Reconcile release documentation and version metadata.
 
-## Version 1.0 Foundation Work
+Commit 1 is documentation-only. It must not change schema, APIs, frontend
+navigation, migration behavior, runtime version metadata, cache identity,
+Docker deployment, or live data.
 
-- [ ] Implement the Morning Briefing as the Dashboard's default workspace.
-- [ ] Implement the Capacity Engine.
-- [ ] Integrate Priority ranking after Capacity eligibility.
-- [x] Establish the service layer foundation.
-- [x] Establish the repository layer foundation.
-- [x] Establish the SQLite database foundation.
-- [x] Implement manual backup.
-- [ ] Implement scheduled backup.
-- [x] Implement restore.
-- [x] Implement restore verification.
-- [x] Establish automated frontend and backend testing.
-- [x] Keep completed foundation increments runnable and verifiable.
+## Approved Universal Foundation Sequence
 
-## Deferred Core Convergence Work
+- [ ] v0.8.0 — Universal Navigation & Spaces
+- [ ] v0.8.1 — Universal Work System
+- [ ] v0.8.2 — Tools, Inventory & Care
+- [ ] v0.8.3 — Calendar & Scheduling
+- [ ] v0.8.4 — Money
+- [ ] v0.8.5 — Library, Records & Search
+- [ ] v0.8.6 — Today Workspace & Household Proving Ground
+- [ ] v0.9.0 — Capacity Engine
+- [ ] v0.9.1 — Priority Engine
+- [ ] v0.9.2 — Morning Briefing
 
-- [ ] Establish browser end-to-end test infrastructure.
-- [ ] Add a richer Project Migration Report UI and metrics.
-- [ ] Add an approved last-known backend read-only fallback after reload
-      failures.
+The dependency order is:
+
+Modules provide authoritative facts → Calendar records commitments and
+availability → Capacity determines realistic eligibility → Priority ranks
+eligible Work → Morning Briefing presents explainable recommendations.
+
+## v0.8.0 Architecture Boundaries
+
+- Ordinary workflows use one clearly selected active Space.
+- Backend APIs enforce Space isolation; frontend filtering is insufficient.
+- Existing Projects, Tasks, and Inventory migrate into a default Space.
+- People and Organizations receive minimal stable identity and relationships.
+- A Member represents operational participation in a Space.
+- Members remain separate from authentication credentials and user accounts.
+- Broad multi-Space aggregation is deferred beyond ordinary v0.8.0 workflows.
+
+## Cross-Cutting Architecture Boundaries
+
+- Modules own and validate their authoritative records.
+- Modules communicate through stable IDs, relationships, services, APIs,
+  and approved operational facts.
+- Modules must not manipulate another module's private tables or duplicate
+  authority in the frontend.
+- Today presents factual current state through v0.8.6.
+- Today must not claim feasibility, rank Work, or recommend next actions
+  before Capacity and Priority are implemented.
+- Calendar may record commitments, events, routines, recurrence, and
+  availability before Capacity exists.
+- Capacity must precede optional-Work placement, feasibility claims,
+  prioritization, recommendations, and capacity-aware scheduling decisions.
+
+## Module Registry and Deployment Boundaries
+
+- The module registry is local configuration only.
+- It records module identity, description, enabled state, dependencies,
+  contribution locations, safe enable-disable behavior, data retention,
+  and module health.
+- It must not contain subscriptions, billing, licensing, plans, tiers,
+  entitlements, or customer-provisioning behavior.
+- HardHead remains local and LAN-only through Version 1.0.
+- Secure persistent remote access begins no earlier than Version 1.1.
+- Commercial SaaS and subscription infrastructure remain deferred until
+  after Version 3.0 unless the founder explicitly reopens that direction.
+
+## Remaining Foundation and Deferred Work
+
+- [ ] Implement scheduled backups.
 - [ ] Implement estimated Project completion.
 - [ ] Implement Project templates.
+- [ ] Expand Task-to-Project editing and display.
+- [ ] Add a richer Project Migration Report UI and metrics.
+- [ ] Add an approved last-known backend read-only fallback after reload failures.
 - [ ] Retire retained legacy Project storage only after recovery requirements
       are satisfied.
-
-## Deferred Operational and Module Work
-
-- [ ] Add due dates and overdue or due-soon facts.
-- [ ] Add Project dependencies and prerequisites.
-- [ ] Add blocked Task and Project states.
-- [ ] Add Inventory allocation, reservation, and cross-Project demand.
-- [ ] Add historical operational observations.
-- [ ] Add capacity-aware prioritization and recommendations.
-- [ ] Add Morning Briefing narration.
-- [ ] Add notifications.
-- [ ] Add recurring responsibilities.
-- [ ] Add Finance.
-- [ ] Add equipment rentals.
+- [ ] Complete archive cleanup.
+- [ ] Add notifications after the owning operational facts exist.
+- [ ] Add equipment-rental support after the universal resource foundation.
 - [ ] Add AI-assisted advice only after deterministic foundations are complete.
 
 ## Backlog

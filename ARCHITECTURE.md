@@ -16,11 +16,13 @@ and Design Principles. The Constitution is the highest authority.
 
 # 1. Purpose
 
-The Foreman is a local-first business operating system whose primary
-responsibility is to transform scattered operational information into clear,
-actionable decisions. It is also an external working memory and continuity
-system: the architecture must preserve operational context so work can resume
-after interruption without reconstructing that context from memory.
+The Foreman is a local-first operational decision-support and continuity
+system. It transforms scattered operational information into clear current
+state, realistic options, and explainable next actions.
+
+It also serves as an external working memory. The architecture must preserve
+projects, decisions, dependencies, progress, and operational context so work
+can resume after interruption without reconstructing that context from memory.
 
 The architecture is designed around five core goals:
 
@@ -30,12 +32,12 @@ The architecture is designed around five core goals:
 - Simplicity
 - Continuity
 
-Every technical decision should ultimately improve the Morning Briefing.
+The target application shell uses the permanent navigation: Today, Calendar,
+Work, Resources, Money, and Library. Settings and Account remain separate.
 
-The Dashboard is the application shell.
-
-The Morning Briefing is the Dashboard's default workspace and the primary
-experience of The Foreman.
+Today is the default daily workspace. It first presents authoritative factual
+state. After Capacity and Priority are implemented, the Morning Briefing is
+presented through Today as the primary decision-support experience.
 
 ---
 
@@ -138,8 +140,6 @@ The current implementation does not yet include:
 - Capacity Engine
 - Priority Engine
 - Morning Briefing assembly logic
-- Backup
-- Restore and restore verification
 - Testing Mode
 
 These are incomplete Version 1.0 target capabilities, not evidence that the
@@ -197,6 +197,10 @@ Foreman/
 │   ├── manifest.webmanifest
 │   ├── service-worker.js
 │   └── styles.css
+├── scripts/
+│   ├── bootstrap_browser_e2e.sh
+│   ├── run_browser_e2e.sh
+│   └── validate_restore_roundtrip.sh
 ├── ARCHITECTURE.md
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
@@ -207,8 +211,9 @@ Foreman/
 
 The `database/` directory remains a repository placeholder while SQLite is
 stored in the Docker-managed `/data` volume. The `docker/` directory now
-contains the operational private-LAN Caddy configuration. The repository does
-not yet contain an operational `scripts/` directory.
+contains the operational private-LAN Caddy configuration. The `scripts/`
+directory supports browser-E2E execution, disposable acceptance, and isolated
+restore round-trip validation.
 
 ## 2.5 Current Backend Flow
 
@@ -312,8 +317,8 @@ unavailable presentation rather than a browser-derived valid state.
 
 ## 2.7 PWA, Availability, and Household Deployment
 
-The current PWA delivery path, established in v0.7.2 and retained by v0.7.3,
-is:
+The current PWA delivery path, established in v0.7.2 and hardened through
+v0.7.5, is:
 
 ```text
 LAN device
@@ -337,7 +342,7 @@ The manifest and installation assets define the PWA identity and installation
 boundary. Standalone display, Apple installation metadata, and dynamic
 safe-area insets support the installed iPhone experience.
 
-The service worker atomically precaches exactly 29 static-shell resources.
+The service worker atomically precaches exactly 32 static-shell resources.
 Only exact allowlisted shell resources and navigation fallback are handled by
 that cache. APIs, migrations, mutations, non-GET requests, the worker itself,
 unknown static resources, and cross-origin requests remain network-owned.
@@ -378,57 +383,79 @@ supported.
 
 ## 3.1 Core System Flow
 
-```text
-Projects
-Tasks
-Inventory
-Finance
-Notes
-Settings
-      │
-      ▼
-Operational facts from modules
-      │
-      ▼
-Capacity Engine
-      │
-      ▼
-Priority Engine
-      │
-      ▼
-Morning Briefing
-      │
-      ▼
-Dashboard application shell
-```
+The target application shell provides the permanent navigation:
 
-The responsibilities in this flow are explicit:
+- Today
+- Calendar
+- Work
+- Resources
+- Money
+- Library
 
-1. Modules provide facts.
-2. Capacity evaluates reality and determines which work is eligible.
-3. Priority ranks eligible work.
-4. The Morning Briefing presents explainable recommendations in the
-   Dashboard's default workspace.
+Settings and Account remain separate below the primary navigation.
+
+Normal operational workflows use one clearly selected active Space. Backend
+services and APIs enforce Space context authoritatively; frontend filtering
+alone is never sufficient for Space isolation.
+
+The target decision-support flow is:
 
 ```text
-Modules provide facts
-        │
-        ▼
-Capacity evaluates reality
-        │
-        ▼
-Priority ranks eligible work
-        │
-        ▼
+Modules provide authoritative facts
+        |
+        v
+Calendar records commitments and availability
+        |
+        v
+Capacity determines realistic eligibility
+        |
+        v
+Priority ranks eligible Work
+        |
+        v
 Morning Briefing presents explainable recommendations
 ```
 
-Capacity evaluation precedes scheduling and recommendation. Scheduling may
-organize eligible work, but it must never override real limits.
+The active Space establishes operational context around this chain. Modules
+own and validate their records within that context, and Today later presents
+the resulting daily experience through the application shell. Neither changes
+or interrupts the locked five-stage dependency flow.
 
-Unified Operational Facts are the implemented first boundary in this flow.
-Capacity, Priority, and complete Morning Briefing assembly remain target
-capabilities.
+The responsibilities in this flow are explicit:
+
+1. Spaces define operational context.
+2. Modules own and validate their authoritative records.
+3. Modules expose authoritative facts without replacing source ownership.
+4. Calendar records commitments, events, routines, recurrence, and
+   availability.
+5. Capacity determines what Work is eligible, blocked, or realistically fits.
+6. Priority ranks only Work that Capacity has determined is eligible.
+7. The Morning Briefing presents commitments, alerts, explanations, and
+   recommended next actions.
+8. Today presents authoritative daily information and later hosts the complete
+   Morning Briefing experience.
+
+Calendar recordkeeping and capacity-aware scheduling are different concerns.
+
+Calendar may record fixed commitments, events, routines, recurrence, and
+availability before the Capacity Engine exists. This does not claim that
+optional Work is achievable.
+
+Capacity must be evaluated before The Foreman:
+
+- Places optional Work into available time
+- Declares optional Work feasible
+- Ranks eligible Work
+- Recommends Work
+- Presents capacity-aware scheduling decisions
+
+This preserves the constitutional rule that Capacity takes precedence over
+scheduling and recommendation.
+
+Unified Operational Facts are the implemented first decision-support boundary.
+Spaces, universal navigation, Calendar, Capacity, Priority, Today aggregation,
+and complete Morning Briefing assembly remain target capabilities assigned to
+the approved v0.8 and v0.9 milestones.
 
 ## 3.2 Design Goals
 
@@ -492,7 +519,7 @@ Foreman/
 │       ├── schemas/         # Pydantic schemas
 │       └── main.py
 ├── database/                # Planned SQLite data and backup support
-├── docker/                  # Planned shared deployment support
+├── docker/                  # Caddy and shared deployment support
 ├── docs/
 ├── frontend/
 │   ├── pages/
@@ -508,8 +535,8 @@ Foreman/
 ```
 
 This remains the target structure. The API, service, repository, model,
-schema, SQLite, and backend-test foundations now exist; shared operational
-scripts and additional Version 1.0 capabilities remain planned.
+schema, SQLite, backend-test, and shared operational-script foundations now
+exist. Additional Version 1.0 capabilities remain planned.
 
 ---
 
@@ -519,9 +546,17 @@ scripts and additional Version 1.0 capabilities remain planned.
 
 The frontend is responsible for presentation and user interaction.
 
-The Dashboard provides the application shell. Its default workspace is the
-Morning Briefing. Other workspaces must remain modular and must not displace
-the Morning Briefing as the primary experience.
+The application shell provides the permanent navigation: Today, Calendar,
+Work, Resources, Money, and Library. Settings and Account remain separate
+below the primary navigation.
+
+Today is the default daily workspace. Through v0.8.6, it presents authoritative
+factual current state without making capacity, priority, feasibility, or
+recommendation claims.
+
+After the v0.9 decision-support sequence is complete, the Morning Briefing
+becomes the capacity-aware primary daily experience presented through Today.
+Other workspaces remain modular and retain their own responsibilities.
 
 ## 4.2 API
 
@@ -559,8 +594,8 @@ boundary.
 
 # 5. Morning Briefing
 
-The Morning Briefing is the Dashboard's default workspace and the primary
-output of the system.
+The Morning Briefing is the target capacity-aware primary daily experience
+presented through Today after the v0.9 decision-support sequence is complete.
 
 It answers three questions:
 
@@ -568,12 +603,17 @@ It answers three questions:
 2. What matters most today?
 3. What do I need to know before I begin?
 
-Every major module contributes operational facts toward these answers.
+Every major module contributes authoritative operational facts toward these
+answers.
+
+Before the Morning Briefing is implemented, Today may present factual current
+state, commitments, alerts, and records. It must not claim feasibility, rank
+Work, or recommend next actions without Capacity and Priority evaluation.
 
 The Morning Briefing assembles capacity-aware, prioritized information. It
-does not replace the independent responsibilities of contributing modules.
-When implemented, it should restore enough current context for the owner to
-continue after an interruption, not merely narrate disconnected records.
+does not replace the independent responsibilities or ownership of contributing
+modules. It should restore enough current context for the owner to continue
+after an interruption, not merely narrate disconnected records.
 
 ---
 
@@ -592,20 +632,25 @@ The Capacity Engine evaluates:
 - Current workload
 - Work type
 
-Capacity evaluation precedes both scheduling and recommendation.
+Calendar may record fixed commitments, events, routines, recurrence, and
+availability before Capacity evaluation.
 
-Only work that fits the owner's real constraints is eligible for
+Capacity evaluation must precede automatic placement of optional Work,
+feasibility claims, prioritization, recommendations, and capacity-aware
+scheduling decisions.
+
+Only Work that fits the owner's real constraints is eligible for
 prioritization. Recommendations must always fit today's reality.
 
 ---
 
 # 7. Priority Engine
 
-The Priority Engine ranks work only after the Capacity Engine has determined
-that the work is realistically eligible.
+The Priority Engine ranks Work only after the Capacity Engine has determined
+that the Work is realistically eligible.
 
-Priority must not make impossible work appear actionable. Its output supports
-the Morning Briefing by identifying the next meaningful work among realistic
+Priority must not make impossible Work appear actionable. Its output supports
+the Morning Briefing by identifying the next meaningful Work among realistic
 options.
 
 ---
@@ -628,28 +673,35 @@ business logic or enhanced by AI.
 
 # 9. Module Philosophy
 
-Modules remain independent.
+Modules remain independent and own their authoritative records.
 
 Examples include:
 
-- Projects
-- Tasks
-- Inventory
-- Finance
-- Notes
-- Settings
+- Work owns Tasks, Projects, requirements, dependencies, and progress.
+- Inventory owns consumable stock, quantities, thresholds, locations, and
+  usage.
+- Tools owns durable equipment, condition, and availability.
+- Calendar owns fixed commitments, events, routines, recurrence, and
+  availability.
+- Care Plans owns maintenance and care definitions.
+- Money owns financial records.
+- Library owns stored records and reference material.
 
-Modules own their operational facts and provide those facts through
-well-defined interfaces.
+Modules communicate through stable identifiers, relationships, services, APIs,
+and approved operational facts. They must not manipulate another module's
+private tables, duplicate authority, or create browser-side truth.
 
-Capacity evaluates realistic eligibility, Priority ranks eligible work, and
-the Morning Briefing assembles the result.
+Capacity reads approved facts to determine realistic eligibility. Priority
+ranks eligible Work. Today presents factual current state, and the Morning
+Briefing later assembles capacity-aware recommendations.
+
+The local module registry records module identity, enablement, dependencies,
+contribution locations, data-retention behavior, and health. It does not
+contain subscriptions, billing, licensing, plans, tiers, or entitlements.
 
 The current Unified Operational Facts boundary gives modules one
 deterministic, explainable representation of current state. Frontend pages
 must consume that shared authority rather than recreate page-specific facts.
-
----
 
 # 10. AI Integration
 
@@ -712,9 +764,9 @@ Testing Mode must not weaken backup, restore, or data-safety requirements.
 
 The Foreman must remain portable and local-first.
 
-Core workshop operation must not depend on an Internet connection or a cloud
-service. Deployment and data should remain transferable between supported
-local environments.
+Core operation must not depend on an Internet connection or a cloud service.
+Deployment and data should remain transferable between supported local
+environments.
 
 ---
 

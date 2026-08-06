@@ -30,46 +30,68 @@ v0.7.5 — Frontend Hardening and Browser E2E
 
 Current focus:
 
-- Isolated Firefox and geckodriver browser acceptance
-- Backend-authoritative CRUD and compatibility workflows
-- Deterministic connection-loss and reload-protection coverage
-- Normalized migration reporting
-- Bounded diagnostics and verified disposable cleanup
+- Reconcile the approved v0.8 and v0.9 architecture sequence
+- Define Universal Navigation and Spaces before implementation
+- Preserve v0.7.5 runtime, data, deployment, and cache behavior
+- Document active-Space authority and universal module ownership
+- Prepare the nine-commit v0.8.0 implementation plan
 
 ---
 
 # Mission
 
-The Foreman exists to reduce friction inside the workshop.
+The Foreman exists to reduce operational friction and preserve continuity
+across household, workshop, personal, and small-business work.
 
-Instead of spending time searching for materials, remembering measurements, tracking projects, or managing inventory manually, users should be able to focus on building.
+Instead of spending time searching for information, reconstructing decisions,
+remembering dependencies, or manually connecting scattered records, the owner
+should be able to focus on meaningful work.
 
-It is designed to preserve context across interruptions. Current operational
-state should remain understandable without requiring the owner to remember
-how disconnected records fit together.
+The Foreman preserves context across interruptions. Current operational state
+should remain understandable without requiring the owner to remember how
+projects, commitments, resources, records, and decisions fit together.
 
 Every feature is designed around one guiding question:
 
-> **Does this help someone build something?**
+> **Does this provide clarity, preserve continuity, or help complete meaningful work?**
 
 ---
 
 # Primary Experience
 
-The Dashboard is the application shell.
+The current v0.7.5 Dashboard is the implemented application shell and
+operational workspace. It is not the target permanent navigation shell.
 
-The Morning Briefing is the Dashboard's default workspace and the primary
-experience of The Foreman. It is intended to help the owner understand:
+The target permanent primary navigation is:
+
+- Today
+- Calendar
+- Work
+- Resources
+- Money
+- Library
+
+Settings and Account remain separate below the primary navigation.
+
+Today is the target default daily workspace. Through v0.8.6, Today presents
+authoritative factual current state only. It does not claim feasibility, rank
+eligible Work, recommend next actions, or perform capacity-aware scheduling.
+
+The v0.9.2 Morning Briefing becomes the capacity-aware primary daily
+experience presented through Today. It is intended to help the owner
+understand:
 
 1. What can I realistically accomplish today?
 2. What matters most today?
 3. What do I need to know before I begin?
 
-Capacity always precedes scheduling. Future recommendations must fit the
-owner's available time, energy, money, materials, and other real constraints.
+Calendar may record commitments, events, routines, recurrence, and
+availability before Capacity exists. Capacity must precede automatic
+optional-Work placement, feasibility claims, prioritization, recommendations,
+and capacity-aware scheduling decisions.
 
-The current Dashboard is an early operational workspace. The complete Morning
-Briefing and Capacity Engine remain Version 1.0 target capabilities.
+The permanent navigation, Today workspace, Capacity Engine, Priority Engine,
+and complete Morning Briefing are not yet implemented.
 
 ---
 
@@ -99,7 +121,9 @@ For additional information, see:
 
 ## Dashboard
 
-The application shell and home of the Morning Briefing.
+The current v0.7.5 application shell and operational workspace. It does not
+yet provide the target permanent navigation, Today workspace, or complete
+Morning Briefing.
 
 Current capabilities:
 
@@ -144,16 +168,21 @@ Current capabilities:
 - Backend-authoritative in-stock, low-stock, out-of-stock, and invalid
   classifications
 
-Planned capabilities:
+Inventory owns consumable stock, quantities, thresholds, locations, and
+usage.
+
+Planned Inventory capabilities:
 
 - Barcode support
-- Purchase tracking
-- Supplier management
 - Material forecasting
+
+Purchasing and supplier-management workflows remain deferred specialized
+concerns. They may reference Inventory through stable IDs and relationships
+without becoming Inventory authority.
 
 ---
 
-# Projects
+## Projects
 
 The Projects workspace uses the backend API and SQLite as its
 authoritative runtime source. It supports project creation, editing, confirmed
@@ -221,11 +250,11 @@ iPhone Home Screen installation. Trusted HTTPS installation, standalone
 launch, backend-authoritative startup, and safe-area behavior have been
 accepted on a physical iPhone.
 
-The service worker atomically precaches an exact 29-resource static shell. It
-does not cache API responses, business records, migrations, or mutations and
-does not queue, replay, or synchronize writes. A cached shell can therefore
-remain available when HardHead is unavailable, but shell availability does not
-mean operational data is available.
+The current v0.7.5 service worker atomically precaches an exact 32-resource
+static shell. It does not cache API responses, business records, migrations,
+or mutations and does not queue, replay, or synchronize writes. A cached shell
+can therefore remain available when HardHead is unavailable, but shell
+availability does not mean operational data is available.
 
 `/api/health` is the authoritative operational gate. Normal Projects, Tasks,
 and Inventory behavior starts only when HardHead reports both the application
@@ -386,10 +415,11 @@ Foreman/
 │   │   └── main.py
 │   └── tests/           # Backend API tests
 ├── database/           # Placeholder for persistent storage
-├── docker/             # Reserved infrastructure directory
+├── docker/             # Current Caddy private-LAN TLS configuration
 ├── docs/
 │   └── AGENTS.md       # Contributor and AI-agent instructions
 ├── frontend/           # HTML, CSS, and JavaScript application
+├── scripts/            # Browser E2E, disposable acceptance, restore validation
 ├── compose.yaml
 ├── ARCHITECTURE.md
 ├── CHANGELOG.md
@@ -399,9 +429,9 @@ Foreman/
 ```
 
 The implemented backend foundation includes API, service, repository, model,
-schema, SQLite, and test layers. The Version 1.0 target may add operational
-scripts and the remaining planned capabilities documented in
-`ARCHITECTURE.md`.
+schema, SQLite, and test layers. The operational scripts support browser-E2E
+execution, disposable acceptance, and isolated restore round-trip validation.
+The remaining planned capabilities are documented in `ARCHITECTURE.md`.
 
 ---
 
@@ -499,7 +529,8 @@ Before contributing:
 10. Read `docs/TASKS.md`
 11. Read `CONTRIBUTING.md`
 
-All contributors—including AI coding assistants—are expected to follow the project's architectural and documentation standards.
+All contributors—including AI coding assistants—are expected to follow the
+project's architectural and documentation standards.
 
 ---
 
@@ -513,7 +544,8 @@ Until then, all rights are reserved by HardHead Works.
 
 # Acknowledgements
 
-The Foreman began as an internal project for HardHead Works with the goal of building software that supports real craftsmanship.
+The Foreman began as an internal project for HardHead Works with the goal of
+building software that supports real craftsmanship.
 
 Every feature is intended to solve practical workshop problems first and grow through real-world use.
 

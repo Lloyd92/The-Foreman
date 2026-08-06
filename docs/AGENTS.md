@@ -18,12 +18,13 @@ order:
 3. `docs/ENGINEERING_PRINCIPLES.md`
 4. `docs/DESIGN_PRINCIPLES.md`
 5. `ARCHITECTURE.md`
-6. `docs/AGENTS.md`
-7. `README.md`
-8. `ROADMAP.md`
-9. `CHANGELOG.md`
-10. `docs/TASKS.md`
-11. `CONTRIBUTING.md`
+6. `docs/V0_8_UNIVERSAL_ARCHITECTURE.md`
+7. `docs/AGENTS.md`
+8. `README.md`
+9. `ROADMAP.md`
+10. `CHANGELOG.md`
+11. `docs/TASKS.md`
+12. `CONTRIBUTING.md`
 
 Do not begin implementation until you understand the purpose of the project.
 
@@ -39,6 +40,8 @@ The documents above have distinct responsibilities:
 - Design Principles define the user experience.
 - Architecture defines the Version 1.0 target architecture. It does not
   necessarily describe the current implementation.
+- The v0.8 Universal Architecture is the governing contract for the approved
+  v0.8 and v0.9 sequence.
 
 Lower-authority documents and implementation details must not override the
 Constitution.
@@ -55,9 +58,10 @@ behavior. Do not describe planned systems as if they already exist.
 
 # Project Purpose
 
-The Foreman is a modular workshop operating system developed for HardHead Works.
+The Foreman is a modular operational system developed by HardHead Works.
 
-It exists to reduce friction inside real workshops.
+It reduces friction and preserves continuity across supported personal,
+household, workshop, and small-business Spaces.
 
 Every feature should solve a practical problem.
 
@@ -69,15 +73,41 @@ Never lose sight of that purpose.
 
 # Primary Experience
 
-The Dashboard is the application shell.
+The current v0.7.5 Dashboard is the implemented shell and operational
+workspace. It is not the target permanent navigation architecture.
 
-The Morning Briefing is the Dashboard's default workspace.
+The permanent navigation is Today, Calendar, Work, Resources, Money, and
+Library. Settings and Account remain below those categories.
 
-Every major module should ultimately contribute useful information to the
-Morning Briefing.
+Today is the target default daily workspace. Through v0.8.6, it presents
+authoritative factual state without feasibility, ranking, recommendation, or
+capacity-aware scheduling claims.
 
-Capacity must be evaluated before scheduling. Recommendations must fit the
-owner's available time, energy, money, materials, and other real constraints.
+The approved decision sequence is:
+
+```text
+Modules provide authoritative facts
+        |
+        v
+Calendar records commitments and availability
+        |
+        v
+Capacity determines realistic eligibility
+        |
+        v
+Priority ranks eligible Work
+        |
+        v
+Morning Briefing presents explainable recommendations
+```
+
+Calendar may record commitments, events, routines, recurrence, and
+availability before Capacity exists. Capacity must precede automatic
+optional-Work placement, feasibility claims, prioritization, recommendations,
+and capacity-aware scheduling decisions.
+
+Capacity is implemented in v0.9.0, Priority in v0.9.1, and the capacity-aware
+Morning Briefing through Today in v0.9.2.
 
 ---
 
@@ -105,6 +135,26 @@ Do not redesign the project without approval.
 
 Maintain modular architecture.
 
+Ordinary workflows use one clearly selected active Space. Projects, Tasks, and
+Inventory are scoped to that Space. Backend services and APIs enforce Space
+isolation; frontend filtering alone is insufficient.
+
+Module ownership remains strict:
+
+- Work owns Tasks, Projects, requirements, dependencies, and progress.
+- Calendar owns commitments, events, routines, recurrence, and availability.
+- Inventory owns consumable stock, quantities, thresholds, locations, and
+  usage.
+- Tools owns durable equipment, condition, maintenance, and availability.
+- Care Plans owns care and maintenance definitions.
+- Money owns financial records.
+- Library owns stored records and reference material.
+
+Modules communicate through stable identifiers, relationships, services, APIs,
+and approved operational facts. They must not manipulate another module's
+private tables, duplicate factual authority in the browser, create circular
+ownership, or require unrelated modules during initialization.
+
 Pages belong in:
 
 frontend/pages/
@@ -120,6 +170,16 @@ Avoid placing application logic inside HTML.
 Avoid duplicate functionality.
 
 Prefer extending existing modules over creating unnecessary new ones.
+
+AI is optional and non-authoritative. Core operation must remain deterministic
+and useful without it.
+
+HardHead remains local and LAN-only through Version 1.0. Gregg receives no
+persistent remote access before Version 1.1.
+
+Commercial SaaS, subscriptions, billing, licensing, plans, tiers,
+entitlements, managed hosting, and customer provisioning remain deferred until
+after Version 3.0 unless the founder explicitly reopens commercialization.
 
 ---
 
@@ -236,7 +296,9 @@ Leave those decisions to the project owner.
 
 Remember:
 
-The Foreman is being built to operate a real workshop.
+The Foreman began in a real workshop and remains grounded in craftsmanship. It
+now supports practical personal, household, workshop, and small-business
+operations through explicit Spaces.
 
 Do not optimize for impressive code.
 
@@ -255,25 +317,3 @@ If the answer is no, reconsider the implementation.
 The Foreman serves the craftsman.
 
 Every contribution should move the project toward that goal.
-
----
-
-# The Foreman
-
-The digital operations center for HardHead Works.
-
-## Vision
-
-The Foreman will manage:
-
-- Inventory
-- Tool tracking
-- Material tracking
-- CNC projects
-- Mealworm production
-- Customer jobs
-- Budgeting
-- Scheduling
-- AI assistance
-
-Built by HardHead Works.

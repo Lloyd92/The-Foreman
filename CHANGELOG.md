@@ -13,8 +13,17 @@ Each release represents a stable, working version of the application.
 ## Documentation
 
 - Established the Constitution-first documentation authority order.
-- Clarified the Dashboard as the application shell and the Morning Briefing as
-  its default workspace.
+- Reconciled the target permanent navigation as Today, Calendar, Work,
+  Resources, Money, and Library, with Settings and Account below the primary
+  categories.
+- Documented one active Space for ordinary workflows and backend-enforced
+  Space isolation.
+- Defined factual Today through v0.8.6, Capacity in v0.9.0, Priority in v0.9.1,
+  and the capacity-aware Morning Briefing through Today in v0.9.2.
+- Established strict module ownership and local, non-commercial module
+  registration under Settings.
+- Kept the first v0.8.0 reconciliation change documentation-only, without
+  implementing target v0.8 or v0.9 behavior.
 - Separated current implementation from the Version 1.0 target architecture.
 - Reconciled current release status, planned work, repository paths, and
   persistence terminology.

@@ -38,7 +38,9 @@ decision requiring founder approval.
 
 The Foreman is developed intentionally.
 
-Every feature should solve a real workshop problem.
+Every feature should solve a practical operational problem within supported
+personal, household, workshop, or small-business Spaces. HardHead Works and
+the workshop remain the project's origin and proving ground.
 
 Quality is more important than speed.
 
@@ -74,11 +76,23 @@ Before implementing a feature:
 - Keep responsibilities separated.
 - Identify whether the change affects the current implementation, the Version
   1.0 target architecture, or both.
-- Confirm that the Dashboard remains the application shell and the Morning
-  Briefing remains its default workspace.
-- Confirm that capacity is evaluated before scheduling or recommendation.
+- Preserve Dashboard as the currently implemented v0.7.5 shell, not the target
+  permanent navigation architecture.
+- Preserve Today, Calendar, Work, Resources, Money, and Library as the target
+  permanent navigation, with Settings and Account below those categories.
+- Keep Today factual through v0.8.6. The capacity-aware Morning Briefing is a
+  v0.9.2 capability presented through Today.
+- Allow Calendar to record commitments, events, routines, recurrence, and
+  availability before Capacity exists.
+- Require Capacity before automatic optional-Work placement, feasibility
+  claims, prioritization, recommendations, and capacity-aware scheduling.
+- Enforce active-Space isolation in backend services and APIs. Frontend
+  filtering alone is insufficient.
+- Keep module ownership strict. Modules must not manipulate another module's
+  private tables or recreate factual authority in the browser.
 
-Follow the architecture described in `ARCHITECTURE.md`.
+Follow the architecture described in `ARCHITECTURE.md` and the governing
+v0.8/v0.9 contract in `docs/V0_8_UNIVERSAL_ARCHITECTURE.md`.
 
 Architecture describes the Version 1.0 target and may not match every part of
 the current implementation. Do not treat an implementation difference as an

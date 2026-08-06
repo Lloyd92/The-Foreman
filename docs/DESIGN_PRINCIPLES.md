@@ -34,25 +34,30 @@ The interface should reduce stress rather than increase it.
 ---
 
 # Principle 2
-## The Morning Briefing Comes First
+## Today Establishes the Daily Experience
 
-The Dashboard is the application shell.
+The target permanent navigation is Today, Calendar, Work, Resources, Money,
+and Library. Settings and Account remain below those categories.
 
-The Morning Briefing is the Dashboard's default workspace and the primary
-daily experience of The Foreman.
+Today is the target default daily workspace. Through v0.8.6, it presents
+authoritative factual current state without making feasibility, ranking,
+recommendation, or capacity-aware scheduling claims.
 
-Every module exists to improve it.
+After the v0.9 Capacity and Priority sequence is complete, the v0.9.2 Morning
+Briefing becomes the capacity-aware primary daily experience presented through
+Today.
 
-Every element presented through the Dashboard should support the Morning
-Briefing rather than compete with it for attention.
+Calendar may display and manage commitments, events, routines, recurrence, and
+availability before Capacity exists. Those records do not imply that optional
+Work is feasible.
 
-Capacity must evaluate whether work is realistically achievable before it is
-scheduled or recommended. Scheduling displays must never imply that work is
-feasible until Capacity has evaluated it.
+Capacity is required before automatic optional-Work placement, feasibility
+claims, prioritization, recommendations, and capacity-aware scheduling
+decisions.
 
 When deciding whether a feature belongs in Version 1.0 ask:
 
-> Does this improve today's briefing?
+> Does this preserve clarity, continuity, or meaningful progress?
 
 If not...
 
@@ -65,27 +70,31 @@ It probably belongs somewhere else.
 
 Every screen should answer a question.
 
-Examples:
+Permanent-category examples:
 
-Morning Briefing
+Today
 
-> What should I do today?
+> What is factually true today?
 
-Projects
+Calendar
 
-> What is my next step?
+> What commitments and availability are recorded?
 
-Inventory
+Work
 
-> What materials am I running low on?
+> What Tasks and Projects require attention?
 
-Finance
+Resources
 
-> Can I afford this purchase?
+> What Inventory and Tools are available?
 
-Notes
+Money
 
-> What information do I need later?
+> What financial obligations and records matter?
+
+Library
+
+> What notes, documents, and stored records do I need?
 
 If a page exists without answering an important question, reconsider its purpose.
 
@@ -162,6 +171,18 @@ Avoid combining unrelated functions.
 Each screen should focus on solving one primary problem.
 
 Simple screens reduce decision fatigue.
+
+Work owns Tasks, Projects, requirements, dependencies, and progress. Calendar
+owns commitments, events, routines, recurrence, and availability. Inventory
+owns consumable stock, quantities, thresholds, locations, and usage. Tools
+owns durable equipment, condition, maintenance, and availability. Care Plans
+owns care and maintenance definitions. Money owns financial records. Library
+owns stored records and reference material.
+
+Backend services and APIs enforce record ownership and active-Space isolation.
+Frontend filtering must not become a security boundary or competing factual
+authority. Modules communicate through stable identifiers and approved
+relationships rather than manipulating another module's private tables.
 
 ---
 
