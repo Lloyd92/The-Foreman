@@ -1,7 +1,7 @@
 from datetime import date, datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import Date, DateTime, Float, String, Text
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -13,11 +13,23 @@ def utc_now() -> datetime:
 
 class Project(Base):
     __tablename__ = "projects"
+    __table_args__ = (
+        Index("ix_projects_space_id", "space_id"),
+    )
 
     id: Mapped[str] = mapped_column(
         String(36),
         primary_key=True,
         default=lambda: str(uuid4()),
+    )
+    space_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "spaces.id",
+            ondelete="RESTRICT",
+            name="fk_projects_space_id",
+        ),
+        nullable=False,
     )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     type: Mapped[str] = mapped_column(

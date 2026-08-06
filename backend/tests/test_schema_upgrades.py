@@ -6,6 +6,8 @@ from unittest.mock import patch
 
 from sqlalchemy import create_engine, inspect, text
 
+from app.core.database import prepare_database_schema
+from app.core.default_space import DEFAULT_SPACE_ID
 from app.core.schema_upgrades import (
     CURRENT_DATABASE_SCHEMA_VERSION,
     apply_schema_upgrades,
@@ -13,6 +15,7 @@ from app.core.schema_upgrades import (
 )
 from app.models.base import Base
 from app.models.space import Space
+from tests.test_support import create_pre_v4_tables
 
 
 LEGACY_SCHEMA = """
@@ -128,10 +131,13 @@ class SchemaUpgradeTests(unittest.TestCase):
         import app.models  # noqa: F401
 
         timestamp = datetime(2026, 8, 1, 12, 0, tzinfo=timezone.utc)
-        tables = [Base.metadata.tables[name] for name in VERSION_TWO_TABLES]
 
         with self.engine.begin() as connection:
-            Base.metadata.create_all(bind=connection, tables=tables)
+            create_pre_v4_tables(
+                connection,
+                set(VERSION_TWO_TABLES),
+            )
+
             connection.execute(
                 Base.metadata.tables["inventory_items"].insert(),
                 {
@@ -224,9 +230,8 @@ class SchemaUpgradeTests(unittest.TestCase):
     def run_upgrade(self) -> None:
         import app.models  # noqa: F401
 
-        with self.engine.begin() as connection:
-            Base.metadata.create_all(bind=connection)
-            apply_schema_upgrades(connection)
+        with self.engine.connect() as connection:
+            prepare_database_schema(connection)
 
     def test_legacy_database_is_preserved_and_upgrade_is_idempotent(
         self,
@@ -329,7 +334,7 @@ class SchemaUpgradeTests(unittest.TestCase):
             unique_constraints,
         )
 
-    def test_version_two_database_adds_empty_foundation_without_changes(
+    def test_version_two_database_adds_foundation_and_space_ownership(
         self,
     ) -> None:
         self.create_version_two_database()
@@ -364,23 +369,44 @@ class SchemaUpgradeTests(unittest.TestCase):
                 preserved,
                 {table_name: 1 for table_name in VERSION_TWO_TABLES},
             )
-            upgraded_definitions = {
-                row.name: row.sql
-                for row in connection.execute(
-                    text(
-                        "SELECT name, sql FROM sqlite_master "
-                        "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
-                    )
+            for table_name in set(VERSION_TWO_TABLES) - {
+                "project_material_requirements"
+            }:
+                self.assertNotEqual(
+                    connection.execute(
+                        text(
+                            "SELECT sql FROM sqlite_master "
+                            "WHERE type = 'table' AND name = :name"
+                        ),
+                        {"name": table_name},
+                    ).scalar_one(),
+                    version_two_definitions[table_name],
                 )
-                if row.name in VERSION_TWO_TABLES
-            }
+                self.assertEqual(
+                    connection.execute(
+                        text(
+                            f'SELECT COUNT(*) FROM "{table_name}" '
+                            "WHERE space_id = :space_id"
+                        ),
+                        {"space_id": DEFAULT_SPACE_ID},
+                    ).scalar_one(),
+                    1,
+                )
+
             self.assertEqual(
-                upgraded_definitions,
-                version_two_definitions,
+                connection.execute(
+                    text(
+                        "SELECT sql FROM sqlite_master "
+                        "WHERE type = 'table' "
+                        "AND name = 'project_material_requirements'"
+                    )
+                ).scalar_one(),
+                version_two_definitions[
+                    "project_material_requirements"
+                ],
             )
 
             for table_name in (
-                "spaces",
                 "people",
                 "organizations",
                 "organization_space_relationships",
@@ -393,6 +419,13 @@ class SchemaUpgradeTests(unittest.TestCase):
                     ).scalar_one(),
                     0,
                 )
+
+            self.assertEqual(
+                connection.execute(
+                    text("SELECT COUNT(*) FROM spaces")
+                ).scalar_one(),
+                1,
+            )
 
     def test_partial_foundation_creation_resumes_idempotently(self) -> None:
         self.create_version_two_database()
@@ -493,7 +526,7 @@ class SchemaUpgradeTests(unittest.TestCase):
                 RuntimeError,
                 "members indexes are incomplete",
             ):
-                with self.engine.begin() as connection:
+                with self.engine.connect() as connection:
                     apply_schema_upgrades(connection)
 
         with self.engine.connect() as connection:
@@ -514,26 +547,15 @@ class SchemaUpgradeTests(unittest.TestCase):
         self.create_legacy_database()
 
         with self.assertRaises(Exception):
-            with self.engine.begin() as connection:
+            with self.engine.connect() as connection:
                 with patch(
                     "app.core.schema_upgrades.PROJECT_INDEX_UPGRADES",
                     ("THIS IS NOT VALID SQL",),
                 ):
-                    apply_schema_upgrades(connection)
-
-        columns = {
-            column["name"]
-            for column in inspect(self.engine).get_columns("projects")
-        }
+                    prepare_database_schema(connection)
 
         with self.engine.connect() as connection:
             self.assertEqual(get_database_schema_version(connection), 0)
-
-        # SQLite may retain successful ALTER TABLE statements even when a
-        # later DDL statement fails. The schema version must remain unchanged
-        # so the idempotent upgrade can safely resume at the next startup.
-        self.assertIn("type", columns)
-        self.assertIn("priority", columns)
 
         self.run_upgrade()
 
@@ -550,6 +572,8 @@ class SchemaUpgradeTests(unittest.TestCase):
 
         with self.engine.begin() as connection:
             connection.exec_driver_sql("PRAGMA user_version = 1")
+
+        with self.engine.connect() as connection:
             with self.assertRaisesRegex(
                 RuntimeError,
                 "Project material requirements table is missing",
@@ -583,14 +607,12 @@ class SchemaUpgradeTests(unittest.TestCase):
             connection.exec_driver_sql("PRAGMA user_version = 1")
 
         with self.assertRaises(Exception):
-            with self.engine.begin() as connection:
-                Base.metadata.create_all(bind=connection)
-
+            with self.engine.connect() as connection:
                 with patch(
                     "app.core.schema_upgrades.PROJECT_INDEX_UPGRADES",
                     ("THIS IS NOT VALID SQL",),
                 ):
-                    apply_schema_upgrades(connection)
+                    prepare_database_schema(connection)
 
         with self.engine.connect() as connection:
             self.assertEqual(get_database_schema_version(connection), 1)

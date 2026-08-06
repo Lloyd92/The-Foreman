@@ -1,3 +1,8 @@
+from sqlalchemy import select
+
+from app.core.database import SessionLocal
+from app.core.default_space import DEFAULT_SPACE_ID
+from app.models.task import Task
 from test_support import ApiTestCase
 
 
@@ -13,6 +18,16 @@ class TaskApiTests(ApiTestCase):
 
         self.assertEqual(create_response.status_code, 201)
         task = create_response.json()
+        self.assertNotIn("spaceId", task)
+
+        with SessionLocal() as session:
+            self.assertEqual(
+                session.scalar(
+                    select(Task.space_id).where(Task.id == task["id"])
+                ),
+                DEFAULT_SPACE_ID,
+            )
+
         self.assertIsNone(task["projectId"])
         self.assertFalse(task["completed"])
 
@@ -98,6 +113,12 @@ class TaskApiTests(ApiTestCase):
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["detail"], "Project not found.")
+
+        space_response = await self.client.post(
+            "/api/tasks",
+            json={"title": "Client-scoped", "spaceId": "client-space"},
+        )
+        self.assertEqual(space_response.status_code, 422)
 
     async def test_deleting_project_unassigns_related_task(self) -> None:
         project = await self.create_project(status="active")

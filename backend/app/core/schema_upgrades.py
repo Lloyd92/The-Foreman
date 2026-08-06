@@ -1,7 +1,22 @@
-from sqlalchemy import inspect
+import hashlib
+from dataclasses import dataclass
+from datetime import datetime, timezone
+
+from sqlalchemy import MetaData, UniqueConstraint, inspect, text
 from sqlalchemy.engine import Connection
 
-CURRENT_DATABASE_SCHEMA_VERSION = 3
+from app.core.default_space import (
+    DEFAULT_SPACE_DESCRIPTION,
+    DEFAULT_SPACE_ID,
+    DEFAULT_SPACE_NAME,
+    DefaultSpaceConflictError,
+)
+from app.models.base import Base
+
+
+FOUNDATION_DATABASE_SCHEMA_VERSION = 3
+CURRENT_DATABASE_SCHEMA_VERSION = 4
+SPACE_SCOPE_JOURNAL_TABLE = "__foreman_v4_space_scope_journal"
 
 PROJECT_COLUMN_UPGRADES = {
     "type": (
@@ -315,6 +330,84 @@ FOUNDATION_FOREIGN_KEYS = {
 }
 
 
+@dataclass(frozen=True)
+class SpaceScopedTableUpgrade:
+    table_name: str
+
+    @property
+    def shadow_name(self) -> str:
+        return f"__foreman_v4_{self.table_name}_shadow"
+
+    @property
+    def ready_name(self) -> str:
+        return f"__foreman_v4_{self.table_name}_ready"
+
+
+@dataclass(frozen=True)
+class SpaceScopedMigrationEvidence:
+    canonical_table: str
+    replacement_table: str
+    phase: str
+    source_row_count: int
+    replacement_row_count: int
+    source_digest: str
+    replacement_digest: str
+    expected_space_id: str
+
+
+SPACE_SCOPED_TABLE_UPGRADES = tuple(
+    SpaceScopedTableUpgrade(table_name)
+    for table_name in (
+        "inventory_items",
+        "projects",
+        "tasks",
+        "inventory_migrations",
+        "project_migrations",
+        "task_migrations",
+    )
+)
+SPACE_SCOPED_TABLE_UPGRADES_BY_NAME = {
+    upgrade.table_name: upgrade
+    for upgrade in SPACE_SCOPED_TABLE_UPGRADES
+}
+SPACE_SCOPE_JOURNAL_PHASES = frozenset({"ready", "complete"})
+SPACE_SCOPE_JOURNAL_COLUMNS = (
+    (0, "canonical_table", "VARCHAR(80)", 1, None, 1),
+    (1, "replacement_table", "VARCHAR(120)", 1, None, 0),
+    (2, "phase", "VARCHAR(20)", 1, None, 0),
+    (3, "source_row_count", "INTEGER", 1, None, 0),
+    (4, "replacement_row_count", "INTEGER", 1, None, 0),
+    (5, "source_digest", "VARCHAR(64)", 1, None, 0),
+    (6, "replacement_digest", "VARCHAR(64)", 1, None, 0),
+    (7, "expected_space_id", "VARCHAR(36)", 1, None, 0),
+)
+SPACE_SCOPE_JOURNAL_CHECKS = {
+    "ck_foreman_v4_journal_phase": "phase IN ('ready', 'complete')",
+    "ck_foreman_v4_journal_source_count": "source_row_count >= 0",
+    "ck_foreman_v4_journal_replacement_count": (
+        "replacement_row_count >= 0"
+    ),
+}
+SPACE_SCOPE_JOURNAL_CREATE_SQL = f"""
+    CREATE TABLE {SPACE_SCOPE_JOURNAL_TABLE} (
+        canonical_table VARCHAR(80) NOT NULL PRIMARY KEY,
+        replacement_table VARCHAR(120) NOT NULL,
+        phase VARCHAR(20) NOT NULL,
+        source_row_count INTEGER NOT NULL,
+        replacement_row_count INTEGER NOT NULL,
+        source_digest VARCHAR(64) NOT NULL,
+        replacement_digest VARCHAR(64) NOT NULL,
+        expected_space_id VARCHAR(36) NOT NULL,
+        CONSTRAINT ck_foreman_v4_journal_phase
+            CHECK (phase IN ('ready', 'complete')),
+        CONSTRAINT ck_foreman_v4_journal_source_count
+            CHECK (source_row_count >= 0),
+        CONSTRAINT ck_foreman_v4_journal_replacement_count
+            CHECK (replacement_row_count >= 0)
+    )
+"""
+
+
 def get_database_schema_version(connection: Connection) -> int:
     return int(
         connection.exec_driver_sql(
@@ -333,6 +426,9 @@ def assert_supported_database_version(connection: Connection) -> int:
         raise RuntimeError(
             "Database schema is newer than this application supports."
         )
+
+    if SPACE_SCOPE_JOURNAL_TABLE in inspect(connection).get_table_names():
+        _verify_migration_journal_schema(connection)
 
     return version
 
@@ -570,32 +666,1286 @@ def _verify_foundation_schema(connection: Connection) -> None:
                 )
 
 
+def _quote_identifier(value: str) -> str:
+    return '"' + value.replace('"', '""') + '"'
+
+
+def _normalized_default(value: object) -> str:
+    normalized = _canonical_sql(str(value))
+
+    if len(normalized) >= 2 and normalized[0] == normalized[-1] == "'":
+        return normalized[1:-1]
+
+    return normalized
+
+
+def _physical_model_table(table_name: str, physical_name: str):
+    metadata = MetaData()
+
+    for existing_name, table in Base.metadata.tables.items():
+        if existing_name != table_name:
+            table.to_metadata(metadata)
+
+    physical_table = Base.metadata.tables[table_name].to_metadata(
+        metadata,
+        name=physical_name,
+    )
+
+    for index in tuple(physical_table.indexes):
+        physical_table.indexes.remove(index)
+
+    return physical_table
+
+
+def _table_has_final_structure(
+    connection: Connection,
+    table_name: str,
+    physical_name: str | None = None,
+) -> bool:
+    actual_name = physical_name or table_name
+    database_inspector = inspect(connection)
+
+    if actual_name not in database_inspector.get_table_names():
+        return False
+
+    model_table = Base.metadata.tables[table_name]
+    expected_columns = list(model_table.columns)
+    actual_columns = database_inspector.get_columns(actual_name)
+
+    if [column["name"] for column in actual_columns] != [
+        column.name for column in expected_columns
+    ]:
+        return False
+
+    for expected, actual in zip(expected_columns, actual_columns, strict=True):
+        expected_default = (
+            None
+            if expected.server_default is None
+            else _normalized_default(expected.server_default.arg)
+        )
+        actual_default = (
+            None
+            if actual.get("default") is None
+            else _normalized_default(actual["default"])
+        )
+
+        if (
+            str(actual["type"]).upper() != str(expected.type).upper()
+            or bool(actual["nullable"]) != bool(expected.nullable)
+            or actual_default != expected_default
+        ):
+            return False
+
+    actual_primary_key = tuple(
+        database_inspector.get_pk_constraint(actual_name).get(
+            "constrained_columns"
+        )
+        or []
+    )
+    expected_primary_key = tuple(
+        column.name for column in model_table.primary_key.columns
+    )
+
+    if actual_primary_key != expected_primary_key:
+        return False
+
+    expected_unique_constraints = {
+        constraint.name: tuple(column.name for column in constraint.columns)
+        for constraint in model_table.constraints
+        if isinstance(constraint, UniqueConstraint)
+    }
+    actual_unique_constraints = {
+        constraint.get("name"): tuple(constraint["column_names"])
+        for constraint in database_inspector.get_unique_constraints(
+            actual_name
+        )
+    }
+
+    if actual_unique_constraints != expected_unique_constraints:
+        return False
+
+    expected_foreign_keys = {
+        constraint.name: (
+            tuple(element.parent.name for element in constraint.elements),
+            constraint.referred_table.name,
+            tuple(element.column.name for element in constraint.elements),
+            str(constraint.ondelete or "").upper(),
+        )
+        for constraint in model_table.foreign_key_constraints
+    }
+    actual_foreign_keys = {
+        foreign_key.get("name"): (
+            tuple(foreign_key["constrained_columns"]),
+            foreign_key["referred_table"],
+            tuple(foreign_key["referred_columns"]),
+            str(
+                (foreign_key.get("options") or {}).get("ondelete") or ""
+            ).upper(),
+        )
+        for foreign_key in database_inspector.get_foreign_keys(actual_name)
+    }
+    return actual_foreign_keys == expected_foreign_keys
+
+
+def _expected_indexes(table_name: str) -> dict[str, tuple[str, ...]]:
+    return {
+        index.name: tuple(column.name for column in index.columns)
+        for index in Base.metadata.tables[table_name].indexes
+    }
+
+
+def _actual_indexes(
+    connection: Connection,
+    table_name: str,
+) -> dict[str, tuple[tuple[str, ...], bool]]:
+    return {
+        index["name"]: (
+            tuple(index["column_names"]),
+            bool(index["unique"]),
+        )
+        for index in inspect(connection).get_indexes(table_name)
+    }
+
+
+def _verify_legacy_indexes(
+    connection: Connection,
+    table_name: str,
+) -> None:
+    expected = _expected_indexes(table_name)
+    expected.pop(f"ix_{table_name}_space_id")
+    actual = _actual_indexes(connection, table_name)
+
+    unexpected = set(actual) - set(expected)
+
+    if unexpected:
+        names = ", ".join(sorted(unexpected))
+        raise RuntimeError(
+            f"{table_name} has unsupported indexes that cannot be "
+            f"discarded during migration: {names}."
+        )
+
+    for name, (columns, unique) in actual.items():
+        if columns != expected[name] or unique:
+            raise RuntimeError(
+                f"{table_name} index {name} is malformed."
+            )
+
+
+def _repair_scoped_indexes(
+    connection: Connection,
+    table_name: str,
+) -> None:
+    for name, columns in sorted(_expected_indexes(table_name).items()):
+        column_sql = ", ".join(_quote_identifier(column) for column in columns)
+        connection.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS "
+            f"{_quote_identifier(name)} ON "
+            f"{_quote_identifier(table_name)} ({column_sql})"
+        )
+
+
+def _verify_scoped_indexes(
+    connection: Connection,
+    table_name: str,
+) -> None:
+    expected = _expected_indexes(table_name)
+    actual = _actual_indexes(connection, table_name)
+
+    if set(actual) != set(expected):
+        raise RuntimeError(f"{table_name} indexes are incomplete.")
+
+    for name, columns in expected.items():
+        actual_columns, unique = actual[name]
+
+        if actual_columns != columns or unique:
+            raise RuntimeError(f"{table_name} index {name} is malformed.")
+
+
+def _unexpected_triggers(
+    connection: Connection,
+    table_names: tuple[str, ...],
+) -> list[str]:
+    if not table_names:
+        return []
+
+    placeholders = ", ".join(
+        f":table_{index}" for index, _ in enumerate(table_names)
+    )
+    parameters = {
+        f"table_{index}": table_name
+        for index, table_name in enumerate(table_names)
+    }
+    return list(
+        connection.execute(
+            text(
+                "SELECT name FROM sqlite_master "
+                "WHERE type = 'trigger' "
+                f"AND tbl_name IN ({placeholders}) "
+                "ORDER BY name"
+            ),
+            parameters,
+        ).scalars()
+    )
+
+
+def _assert_no_migration_triggers(
+    connection: Connection,
+    upgrade: SpaceScopedTableUpgrade,
+) -> None:
+    triggers = _unexpected_triggers(
+        connection,
+        (upgrade.table_name, upgrade.shadow_name, upgrade.ready_name),
+    )
+
+    if triggers:
+        names = ", ".join(triggers)
+        raise RuntimeError(
+            f"{upgrade.table_name} has unsupported triggers that cannot be "
+            f"discarded during migration: {names}."
+        )
+
+
+def _table_names(connection: Connection) -> set[str]:
+    return set(inspect(connection).get_table_names())
+
+
+def _create_shadow_table(
+    connection: Connection,
+    upgrade: SpaceScopedTableUpgrade,
+) -> None:
+    _physical_model_table(
+        upgrade.table_name,
+        upgrade.shadow_name,
+    ).create(bind=connection)
+
+
+def _copy_into_shadow(
+    connection: Connection,
+    upgrade: SpaceScopedTableUpgrade,
+) -> None:
+    model_columns = [
+        column.name
+        for column in Base.metadata.tables[upgrade.table_name].columns
+    ]
+    insert_columns = ", ".join(
+        _quote_identifier(column) for column in model_columns
+    )
+    select_columns = ", ".join(
+        (
+            ":default_space_id"
+            if column == "space_id"
+            else _quote_identifier(column)
+        )
+        for column in model_columns
+    )
+    connection.execute(
+        text(
+            f"INSERT INTO {_quote_identifier(upgrade.shadow_name)} "
+            f"({insert_columns}) SELECT {select_columns} "
+            f"FROM {_quote_identifier(upgrade.table_name)}"
+        ),
+        {"default_space_id": DEFAULT_SPACE_ID},
+    )
+
+
+def _legacy_column_names(table_name: str) -> tuple[str, ...]:
+    return tuple(
+        column.name
+        for column in Base.metadata.tables[table_name].columns
+        if column.name != "space_id"
+    )
+
+
+def _digest_value(value: object) -> bytes:
+    if value is None:
+        return b"null"
+
+    if isinstance(value, bytes):
+        return b"bytes:" + value
+
+    if isinstance(value, float):
+        return b"float:" + value.hex().encode("ascii")
+
+    if isinstance(value, int):
+        return b"int:" + str(value).encode("ascii")
+
+    return b"text:" + str(value).encode("utf-8")
+
+
+def _table_evidence(
+    connection: Connection,
+    upgrade: SpaceScopedTableUpgrade,
+    physical_name: str,
+) -> tuple[int, str]:
+    columns = _legacy_column_names(upgrade.table_name)
+    primary_key_columns = tuple(
+        column.name
+        for column in Base.metadata.tables[upgrade.table_name].primary_key
+    )
+    selected_columns = ", ".join(
+        _quote_identifier(column) for column in columns
+    )
+    ordering = ", ".join(
+        _quote_identifier(column) for column in primary_key_columns
+    )
+    rows = connection.exec_driver_sql(
+        f"SELECT {selected_columns} FROM {_quote_identifier(physical_name)} "
+        f"ORDER BY {ordering}"
+    )
+    digest = hashlib.sha256()
+    digest.update(b"foreman-v4-space-scope\0")
+    row_count = 0
+
+    for column in columns:
+        encoded_column = column.encode("utf-8")
+        digest.update(len(encoded_column).to_bytes(8, "big"))
+        digest.update(encoded_column)
+
+    for row in rows:
+        row_count += 1
+        digest.update(b"row\0")
+
+        for value in row:
+            encoded_value = _digest_value(value)
+            digest.update(len(encoded_value).to_bytes(8, "big"))
+            digest.update(encoded_value)
+
+    return row_count, digest.hexdigest()
+
+
+def _replacement_has_exact_space(
+    connection: Connection,
+    table_name: str,
+) -> bool:
+    invalid_space_count = connection.execute(
+        text(
+            f"SELECT COUNT(*) FROM {_quote_identifier(table_name)} "
+            "WHERE space_id IS NULL OR space_id != :default_space_id"
+        ),
+        {"default_space_id": DEFAULT_SPACE_ID},
+    ).scalar_one()
+    return invalid_space_count == 0
+
+
+def _copy_evidence(
+    connection: Connection,
+    upgrade: SpaceScopedTableUpgrade,
+    replacement_name: str,
+) -> SpaceScopedMigrationEvidence | None:
+    if not _table_has_final_structure(
+        connection,
+        upgrade.table_name,
+        replacement_name,
+    ):
+        return None
+
+    if not _replacement_has_exact_space(connection, replacement_name):
+        return None
+
+    source_count, source_digest = _table_evidence(
+        connection,
+        upgrade,
+        upgrade.table_name,
+    )
+    replacement_count, replacement_digest = _table_evidence(
+        connection,
+        upgrade,
+        replacement_name,
+    )
+
+    if (
+        source_count != replacement_count
+        or source_digest != replacement_digest
+    ):
+        return None
+
+    return SpaceScopedMigrationEvidence(
+        canonical_table=upgrade.table_name,
+        replacement_table=upgrade.ready_name,
+        phase="ready",
+        source_row_count=source_count,
+        replacement_row_count=replacement_count,
+        source_digest=source_digest,
+        replacement_digest=replacement_digest,
+        expected_space_id=DEFAULT_SPACE_ID,
+    )
+
+
+def _shadow_matches_canonical(
+    connection: Connection,
+    upgrade: SpaceScopedTableUpgrade,
+    shadow_name: str,
+) -> bool:
+    return _copy_evidence(connection, upgrade, shadow_name) is not None
+
+
+def _ensure_migration_journal(connection: Connection) -> None:
+    with connection.begin():
+        connection.exec_driver_sql(
+            SPACE_SCOPE_JOURNAL_CREATE_SQL.replace(
+                "CREATE TABLE ",
+                "CREATE TABLE IF NOT EXISTS ",
+                1,
+            )
+        )
+        _verify_migration_journal_schema(connection)
+
+
+def _verify_migration_journal_schema(connection: Connection) -> None:
+    database_inspector = inspect(connection)
+
+    if SPACE_SCOPE_JOURNAL_TABLE not in database_inspector.get_table_names():
+        raise RuntimeError("The version 4 migration journal is missing.")
+
+    table_info = tuple(
+        tuple(row)
+        for row in connection.exec_driver_sql(
+            f"PRAGMA table_info({_quote_identifier(SPACE_SCOPE_JOURNAL_TABLE)})"
+        )
+    )
+
+    if table_info != SPACE_SCOPE_JOURNAL_COLUMNS:
+        raise RuntimeError("The version 4 migration journal is malformed.")
+
+    primary_key = tuple(
+        database_inspector.get_pk_constraint(
+            SPACE_SCOPE_JOURNAL_TABLE
+        ).get("constrained_columns")
+        or []
+    )
+
+    if primary_key != ("canonical_table",):
+        raise RuntimeError("The version 4 migration journal is malformed.")
+
+    actual_checks = {
+        constraint.get("name"): _canonical_sql(constraint["sqltext"])
+        for constraint in database_inspector.get_check_constraints(
+            SPACE_SCOPE_JOURNAL_TABLE
+        )
+    }
+    expected_checks = {
+        name: _canonical_sql(expression)
+        for name, expression in SPACE_SCOPE_JOURNAL_CHECKS.items()
+    }
+
+    if actual_checks != expected_checks:
+        raise RuntimeError("The version 4 migration journal is malformed.")
+
+    if database_inspector.get_foreign_keys(SPACE_SCOPE_JOURNAL_TABLE):
+        raise RuntimeError("The version 4 migration journal is malformed.")
+
+    if database_inspector.get_unique_constraints(SPACE_SCOPE_JOURNAL_TABLE):
+        raise RuntimeError("The version 4 migration journal is malformed.")
+
+    if database_inspector.get_indexes(SPACE_SCOPE_JOURNAL_TABLE):
+        raise RuntimeError("The version 4 migration journal is malformed.")
+
+    pragma_indexes = tuple(
+        (int(row[2]), str(row[3]), int(row[4]))
+        for row in connection.exec_driver_sql(
+            f"PRAGMA index_list({_quote_identifier(SPACE_SCOPE_JOURNAL_TABLE)})"
+        )
+    )
+
+    if pragma_indexes != ((1, "pk", 0),):
+        raise RuntimeError("The version 4 migration journal is malformed.")
+
+    create_sql = connection.exec_driver_sql(
+        "SELECT sql FROM sqlite_master "
+        "WHERE type = 'table' AND name = ?",
+        (SPACE_SCOPE_JOURNAL_TABLE,),
+    ).scalar_one()
+
+    if _canonical_sql(str(create_sql)) != _canonical_sql(
+        SPACE_SCOPE_JOURNAL_CREATE_SQL
+    ):
+        raise RuntimeError("The version 4 migration journal is malformed.")
+
+
+def _read_migration_evidence(
+    connection: Connection,
+    table_name: str,
+) -> SpaceScopedMigrationEvidence | None:
+    if SPACE_SCOPE_JOURNAL_TABLE not in _table_names(connection):
+        return None
+
+    _verify_migration_journal_schema(connection)
+    row = connection.execute(
+        text(
+            f"SELECT canonical_table, replacement_table, phase, "
+            "source_row_count, replacement_row_count, source_digest, "
+            "replacement_digest, expected_space_id "
+            f"FROM {SPACE_SCOPE_JOURNAL_TABLE} "
+            "WHERE canonical_table = :canonical_table"
+        ),
+        {"canonical_table": table_name},
+    ).mappings().one_or_none()
+
+    if row is None:
+        return None
+
+    return SpaceScopedMigrationEvidence(**row)
+
+
+def _write_migration_evidence(
+    connection: Connection,
+    evidence: SpaceScopedMigrationEvidence,
+) -> None:
+    connection.execute(
+        text(
+            f"""
+            INSERT INTO {SPACE_SCOPE_JOURNAL_TABLE} (
+                canonical_table,
+                replacement_table,
+                phase,
+                source_row_count,
+                replacement_row_count,
+                source_digest,
+                replacement_digest,
+                expected_space_id
+            ) VALUES (
+                :canonical_table,
+                :replacement_table,
+                :phase,
+                :source_row_count,
+                :replacement_row_count,
+                :source_digest,
+                :replacement_digest,
+                :expected_space_id
+            )
+            ON CONFLICT(canonical_table) DO UPDATE SET
+                replacement_table = excluded.replacement_table,
+                phase = excluded.phase,
+                source_row_count = excluded.source_row_count,
+                replacement_row_count = excluded.replacement_row_count,
+                source_digest = excluded.source_digest,
+                replacement_digest = excluded.replacement_digest,
+                expected_space_id = excluded.expected_space_id
+            """
+        ),
+        evidence.__dict__,
+    )
+
+
+def _evidence_is_self_consistent(
+    evidence: SpaceScopedMigrationEvidence,
+    upgrade: SpaceScopedTableUpgrade,
+) -> bool:
+    return (
+        evidence.canonical_table == upgrade.table_name
+        and evidence.replacement_table == upgrade.ready_name
+        and evidence.phase in SPACE_SCOPE_JOURNAL_PHASES
+        and evidence.source_row_count == evidence.replacement_row_count
+        and evidence.source_digest == evidence.replacement_digest
+        and evidence.expected_space_id == DEFAULT_SPACE_ID
+    )
+
+
+def _ready_matches_durable_evidence(
+    connection: Connection,
+    upgrade: SpaceScopedTableUpgrade,
+    evidence: SpaceScopedMigrationEvidence,
+    *,
+    canonical_exists: bool,
+) -> bool:
+    if evidence.phase != "ready" or not _evidence_is_self_consistent(
+        evidence,
+        upgrade,
+    ):
+        return False
+
+    if not _table_has_final_structure(
+        connection,
+        upgrade.table_name,
+        upgrade.ready_name,
+    ):
+        return False
+
+    if not _replacement_has_exact_space(connection, upgrade.ready_name):
+        return False
+
+    ready_count, ready_digest = _table_evidence(
+        connection,
+        upgrade,
+        upgrade.ready_name,
+    )
+
+    if (
+        ready_count != evidence.replacement_row_count
+        or ready_digest != evidence.replacement_digest
+    ):
+        return False
+
+    if canonical_exists:
+        source_count, source_digest = _table_evidence(
+            connection,
+            upgrade,
+            upgrade.table_name,
+        )
+
+        if (
+            source_count != evidence.source_row_count
+            or source_digest != evidence.source_digest
+        ):
+            return False
+
+    return True
+
+
+def _final_matches_durable_evidence(
+    connection: Connection,
+    upgrade: SpaceScopedTableUpgrade,
+    evidence: SpaceScopedMigrationEvidence,
+) -> bool:
+    if not _evidence_is_self_consistent(evidence, upgrade):
+        return False
+
+    if not _replacement_has_exact_space(connection, upgrade.table_name):
+        return False
+
+    final_count, final_digest = _table_evidence(
+        connection,
+        upgrade,
+        upgrade.table_name,
+    )
+    return (
+        final_count == evidence.replacement_row_count
+        and final_digest == evidence.replacement_digest
+    )
+
+
+def _validate_existing_migration_journal(
+    connection: Connection,
+) -> None:
+    if SPACE_SCOPE_JOURNAL_TABLE not in _table_names(connection):
+        return
+
+    _verify_migration_journal_schema(connection)
+    rows = connection.execute(
+        text(
+            f"SELECT canonical_table, replacement_table, phase, "
+            "source_row_count, replacement_row_count, source_digest, "
+            "replacement_digest, expected_space_id "
+            f"FROM {SPACE_SCOPE_JOURNAL_TABLE} "
+            "ORDER BY canonical_table"
+        )
+    ).mappings().all()
+    tables = _table_names(connection)
+
+    for row in rows:
+        canonical_table = row["canonical_table"]
+        upgrade = SPACE_SCOPED_TABLE_UPGRADES_BY_NAME.get(canonical_table)
+
+        if upgrade is None:
+            raise RuntimeError(
+                "The version 4 migration journal contains an unknown "
+                "canonical table."
+            )
+
+        evidence = SpaceScopedMigrationEvidence(**row)
+
+        if not _evidence_is_self_consistent(evidence, upgrade):
+            raise RuntimeError(
+                f"{upgrade.table_name} has invalid migration journal "
+                "evidence."
+            )
+
+        canonical_exists = upgrade.table_name in tables
+        ready_exists = upgrade.ready_name in tables
+        canonical_is_final = (
+            canonical_exists
+            and _table_has_final_structure(connection, upgrade.table_name)
+        )
+
+        if evidence.phase == "ready":
+            ready_is_valid = (
+                ready_exists
+                and _ready_matches_durable_evidence(
+                    connection,
+                    upgrade,
+                    evidence,
+                    canonical_exists=canonical_exists,
+                )
+            )
+            installed_is_valid = (
+                not ready_exists
+                and canonical_is_final
+                and _final_matches_durable_evidence(
+                    connection,
+                    upgrade,
+                    evidence,
+                )
+            )
+
+            if not ready_is_valid and not installed_is_valid:
+                raise RuntimeError(
+                    f"{upgrade.table_name} has invalid ready migration "
+                    "journal evidence."
+                )
+        elif not canonical_is_final or not _final_matches_durable_evidence(
+            connection,
+            upgrade,
+            evidence,
+        ):
+            raise RuntimeError(
+                f"{upgrade.table_name} has invalid complete migration "
+                "journal evidence."
+            )
+
+
+def _drop_internal_table(connection: Connection, table_name: str) -> None:
+    connection.exec_driver_sql(
+        f"DROP TABLE {_quote_identifier(table_name)}"
+    )
+
+
+def _rename_table(
+    connection: Connection,
+    source_name: str,
+    destination_name: str,
+) -> None:
+    connection.exec_driver_sql(
+        f"ALTER TABLE {_quote_identifier(source_name)} "
+        f"RENAME TO {_quote_identifier(destination_name)}"
+    )
+
+
+def _discard_unverified_replacements(
+    connection: Connection,
+    upgrade: SpaceScopedTableUpgrade,
+) -> None:
+    with connection.begin():
+        tables = _table_names(connection)
+
+        for table_name in (upgrade.shadow_name, upgrade.ready_name):
+            if table_name in tables:
+                _drop_internal_table(connection, table_name)
+
+
+def _prepare_replacement_table(
+    connection: Connection,
+    upgrade: SpaceScopedTableUpgrade,
+) -> None:
+    with connection.begin():
+        _create_shadow_table(connection, upgrade)
+
+
+def _build_ready_replacement(
+    connection: Connection,
+    upgrade: SpaceScopedTableUpgrade,
+) -> None:
+    with connection.begin():
+        _copy_into_shadow(connection, upgrade)
+
+        if not _shadow_matches_canonical(
+            connection,
+            upgrade,
+            upgrade.shadow_name,
+        ):
+            raise RuntimeError(
+                f"{upgrade.table_name} shadow copy verification failed."
+            )
+
+        _rename_table(
+            connection,
+            upgrade.shadow_name,
+            upgrade.ready_name,
+        )
+
+
+def _record_ready_replacement(
+    connection: Connection,
+    upgrade: SpaceScopedTableUpgrade,
+) -> None:
+    with connection.begin():
+        evidence = _copy_evidence(
+            connection,
+            upgrade,
+            upgrade.ready_name,
+        )
+
+        if evidence is None:
+            raise RuntimeError(
+                f"{upgrade.table_name} ready copy verification failed."
+            )
+
+        _write_migration_evidence(connection, evidence)
+
+
+def _drop_verified_canonical(
+    connection: Connection,
+    upgrade: SpaceScopedTableUpgrade,
+) -> None:
+    with connection.begin():
+        evidence = _read_migration_evidence(
+            connection,
+            upgrade.table_name,
+        )
+
+        if evidence is None or not _ready_matches_durable_evidence(
+            connection,
+            upgrade,
+            evidence,
+            canonical_exists=True,
+        ):
+            raise RuntimeError(
+                f"{upgrade.table_name} has invalid durable ready evidence."
+            )
+
+        _drop_internal_table(connection, upgrade.table_name)
+
+
+def _install_verified_replacement(
+    connection: Connection,
+    upgrade: SpaceScopedTableUpgrade,
+) -> None:
+    with connection.begin():
+        evidence = _read_migration_evidence(
+            connection,
+            upgrade.table_name,
+        )
+
+        if evidence is None or not _ready_matches_durable_evidence(
+            connection,
+            upgrade,
+            evidence,
+            canonical_exists=False,
+        ):
+            raise RuntimeError(
+                f"{upgrade.table_name} has invalid durable ready evidence."
+            )
+
+        _rename_table(
+            connection,
+            upgrade.ready_name,
+            upgrade.table_name,
+        )
+
+
+def _complete_final_table(
+    connection: Connection,
+    upgrade: SpaceScopedTableUpgrade,
+    *,
+    record_journal: bool,
+) -> None:
+    with connection.begin():
+        if not _table_has_final_structure(connection, upgrade.table_name):
+            raise RuntimeError(
+                f"{upgrade.table_name} replacement structure is invalid."
+            )
+
+        if not _replacement_has_exact_space(connection, upgrade.table_name):
+            raise RuntimeError(
+                f"{upgrade.table_name} contains invalid Space ownership."
+            )
+
+        evidence = _read_migration_evidence(
+            connection,
+            upgrade.table_name,
+        )
+
+        if evidence is not None and not _final_matches_durable_evidence(
+            connection,
+            upgrade,
+            evidence,
+        ):
+            raise RuntimeError(
+                f"{upgrade.table_name} does not match durable migration "
+                "evidence."
+            )
+
+        _repair_scoped_indexes(connection, upgrade.table_name)
+        _verify_scoped_indexes(connection, upgrade.table_name)
+        tables = _table_names(connection)
+
+        for table_name in (upgrade.shadow_name, upgrade.ready_name):
+            if table_name in tables:
+                _drop_internal_table(connection, table_name)
+
+        if record_journal:
+            row_count, digest = _table_evidence(
+                connection,
+                upgrade,
+                upgrade.table_name,
+            )
+            _write_migration_evidence(
+                connection,
+                SpaceScopedMigrationEvidence(
+                    canonical_table=upgrade.table_name,
+                    replacement_table=upgrade.ready_name,
+                    phase="complete",
+                    source_row_count=row_count,
+                    replacement_row_count=row_count,
+                    source_digest=digest,
+                    replacement_digest=digest,
+                    expected_space_id=DEFAULT_SPACE_ID,
+                ),
+            )
+
+
+def _migrate_space_scoped_table(
+    connection: Connection,
+    upgrade: SpaceScopedTableUpgrade,
+    *,
+    record_journal: bool = True,
+) -> None:
+    with connection.begin():
+        _assert_no_migration_triggers(connection, upgrade)
+        tables = _table_names(connection)
+        canonical_exists = upgrade.table_name in tables
+        shadow_exists = upgrade.shadow_name in tables
+        ready_exists = upgrade.ready_name in tables
+        canonical_is_final = canonical_exists and _table_has_final_structure(
+            connection,
+            upgrade.table_name,
+        )
+        evidence = _read_migration_evidence(
+            connection,
+            upgrade.table_name,
+        )
+
+        if canonical_exists and not canonical_is_final:
+            actual_columns = {
+                column["name"]
+                for column in inspect(connection).get_columns(
+                    upgrade.table_name
+                )
+            }
+            expected_legacy_columns = set(
+                _legacy_column_names(upgrade.table_name)
+            )
+
+            if actual_columns != expected_legacy_columns:
+                raise RuntimeError(
+                    f"{upgrade.table_name} has a malformed partial Space "
+                    "schema."
+                )
+
+            _verify_legacy_indexes(connection, upgrade.table_name)
+
+    if canonical_is_final:
+        _complete_final_table(
+            connection,
+            upgrade,
+            record_journal=record_journal,
+        )
+        return
+
+    if not record_journal:
+        raise RuntimeError(
+            f"{upgrade.table_name} is not valid for schema version 4."
+        )
+
+    if not canonical_exists:
+        if shadow_exists or not ready_exists or evidence is None:
+            raise RuntimeError(
+                f"{upgrade.table_name} is missing without valid durable "
+                "ready evidence."
+            )
+
+        with connection.begin():
+            if not _ready_matches_durable_evidence(
+                connection,
+                upgrade,
+                evidence,
+                canonical_exists=False,
+            ):
+                raise RuntimeError(
+                    f"{upgrade.table_name} has invalid durable ready "
+                    "evidence."
+                )
+
+        _install_verified_replacement(connection, upgrade)
+        _complete_final_table(
+            connection,
+            upgrade,
+            record_journal=True,
+        )
+        return
+
+    if evidence is not None:
+        with connection.begin():
+            if not ready_exists or not _ready_matches_durable_evidence(
+                connection,
+                upgrade,
+                evidence,
+                canonical_exists=True,
+            ):
+                raise RuntimeError(
+                    f"{upgrade.table_name} has invalid durable ready "
+                    "evidence."
+                )
+
+        if shadow_exists:
+            with connection.begin():
+                _drop_internal_table(connection, upgrade.shadow_name)
+    else:
+        _discard_unverified_replacements(connection, upgrade)
+        _prepare_replacement_table(connection, upgrade)
+        _build_ready_replacement(connection, upgrade)
+        _record_ready_replacement(connection, upgrade)
+
+    _drop_verified_canonical(connection, upgrade)
+    _install_verified_replacement(connection, upgrade)
+    _complete_final_table(
+        connection,
+        upgrade,
+        record_journal=True,
+    )
+
+
+def _ensure_default_space(connection: Connection) -> None:
+    with connection.begin():
+        fixed_space = connection.execute(
+            text(
+                "SELECT id FROM spaces WHERE id = :default_space_id"
+            ),
+            {"default_space_id": DEFAULT_SPACE_ID},
+        ).scalar_one_or_none()
+
+        if fixed_space is not None:
+            return
+
+        conflicting_space = connection.execute(
+            text(
+                "SELECT id FROM spaces "
+                "WHERE name = :default_space_name COLLATE NOCASE"
+            ),
+            {"default_space_name": DEFAULT_SPACE_NAME},
+        ).scalar_one_or_none()
+
+        if conflicting_space is not None:
+            raise DefaultSpaceConflictError(
+                "Default Space name conflict: HardHead Works is already "
+                "owned by another Space."
+            )
+
+        timestamp = datetime.now(timezone.utc)
+        connection.execute(
+            Base.metadata.tables["spaces"].insert(),
+            {
+                "id": DEFAULT_SPACE_ID,
+                "name": DEFAULT_SPACE_NAME,
+                "description": DEFAULT_SPACE_DESCRIPTION,
+                "created_at": timestamp,
+                "updated_at": timestamp,
+            },
+        )
+
+
+def _verify_default_space(connection: Connection) -> None:
+    count = connection.execute(
+        text("SELECT COUNT(*) FROM spaces WHERE id = :default_space_id"),
+        {"default_space_id": DEFAULT_SPACE_ID},
+    ).scalar_one()
+
+    if count != 1:
+        raise RuntimeError("The deterministic default Space is missing.")
+
+
+def _verify_space_scoped_schema(connection: Connection) -> None:
+    tables = _table_names(connection)
+
+    for upgrade in SPACE_SCOPED_TABLE_UPGRADES:
+        if upgrade.shadow_name in tables or upgrade.ready_name in tables:
+            raise RuntimeError(
+                f"{upgrade.table_name} has unfinished migration tables."
+            )
+
+        if not _table_has_final_structure(connection, upgrade.table_name):
+            raise RuntimeError(
+                f"{upgrade.table_name} does not match the version 4 schema."
+            )
+
+        _verify_scoped_indexes(connection, upgrade.table_name)
+        invalid_count = connection.execute(
+            text(
+                f"SELECT COUNT(*) FROM "
+                f"{_quote_identifier(upgrade.table_name)} "
+                "WHERE space_id IS NULL OR space_id != :default_space_id"
+            ),
+            {"default_space_id": DEFAULT_SPACE_ID},
+        ).scalar_one()
+
+        if invalid_count:
+            raise RuntimeError(
+                f"{upgrade.table_name} contains records outside the "
+                "deterministic default Space."
+            )
+
+    for provenance_table, target_table, target_column in (
+        ("inventory_migrations", "inventory_items", "inventory_item_id"),
+        ("project_migrations", "projects", "project_id"),
+        ("task_migrations", "tasks", "task_id"),
+    ):
+        mismatch = connection.execute(
+            text(
+                f"SELECT COUNT(*) FROM {_quote_identifier(provenance_table)} "
+                f"AS provenance JOIN {_quote_identifier(target_table)} "
+                f"AS target ON target.id = provenance.{target_column} "
+                "WHERE provenance.space_id != target.space_id"
+            )
+        ).scalar_one()
+
+        if mismatch:
+            raise RuntimeError(
+                f"{provenance_table} contains cross-Space target mappings."
+            )
+
+
+def _set_sqlite_foreign_keys(
+    connection: Connection,
+    *,
+    enabled: bool,
+) -> None:
+    if connection.in_transaction():
+        raise RuntimeError(
+            "SQLite foreign-key mode cannot change during a transaction."
+        )
+
+    state = "ON" if enabled else "OFF"
+    connection.exec_driver_sql(f"PRAGMA foreign_keys={state}")
+    actual = int(
+        connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one()
+    )
+    connection.commit()
+
+    if actual != int(enabled):
+        raise RuntimeError(
+            f"SQLite foreign-key mode could not be set to {state}."
+        )
+
+
+def _verify_completed_migration_journal(connection: Connection) -> None:
+    _validate_existing_migration_journal(connection)
+    rows = connection.execute(
+        text(
+            f"SELECT canonical_table, phase FROM "
+            f"{SPACE_SCOPE_JOURNAL_TABLE} ORDER BY canonical_table"
+        )
+    ).all()
+    expected = {
+        upgrade.table_name for upgrade in SPACE_SCOPED_TABLE_UPGRADES
+    }
+    actual = {str(row[0]) for row in rows}
+
+    if actual != expected or any(row[1] != "complete" for row in rows):
+        raise RuntimeError(
+            "The version 4 migration journal is not fully complete."
+        )
+
+
+def _drop_migration_journal(connection: Connection) -> None:
+    with connection.begin():
+        if SPACE_SCOPE_JOURNAL_TABLE in _table_names(connection):
+            _drop_internal_table(connection, SPACE_SCOPE_JOURNAL_TABLE)
+
+
+def _verify_version_four_database(connection: Connection) -> None:
+    _verify_project_schema(connection)
+    _verify_foundation_schema(connection)
+    _verify_default_space(connection)
+    _verify_space_scoped_schema(connection)
+    foreign_key_violations = list(
+        connection.exec_driver_sql("PRAGMA foreign_key_check")
+    )
+
+    if foreign_key_violations:
+        raise RuntimeError(
+            "The version 4 schema contains foreign-key violations."
+        )
+
+
+def _prepare_foundation_schema(
+    connection: Connection,
+    version: int,
+) -> int:
+    with connection.begin():
+        columns = _project_columns(connection)
+
+        for name, statement in PROJECT_COLUMN_UPGRADES.items():
+            if name not in columns:
+                connection.exec_driver_sql(statement)
+
+        for statement in PROJECT_INDEX_UPGRADES:
+            connection.exec_driver_sql(statement)
+
+        existing_tables = set(inspect(connection).get_table_names())
+
+        for table_name, statement in FOUNDATION_INDEX_UPGRADES:
+            if table_name in existing_tables:
+                connection.exec_driver_sql(statement)
+
+        _verify_project_schema(connection)
+        _verify_foundation_schema(connection)
+
+        if version < FOUNDATION_DATABASE_SCHEMA_VERSION:
+            connection.exec_driver_sql(
+                f"PRAGMA user_version = {FOUNDATION_DATABASE_SCHEMA_VERSION}"
+            )
+            return FOUNDATION_DATABASE_SCHEMA_VERSION
+
+    return version
+
+
 def apply_schema_upgrades(connection: Connection) -> None:
     if connection.dialect.name != "sqlite":
         return
 
-    version = assert_supported_database_version(connection)
-
-    columns = _project_columns(connection)
-
-    for name, statement in PROJECT_COLUMN_UPGRADES.items():
-        if name not in columns:
-            connection.exec_driver_sql(statement)
-
-    for statement in PROJECT_INDEX_UPGRADES:
-        connection.exec_driver_sql(statement)
-
-    existing_tables = set(inspect(connection).get_table_names())
-
-    for table_name, statement in FOUNDATION_INDEX_UPGRADES:
-        if table_name in existing_tables:
-            connection.exec_driver_sql(statement)
-
-    _verify_project_schema(connection)
-    _verify_foundation_schema(connection)
-
-    if version < CURRENT_DATABASE_SCHEMA_VERSION:
-        connection.exec_driver_sql(
-            f"PRAGMA user_version = "
-            f"{CURRENT_DATABASE_SCHEMA_VERSION}"
+    if connection.in_transaction():
+        raise RuntimeError(
+            "Schema upgrades require a connection without an active "
+            "transaction."
         )
+
+    version = assert_supported_database_version(connection)
+    connection.rollback()
+
+    with connection.begin():
+        _validate_existing_migration_journal(connection)
+
+    version = _prepare_foundation_schema(connection, version)
+    _ensure_default_space(connection)
+    record_journal = version < CURRENT_DATABASE_SCHEMA_VERSION
+
+    if record_journal:
+        _ensure_migration_journal(connection)
+
+    try:
+        _set_sqlite_foreign_keys(connection, enabled=False)
+
+        for upgrade in SPACE_SCOPED_TABLE_UPGRADES:
+            _migrate_space_scoped_table(
+                connection,
+                upgrade,
+                record_journal=record_journal,
+            )
+    finally:
+        if connection.in_transaction():
+            connection.rollback()
+
+        _set_sqlite_foreign_keys(connection, enabled=True)
+
+    with connection.begin():
+        _verify_version_four_database(connection)
+
+        if SPACE_SCOPE_JOURNAL_TABLE in _table_names(connection):
+            _validate_existing_migration_journal(connection)
+
+        if record_journal:
+            _verify_completed_migration_journal(connection)
+
+    _drop_migration_journal(connection)
+
+    with connection.begin():
+        _verify_version_four_database(connection)
+
+        if SPACE_SCOPE_JOURNAL_TABLE in _table_names(connection):
+            raise RuntimeError(
+                "The version 4 migration journal was not removed."
+            )
+
+        if version < CURRENT_DATABASE_SCHEMA_VERSION:
+            connection.exec_driver_sql(
+                f"PRAGMA user_version = {CURRENT_DATABASE_SCHEMA_VERSION}"
+            )

@@ -3,6 +3,7 @@ from typing import Any
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from app.core.default_space import DEFAULT_SPACE_ID
 from app.models.task import Task
 from app.repositories.task_migrations import (
     add_browser_migration,
@@ -97,6 +98,7 @@ def migrate_browser_tasks(
 
             task = Task(
                 id=record.id,
+                space_id=DEFAULT_SPACE_ID,
                 title=record.title,
                 priority=record.priority,
                 completed=record.completed,
@@ -109,6 +111,7 @@ def migrate_browser_tasks(
                 session,
                 source_record_id=record.id,
                 task_id=task.id,
+                space_id=DEFAULT_SPACE_ID,
             )
             migrated += 1
             confirmed_source_ids.append(record.id)

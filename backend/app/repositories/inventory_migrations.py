@@ -20,10 +20,12 @@ def get_browser_migration(
 def add_browser_migration(
     session: Session,
     *,
+    space_id: str,
     source_record_id: str,
     inventory_item_id: str,
 ) -> InventoryMigration:
     migration = InventoryMigration(
+        space_id=space_id,
         source=SOURCE,
         source_record_id=source_record_id,
         inventory_item_id=inventory_item_id,

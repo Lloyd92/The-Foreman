@@ -5,6 +5,7 @@ from unittest.mock import patch
 from sqlalchemy import func, select
 
 from app.core.database import SessionLocal, engine, initialize_database
+from app.core.default_space import DEFAULT_SPACE_ID
 from app.models.project import Project
 from app.models.project_material_requirement import (
     ProjectMaterialRequirement,
@@ -94,6 +95,7 @@ class ProjectMigrationTests(ApiTestCase):
 
         self.assertEqual(response.status_code, 201)
         result = response.json()
+        self.assertNotIn("spaceId", result)
         self.assertEqual(result["migrationStatus"], "migrated")
         self.assertEqual(
             result["sourceRecordId"],
@@ -105,8 +107,23 @@ class ProjectMigrationTests(ApiTestCase):
 
         with SessionLocal() as session:
             provenance = session.scalar(select(ProjectMigration))
+            project = session.scalar(select(Project))
             self.assertEqual(provenance.project_id, result["id"])
             self.assertEqual(len(provenance.payload_hash), 64)
+            self.assertEqual(project.space_id, DEFAULT_SPACE_ID)
+            self.assertEqual(provenance.space_id, DEFAULT_SPACE_ID)
+            self.assertEqual(provenance.space_id, project.space_id)
+
+    async def test_space_context_is_not_accepted(self) -> None:
+        payload = migration_payload("legacy-scoped-project")
+        payload["spaceId"] = "client-space"
+
+        response = await self.client.post(
+            "/api/project-migrations/browser",
+            json=payload,
+        )
+
+        self.assertEqual(response.status_code, 422)
 
     async def test_retry_returns_original_without_duplicates(self) -> None:
         inventory = await self.create_inventory()

@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from app.core.default_space import DEFAULT_SPACE_ID
 from app.models.inventory import InventoryItem
 from app.repositories import inventory as inventory_repository
 from app.schemas.inventory import (
@@ -134,7 +135,10 @@ def create_inventory_item(
     session: Session,
     data: InventoryCreate,
 ) -> InventoryRead:
-    item = InventoryItem(**data.model_dump())
+    item = InventoryItem(
+        space_id=DEFAULT_SPACE_ID,
+        **data.model_dump(),
+    )
 
     try:
         inventory_repository.add_inventory_item(session, item)

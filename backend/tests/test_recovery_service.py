@@ -13,15 +13,19 @@ from unittest.mock import patch
 from pydantic import ValidationError
 from sqlalchemy import create_engine, text
 
+from app.core.database import prepare_database_schema
+from app.core.default_space import (
+    DEFAULT_SPACE_DESCRIPTION,
+    DEFAULT_SPACE_ID,
+    DEFAULT_SPACE_NAME,
+)
 from app.core.maintenance import (
     DatabaseMaintenanceActive,
     maintenance_coordinator,
 )
-from app.core.schema_upgrades import (
-    CURRENT_DATABASE_SCHEMA_VERSION,
-    apply_schema_upgrades,
-)
+from app.core.schema_upgrades import CURRENT_DATABASE_SCHEMA_VERSION
 from app.models.base import Base
+import app.services.recovery as recovery_service
 from app.schemas.recovery import (
     BackupCompatibility,
     BackupManifest,
@@ -55,6 +59,7 @@ from app.services.recovery import (
     validate_archive_member_names,
     verify_backup_package,
 )
+from tests.test_support import create_pre_v4_tables
 
 
 CREATED_AT = datetime(2026, 7, 31, 16, 0, tzinfo=timezone.utc)
@@ -1390,19 +1395,20 @@ class RestoreCandidateStagingTests(unittest.TestCase):
         engine = create_engine(self.source_database_url)
 
         try:
+            with engine.connect() as connection:
+                prepare_database_schema(connection)
+
             with engine.begin() as connection:
-                Base.metadata.create_all(bind=connection)
-                apply_schema_upgrades(connection)
                 connection.execute(
                     text(
                         """
                         INSERT INTO projects (
-                            id, name, type, status, priority, progress,
+                            id, space_id, name, type, status, priority, progress,
                             start_date, target_date, estimated_cost,
                             description, notes, created_at, updated_at,
                             archived_at
                         ) VALUES (
-                            :id, :name, :type, :status, :priority,
+                            :id, :space_id, :name, :type, :status, :priority,
                             :progress, NULL, NULL, :estimated_cost,
                             :description, :notes, :created_at,
                             :updated_at, NULL
@@ -1411,6 +1417,7 @@ class RestoreCandidateStagingTests(unittest.TestCase):
                     ),
                     {
                         "id": "project-1",
+                        "space_id": DEFAULT_SPACE_ID,
                         "name": "Current Project",
                         "type": "other",
                         "status": "active",
@@ -1427,16 +1434,17 @@ class RestoreCandidateStagingTests(unittest.TestCase):
                     text(
                         """
                         INSERT INTO tasks (
-                            id, title, priority, completed, project_id,
+                            id, space_id, title, priority, completed, project_id,
                             created_at, updated_at
                         ) VALUES (
-                            :id, :title, :priority, :completed,
+                            :id, :space_id, :title, :priority, :completed,
                             :project_id, :created_at, :updated_at
                         )
                         """
                     ),
                     {
                         "id": "task-1",
+                        "space_id": DEFAULT_SPACE_ID,
                         "title": "Current Task",
                         "priority": "high",
                         "completed": False,
@@ -1529,23 +1537,197 @@ class RestoreCandidateStagingTests(unittest.TestCase):
             engine.dispose()
 
     def create_version_two_source_database(self) -> None:
-        self.create_current_source_database()
+        engine = create_engine(self.source_database_url)
 
-        with sqlite3.connect(self.source_path) as connection:
-            connection.execute("PRAGMA foreign_keys=OFF")
+        try:
+            with engine.begin() as connection:
+                create_pre_v4_tables(
+                    connection,
+                    {
+                        "inventory_items",
+                        "projects",
+                        "project_material_requirements",
+                        "tasks",
+                        "inventory_migrations",
+                        "project_migrations",
+                        "task_migrations",
+                    },
+                )
+                timestamp = "2026-07-31 16:00:00.123456"
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO inventory_items (
+                            id, name, category, quantity, unit, minimum,
+                            location, cost, supplier, notes,
+                            created_at, updated_at
+                        ) VALUES (
+                            'inventory-v2', 'Version 2 Fastener', 'Hardware',
+                            17.5, 'boxes', 3.25, 'Shelf V2', 4.75,
+                            'Supplier V2', 'Preserve inventory v2',
+                            :timestamp, :timestamp
+                        )
+                        """
+                    ),
+                    {"timestamp": timestamp},
+                )
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO projects (
+                            id, name, type, status, priority, progress,
+                            start_date, target_date, estimated_cost,
+                            description, notes, created_at, updated_at,
+                            archived_at
+                        ) VALUES (
+                            'project-v2', 'Version 2 Project', 'build',
+                            'active', 'high', 37.5, '2026-07-01',
+                            '2026-09-01', 725.5, 'Preserve description v2',
+                            'Preserve notes v2', :timestamp, :timestamp, NULL
+                        )
+                        """
+                    ),
+                    {"timestamp": timestamp},
+                )
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO project_material_requirements (
+                            project_id, inventory_item_id,
+                            required_quantity, note
+                        ) VALUES (
+                            'project-v2', 'inventory-v2', 6.5,
+                            'Preserve material v2'
+                        )
+                        """
+                    )
+                )
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO tasks (
+                            id, title, priority, completed, project_id,
+                            created_at, updated_at
+                        ) VALUES
+                            (
+                                'task-v2', 'Version 2 Task', 'high', 0,
+                                'project-v2', :timestamp, :timestamp
+                            ),
+                            (
+                                'task-v2-tombstone-source',
+                                'Unmapped Version 2 Task', 'low', 1, NULL,
+                                :timestamp, :timestamp
+                            )
+                        """
+                    ),
+                    {"timestamp": timestamp},
+                )
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO inventory_migrations (
+                            id, source, source_record_id,
+                            inventory_item_id, migrated_at
+                        ) VALUES (
+                            101, 'browser-local', 'inventory-source-v2',
+                            'inventory-v2', :timestamp
+                        )
+                        """
+                    ),
+                    {"timestamp": timestamp},
+                )
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO project_migrations (
+                            id, source, source_record_id, project_id,
+                            payload_hash, migrated_at
+                        ) VALUES (
+                            102, 'browser-local', 'project-source-v2',
+                            'project-v2', :payload_hash, :timestamp
+                        )
+                        """
+                    ),
+                    {
+                        "payload_hash": "b" * 64,
+                        "timestamp": timestamp,
+                    },
+                )
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO task_migrations (
+                            id, source, source_record_id, task_id, migrated_at
+                        ) VALUES
+                            (
+                                103, 'browser-local', 'task-source-v2',
+                                'task-v2', :timestamp
+                            ),
+                            (
+                                104, 'browser-local',
+                                'task-tombstone-source-v2', NULL, :timestamp
+                            )
+                        """
+                    ),
+                    {"timestamp": timestamp},
+                )
+                connection.exec_driver_sql("PRAGMA user_version = 2")
+        finally:
+            engine.dispose()
 
-            for table_name in (
-                "members",
-                "organization_space_relationships",
-                "module_states",
-                "people",
-                "organizations",
-                "spaces",
-            ):
-                connection.execute(f'DROP TABLE "{table_name}"')
+    def create_version_three_source_database(
+        self,
+        *,
+        default_name: str | None = None,
+        fixed_default: bool = False,
+    ) -> None:
+        import app.models  # noqa: F401
 
-            connection.execute("PRAGMA user_version = 2")
-            connection.commit()
+        engine = create_engine(self.source_database_url)
+
+        try:
+            with engine.begin() as connection:
+                create_pre_v4_tables(
+                    connection,
+                    set(Base.metadata.tables),
+                )
+                timestamp = "2026-07-31 16:00:00"
+                space_id = DEFAULT_SPACE_ID if fixed_default else "space-1"
+                space_name = default_name or (
+                    "Edited Default" if fixed_default else "Household"
+                )
+                connection.execute(
+                    text(
+                        "INSERT INTO spaces VALUES "
+                        "(:id, :name, 'Preserve foundation', "
+                        ":timestamp, :timestamp)"
+                    ),
+                    {
+                        "id": space_id,
+                        "name": space_name,
+                        "timestamp": timestamp,
+                    },
+                )
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO projects (
+                            id, name, type, status, priority, progress,
+                            start_date, target_date, estimated_cost,
+                            description, notes, created_at, updated_at,
+                            archived_at
+                        ) VALUES (
+                            'project-v3', 'Version 3 Project', 'other',
+                            'active', 'medium', 10, NULL, NULL, 0,
+                            '', 'Preserve v3', :timestamp, :timestamp, NULL
+                        )
+                        """
+                    ),
+                    {"timestamp": timestamp},
+                )
+                connection.exec_driver_sql("PRAGMA user_version=3")
+        finally:
+            engine.dispose()
 
     def create_legacy_source_database(self) -> None:
         with sqlite3.connect(self.source_path) as connection:
@@ -1632,7 +1814,7 @@ class RestoreCandidateStagingTests(unittest.TestCase):
             staged.record_count_mapping()["tasks"],
             1,
         )
-        self.assertEqual(staged.record_count_mapping()["spaces"], 1)
+        self.assertEqual(staged.record_count_mapping()["spaces"], 2)
         self.assertEqual(staged.record_count_mapping()["people"], 1)
         self.assertEqual(staged.record_count_mapping()["organizations"], 1)
         self.assertEqual(staged.record_count_mapping()["members"], 1)
@@ -1673,8 +1855,10 @@ class RestoreCandidateStagingTests(unittest.TestCase):
         self.assertEqual(counts["projects"], 1)
         self.assertEqual(counts["tasks"], 1)
 
-        for table in set(counts) - {"projects", "tasks"}:
+        for table in set(counts) - {"projects", "tasks", "spaces"}:
             self.assertEqual(counts[table], 0)
+
+        self.assertEqual(counts["spaces"], 1)
 
         with sqlite3.connect(self.candidate_path) as connection:
             project = connection.execute(
@@ -1698,7 +1882,7 @@ class RestoreCandidateStagingTests(unittest.TestCase):
         self.assertEqual(sha256_file(package.path), package_checksum)
         self.assertEqual(sha256_file(self.live_path), live_checksum)
 
-    def test_stage_version_two_package_adds_empty_foundation_tables(
+    def test_stage_version_two_package_preserves_complete_legacy_state(
         self,
     ) -> None:
         self.create_version_two_source_database()
@@ -1718,8 +1902,29 @@ class RestoreCandidateStagingTests(unittest.TestCase):
         )
 
         counts = staged.record_count_mapping()
-        self.assertEqual(counts["projects"], 1)
-        self.assertEqual(counts["tasks"], 1)
+        self.assertEqual(
+            {
+                table_name: counts[table_name]
+                for table_name in (
+                    "inventory_items",
+                    "projects",
+                    "project_material_requirements",
+                    "tasks",
+                    "inventory_migrations",
+                    "project_migrations",
+                    "task_migrations",
+                )
+            },
+            {
+                "inventory_items": 1,
+                "projects": 1,
+                "project_material_requirements": 1,
+                "tasks": 2,
+                "inventory_migrations": 1,
+                "project_migrations": 1,
+                "task_migrations": 2,
+            },
+        )
 
         for table_name in (
             "spaces",
@@ -1729,7 +1934,318 @@ class RestoreCandidateStagingTests(unittest.TestCase):
             "members",
             "module_states",
         ):
-            self.assertEqual(counts[table_name], 0)
+            self.assertEqual(
+                counts[table_name],
+                1 if table_name == "spaces" else 0,
+            )
+
+        with sqlite3.connect(self.candidate_path) as connection:
+            default_space = connection.execute(
+                "SELECT id, name, description FROM spaces"
+            ).fetchall()
+            inventory = connection.execute(
+                """
+                SELECT id, space_id, name, category, quantity, unit, minimum,
+                       location, cost, supplier, notes, created_at, updated_at
+                FROM inventory_items
+                """
+            ).fetchone()
+            project = connection.execute(
+                """
+                SELECT id, space_id, name, type, status, priority, progress,
+                       start_date, target_date, estimated_cost, description,
+                       notes, created_at, updated_at, archived_at
+                FROM projects
+                """
+            ).fetchone()
+            material = connection.execute(
+                "SELECT * FROM project_material_requirements"
+            ).fetchone()
+            tasks = connection.execute(
+                """
+                SELECT id, space_id, title, priority, completed, project_id,
+                       created_at, updated_at
+                FROM tasks ORDER BY id
+                """
+            ).fetchall()
+            inventory_migration = connection.execute(
+                "SELECT * FROM inventory_migrations"
+            ).fetchone()
+            project_migration = connection.execute(
+                "SELECT * FROM project_migrations"
+            ).fetchone()
+            task_migrations = connection.execute(
+                "SELECT * FROM task_migrations ORDER BY id"
+            ).fetchall()
+            provenance_mismatches = connection.execute(
+                """
+                SELECT COUNT(*) FROM (
+                    SELECT migration.id
+                    FROM inventory_migrations AS migration
+                    JOIN inventory_items AS target
+                      ON target.id = migration.inventory_item_id
+                    WHERE migration.space_id != target.space_id
+                    UNION ALL
+                    SELECT migration.id
+                    FROM project_migrations AS migration
+                    JOIN projects AS target
+                      ON target.id = migration.project_id
+                    WHERE migration.space_id != target.space_id
+                    UNION ALL
+                    SELECT migration.id
+                    FROM task_migrations AS migration
+                    JOIN tasks AS target ON target.id = migration.task_id
+                    WHERE migration.space_id != target.space_id
+                )
+                """
+            ).fetchone()[0]
+            tables = {
+                row[0]
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'table'"
+                )
+            }
+
+        self.assertEqual(
+            default_space,
+            [
+                (
+                    DEFAULT_SPACE_ID,
+                    DEFAULT_SPACE_NAME,
+                    DEFAULT_SPACE_DESCRIPTION,
+                )
+            ],
+        )
+        self.assertEqual(
+            inventory,
+            (
+                "inventory-v2",
+                DEFAULT_SPACE_ID,
+                "Version 2 Fastener",
+                "Hardware",
+                17.5,
+                "boxes",
+                3.25,
+                "Shelf V2",
+                4.75,
+                "Supplier V2",
+                "Preserve inventory v2",
+                "2026-07-31 16:00:00.123456",
+                "2026-07-31 16:00:00.123456",
+            ),
+        )
+        self.assertEqual(project[0:2], ("project-v2", DEFAULT_SPACE_ID))
+        self.assertEqual(project[2:12], (
+            "Version 2 Project",
+            "build",
+            "active",
+            "high",
+            37.5,
+            "2026-07-01",
+            "2026-09-01",
+            725.5,
+            "Preserve description v2",
+            "Preserve notes v2",
+        ))
+        self.assertEqual(
+            project[12:],
+            (
+                "2026-07-31 16:00:00.123456",
+                "2026-07-31 16:00:00.123456",
+                None,
+            ),
+        )
+        self.assertEqual(
+            material,
+            (
+                "project-v2",
+                "inventory-v2",
+                6.5,
+                "Preserve material v2",
+            ),
+        )
+        self.assertEqual(
+            tasks,
+            [
+                (
+                    "task-v2",
+                    DEFAULT_SPACE_ID,
+                    "Version 2 Task",
+                    "high",
+                    0,
+                    "project-v2",
+                    "2026-07-31 16:00:00.123456",
+                    "2026-07-31 16:00:00.123456",
+                ),
+                (
+                    "task-v2-tombstone-source",
+                    DEFAULT_SPACE_ID,
+                    "Unmapped Version 2 Task",
+                    "low",
+                    1,
+                    None,
+                    "2026-07-31 16:00:00.123456",
+                    "2026-07-31 16:00:00.123456",
+                ),
+            ],
+        )
+        self.assertEqual(inventory_migration[0:2], (101, DEFAULT_SPACE_ID))
+        self.assertEqual(inventory_migration[2:], (
+            "browser-local",
+            "inventory-source-v2",
+            "inventory-v2",
+            "2026-07-31 16:00:00.123456",
+        ))
+        self.assertEqual(project_migration[0:2], (102, DEFAULT_SPACE_ID))
+        self.assertEqual(project_migration[2:], (
+            "browser-local",
+            "project-source-v2",
+            "project-v2",
+            "b" * 64,
+            "2026-07-31 16:00:00.123456",
+        ))
+        self.assertEqual(
+            task_migrations,
+            [
+                (
+                    103,
+                    DEFAULT_SPACE_ID,
+                    "browser-local",
+                    "task-source-v2",
+                    "task-v2",
+                    "2026-07-31 16:00:00.123456",
+                ),
+                (
+                    104,
+                    DEFAULT_SPACE_ID,
+                    "browser-local",
+                    "task-tombstone-source-v2",
+                    None,
+                    "2026-07-31 16:00:00.123456",
+                ),
+            ],
+        )
+        self.assertEqual(provenance_mismatches, 0)
+        self.assertNotIn("__foreman_v4_space_scope_journal", tables)
+
+    def test_stage_version_three_preserves_foundation_and_adds_default(
+        self,
+    ) -> None:
+        self.create_version_three_source_database()
+        package = self.create_package()
+
+        staged = stage_restore_candidate(
+            package.path,
+            self.candidate_path,
+            live_database_url=self.live_database_url,
+        )
+
+        self.assertTrue(staged.was_upgraded)
+        self.assertEqual(staged.source_manifest.database.user_version, 3)
+        self.assertEqual(staged.record_count_mapping()["spaces"], 2)
+
+        with sqlite3.connect(self.candidate_path) as connection:
+            spaces = connection.execute(
+                "SELECT id, name, description FROM spaces ORDER BY id"
+            ).fetchall()
+            project_space_id = connection.execute(
+                "SELECT space_id FROM projects WHERE id = 'project-v3'"
+            ).fetchone()[0]
+
+        self.assertIn(
+            ("space-1", "Household", "Preserve foundation"),
+            spaces,
+        )
+        self.assertIn(
+            (
+                DEFAULT_SPACE_ID,
+                DEFAULT_SPACE_NAME,
+                DEFAULT_SPACE_DESCRIPTION,
+            ),
+            spaces,
+        )
+        self.assertEqual(project_space_id, DEFAULT_SPACE_ID)
+
+    def test_stage_version_three_preserves_edited_fixed_metadata(
+        self,
+    ) -> None:
+        self.create_version_three_source_database(fixed_default=True)
+        package = self.create_package()
+
+        staged = stage_restore_candidate(
+            package.path,
+            self.candidate_path,
+            live_database_url=self.live_database_url,
+        )
+
+        self.assertEqual(staged.record_count_mapping()["spaces"], 1)
+
+        with sqlite3.connect(self.candidate_path) as connection:
+            fixed = connection.execute(
+                "SELECT name, description FROM spaces WHERE id = ?",
+                (DEFAULT_SPACE_ID,),
+            ).fetchone()
+
+        self.assertEqual(
+            fixed,
+            ("Edited Default", "Preserve foundation"),
+        )
+
+    def test_stage_version_three_name_conflict_cleans_candidate(self) -> None:
+        self.create_version_three_source_database(
+            default_name="hardhead works"
+        )
+        package = self.create_package()
+
+        with self.assertRaisesRegex(
+            RecoveryContractError,
+            "Default Space name conflict",
+        ) as context:
+            stage_restore_candidate(
+                package.path,
+                self.candidate_path,
+                live_database_url=self.live_database_url,
+            )
+
+        self.assertEqual(
+            context.exception.code,
+            "RESTORE_CANDIDATE_DEFAULT_SPACE_CONFLICT",
+        )
+        self.assertFalse(self.candidate_path.exists())
+
+    def test_recovery_count_delta_requires_exact_default_metadata(
+        self,
+    ) -> None:
+        self.create_version_three_source_database()
+        package = self.create_package()
+        prepare_schema = recovery_service._prepare_restore_candidate_schema
+
+        def corrupt_inserted_default(candidate_path: Path) -> None:
+            prepare_schema(candidate_path)
+
+            with sqlite3.connect(candidate_path) as connection:
+                connection.execute(
+                    "UPDATE spaces SET description = 'Wrong' WHERE id = ?",
+                    (DEFAULT_SPACE_ID,),
+                )
+                connection.commit()
+
+        with patch(
+            "app.services.recovery._prepare_restore_candidate_schema",
+            side_effect=corrupt_inserted_default,
+        ):
+            with self.assertRaises(RecoveryContractError) as context:
+                stage_restore_candidate(
+                    package.path,
+                    self.candidate_path,
+                    live_database_url=self.live_database_url,
+                )
+
+        self.assertEqual(
+            context.exception.code,
+            "RESTORE_CANDIDATE_DEFAULT_SPACE_INVALID",
+        )
+        self.assertFalse(self.candidate_path.exists())
 
     def test_invalid_package_is_rejected_before_destination(
         self,
@@ -2075,19 +2591,20 @@ class RestoreActivationTests(unittest.TestCase):
         engine = create_engine(f"sqlite:///{path}")
 
         try:
+            with engine.connect() as connection:
+                prepare_database_schema(connection)
+
             with engine.begin() as connection:
-                Base.metadata.create_all(bind=connection)
-                apply_schema_upgrades(connection)
                 connection.execute(
                     text(
                         """
                         INSERT INTO projects (
-                            id, name, type, status, priority, progress,
+                            id, space_id, name, type, status, priority, progress,
                             start_date, target_date, estimated_cost,
                             description, notes, created_at, updated_at,
                             archived_at
                         ) VALUES (
-                            :id, :name, 'other', 'active', 'medium', 0,
+                            :id, :space_id, :name, 'other', 'active', 'medium', 0,
                             NULL, NULL, 0, '', '', :created_at,
                             :updated_at, NULL
                         )
@@ -2095,6 +2612,7 @@ class RestoreActivationTests(unittest.TestCase):
                     ),
                     {
                         "id": project_id,
+                        "space_id": DEFAULT_SPACE_ID,
                         "name": project_name,
                         "created_at": "2026-08-01 18:00:00",
                         "updated_at": "2026-08-01 18:00:00",

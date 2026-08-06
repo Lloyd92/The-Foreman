@@ -1,5 +1,11 @@
 from datetime import datetime, timezone
 
+from sqlalchemy import select
+
+from app.core.database import SessionLocal
+from app.core.default_space import DEFAULT_SPACE_ID
+from app.models.inventory import InventoryItem
+from app.models.inventory_migration import InventoryMigration
 from test_inventory_api import inventory_payload
 from test_support import ApiTestCase
 
@@ -29,6 +35,14 @@ class InventoryMigrationTests(ApiTestCase):
         self.assertEqual(result["migrated"], 1)
         self.assertTrue(result["browserDataRetained"])
         self.assertEqual(result["confirmedSourceIds"], [record["id"]])
+        self.assertNotIn("spaceId", result)
+
+        with SessionLocal() as session:
+            item = session.scalar(select(InventoryItem))
+            provenance = session.scalar(select(InventoryMigration))
+            self.assertEqual(item.space_id, DEFAULT_SPACE_ID)
+            self.assertEqual(provenance.space_id, DEFAULT_SPACE_ID)
+            self.assertEqual(provenance.space_id, item.space_id)
 
     async def test_retry_is_idempotent(self) -> None:
         record = browser_inventory("10000000-0000-4000-8000-000000000002")
@@ -81,6 +95,19 @@ class InventoryMigrationTests(ApiTestCase):
             result["errors"][0]["sourceRecordId"],
             malformed["id"],
         )
+
+        scoped = browser_inventory(
+            "10000000-0000-4000-8000-000000000099"
+        )
+        scoped["spaceId"] = "client-space"
+        response = await self.client.post(
+            "/api/inventory-migrations/browser",
+            json={"records": [scoped]},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "failed")
+        self.assertEqual(response.json()["migrated"], 0)
+        self.assertEqual(response.json()["malformed"], 1)
 
     async def test_deleted_migrated_record_is_not_reimported(self) -> None:
         record = browser_inventory("10000000-0000-4000-8000-000000000004")

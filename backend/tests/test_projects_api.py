@@ -1,6 +1,10 @@
 from unittest.mock import patch
 
+from sqlalchemy import select
+
 from app.core.database import SessionLocal
+from app.core.default_space import DEFAULT_SPACE_ID
+from app.models.project import Project
 from app.schemas.project import ProjectUpdate
 from app.services.projects import update_project
 from test_inventory_api import inventory_payload
@@ -43,6 +47,18 @@ class ProjectApiTests(ApiTestCase):
 
         self.assertEqual(create_response.status_code, 201)
         project = create_response.json()
+        self.assertNotIn("spaceId", project)
+
+        with SessionLocal() as session:
+            self.assertEqual(
+                session.scalar(
+                    select(Project.space_id).where(
+                        Project.id == project["id"]
+                    )
+                ),
+                DEFAULT_SPACE_ID,
+            )
+
         self.assertEqual(project["type"], "build")
         self.assertEqual(project["priority"], "high")
         self.assertEqual(project["startDate"], "2026-07-01")
@@ -316,6 +332,7 @@ class ProjectApiTests(ApiTestCase):
             {"name": "Invalid", "estimatedCost": -0.01},
             {"name": "Invalid", "type": "unknown"},
             {"name": "Invalid", "priority": "unknown"},
+            {"name": "Client scoped", "spaceId": "client-space"},
             {
                 "name": "Duplicate materials",
                 "materials": [

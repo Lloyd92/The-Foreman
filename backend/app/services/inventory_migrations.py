@@ -3,6 +3,7 @@ from typing import Any
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from app.core.default_space import DEFAULT_SPACE_ID
 from app.models.inventory import InventoryItem
 from app.repositories.inventory import add_inventory_item, get_inventory_item
 from app.repositories.inventory_migrations import (
@@ -75,6 +76,7 @@ def migrate_browser_inventory(
             )
             item = InventoryItem(
                 id=record.id,
+                space_id=DEFAULT_SPACE_ID,
                 created_at=record.created_at,
                 updated_at=record.updated_at or record.created_at,
                 **item_data,
@@ -84,6 +86,7 @@ def migrate_browser_inventory(
                 session,
                 source_record_id=record.id,
                 inventory_item_id=item.id,
+                space_id=DEFAULT_SPACE_ID,
             )
             migrated += 1
             confirmed_source_ids.append(record.id)

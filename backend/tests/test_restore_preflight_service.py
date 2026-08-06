@@ -7,7 +7,8 @@ from pathlib import Path
 
 from sqlalchemy import create_engine, text
 
-from app.core.schema_upgrades import apply_schema_upgrades
+from app.core.database import prepare_database_schema
+from app.core.default_space import DEFAULT_SPACE_ID
 from app.models.base import Base
 from app.services.recovery import (
     RecoveryContractError,
@@ -77,19 +78,20 @@ class RestorePreflightServiceTests(unittest.TestCase):
         engine = create_engine(f"sqlite:///{path}")
 
         try:
+            with engine.connect() as connection:
+                prepare_database_schema(connection)
+
             with engine.begin() as connection:
-                Base.metadata.create_all(bind=connection)
-                apply_schema_upgrades(connection)
                 connection.execute(
                     text(
                         """
                         INSERT INTO projects (
-                            id, name, type, status, priority, progress,
+                            id, space_id, name, type, status, priority, progress,
                             start_date, target_date, estimated_cost,
                             description, notes, created_at, updated_at,
                             archived_at
                         ) VALUES (
-                            :id, :name, 'other', 'active', 'medium', 0,
+                            :id, :space_id, :name, 'other', 'active', 'medium', 0,
                             NULL, NULL, 0, '', '', :created_at,
                             :updated_at, NULL
                         )
@@ -97,6 +99,7 @@ class RestorePreflightServiceTests(unittest.TestCase):
                     ),
                     {
                         "id": project_id,
+                        "space_id": DEFAULT_SPACE_ID,
                         "name": project_name,
                         "created_at": "2026-08-01 18:00:00",
                         "updated_at": "2026-08-01 18:00:00",

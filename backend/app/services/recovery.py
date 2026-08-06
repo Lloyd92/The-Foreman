@@ -22,6 +22,12 @@ from sqlalchemy.exc import ArgumentError, SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
 from app.core.database import database_maintenance, prepare_database_schema
+from app.core.default_space import (
+    DEFAULT_SPACE_DESCRIPTION,
+    DEFAULT_SPACE_ID,
+    DEFAULT_SPACE_NAME,
+    DefaultSpaceConflictError,
+)
 from app.core.schema_upgrades import CURRENT_DATABASE_SCHEMA_VERSION
 from app.models.base import Base
 from app.schemas.recovery import (
@@ -1352,8 +1358,7 @@ def _prepare_restore_candidate_schema(
     )
 
     try:
-        with engine.begin() as connection:
-            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+        with engine.connect() as connection:
             prepare_database_schema(connection)
     finally:
         engine.dispose()
@@ -1432,10 +1437,17 @@ def _validate_staged_record_counts(
     source_manifest: BackupManifest,
     staged_tables: list[str],
     staged_record_counts: dict[str, int],
+    *,
+    candidate_path: Path,
+    source_had_default_space: bool,
 ) -> None:
     source_counts = source_manifest.record_counts
+    default_space_delta = 0 if source_had_default_space else 1
 
     for table, expected_count in source_counts.items():
+        if table == "spaces":
+            expected_count += default_space_delta
+
         if staged_record_counts.get(table) != expected_count:
             raise RecoveryContractError(
                 "RESTORE_CANDIDATE_RECORD_COUNT_MISMATCH",
@@ -1446,12 +1458,49 @@ def _validate_staged_record_counts(
     new_tables = set(staged_tables) - set(source_counts)
 
     for table in sorted(new_tables):
-        if staged_record_counts[table] != 0:
+        expected_count = (
+            default_space_delta if table == "spaces" else 0
+        )
+
+        if staged_record_counts[table] != expected_count:
             raise RecoveryContractError(
                 "RESTORE_CANDIDATE_NEW_TABLE_NOT_EMPTY",
-                "New restore candidate tables must begin empty.",
+                "New restore candidate tables contain unexpected records.",
                 location=table,
             )
+
+    if default_space_delta:
+        with closing(sqlite3.connect(candidate_path)) as connection:
+            default_space = connection.execute(
+                "SELECT name, description FROM spaces WHERE id = ?",
+                (DEFAULT_SPACE_ID,),
+            ).fetchone()
+
+        if default_space != (
+            DEFAULT_SPACE_NAME,
+            DEFAULT_SPACE_DESCRIPTION,
+        ):
+            raise RecoveryContractError(
+                "RESTORE_CANDIDATE_DEFAULT_SPACE_INVALID",
+                "Restore candidate did not add the exact default Space.",
+                location="spaces",
+            )
+
+
+def _database_has_default_space(database_path: Path) -> bool:
+    with closing(sqlite3.connect(database_path)) as connection:
+        spaces_table = connection.execute(
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'spaces'"
+        ).fetchone()
+
+        if spaces_table is None:
+            return False
+
+        return connection.execute(
+            "SELECT 1 FROM spaces WHERE id = ?",
+            (DEFAULT_SPACE_ID,),
+        ).fetchone() is not None
 
 
 def stage_restore_candidate(
@@ -1510,6 +1559,9 @@ def stage_restore_candidate(
             )
 
         source_database_checksum = sha256_file(destination)
+        source_had_default_space = _database_has_default_space(
+            destination
+        )
         _normalize_restore_candidate_journal(destination)
         _prepare_restore_candidate_schema(destination)
 
@@ -1555,6 +1607,8 @@ def stage_restore_candidate(
             source_manifest,
             staged_tables,
             staged_record_counts,
+            candidate_path=destination,
+            source_had_default_space=source_had_default_space,
         )
 
         byte_size = destination.stat().st_size
@@ -1580,6 +1634,13 @@ def stage_restore_candidate(
     except RecoveryContractError:
         _remove_restore_candidate_artifacts(destination)
         raise
+    except DefaultSpaceConflictError as error:
+        _remove_restore_candidate_artifacts(destination)
+        raise RecoveryContractError(
+            "RESTORE_CANDIDATE_DEFAULT_SPACE_CONFLICT",
+            str(error),
+            location="spaces",
+        ) from error
     except (
         OSError,
         RuntimeError,
@@ -2134,8 +2195,7 @@ def _verify_activated_database(
     operational_fact_count = 0
 
     try:
-        with verification_engine.begin() as connection:
-            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+        with verification_engine.connect() as connection:
             prepare_database_schema(connection)
 
         with verification_engine.connect() as connection:

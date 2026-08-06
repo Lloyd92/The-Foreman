@@ -20,11 +20,13 @@ def get_browser_migration(
 def add_browser_migration(
     session: Session,
     *,
+    space_id: str,
     source_record_id: str,
     project_id: str,
     payload_hash: str,
 ) -> ProjectMigration:
     migration = ProjectMigration(
+        space_id=space_id,
         source=SOURCE_BROWSER_LOCAL,
         source_record_id=source_record_id,
         project_id=project_id,

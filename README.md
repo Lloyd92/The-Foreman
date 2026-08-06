@@ -30,11 +30,10 @@ v0.7.5 — Frontend Hardening and Browser E2E
 
 Current focus:
 
-- Reconcile the approved v0.8 and v0.9 architecture sequence
-- Define Universal Navigation and Spaces before implementation
+- Implement v0.8.0 Universal Navigation and Spaces in reviewable commits
+- Migrate existing operational records into one deterministic default Space
 - Preserve v0.7.5 runtime, data, deployment, and cache behavior
-- Document active-Space authority and universal module ownership
-- Prepare the nine-commit v0.8.0 implementation plan
+- Prepare active-Space authority without exposing selection before Commit 4
 
 ---
 
@@ -227,8 +226,11 @@ The implemented fact vocabulary is:
 Each fact has a stable identity, typed state, reason codes, evidence, and
 source-record references. Facts are computed on demand and are not persisted.
 The operational-fact schema version is 1 while the SQLite database schema
-is version 3. The version 3 foundation tables do not change the implemented
-operational-fact vocabulary or add `space_id` to existing operational records.
+is version 4. A deterministic fixed-ID default Space owns all current
+Inventory, Project, Task, and browser-migration provenance records. Existing
+creation paths temporarily assign that Space explicitly. These internal
+ownership fields do not change the implemented operational-fact vocabulary or
+appear in current API responses.
 
 Dashboard, Projects, and Inventory consume these shared facts instead of
 independently reconstructing readiness or stock state from quantities.
@@ -236,8 +238,8 @@ Browser-local records remain migration and recovery evidence, never
 operational fact authority.
 
 This release establishes trustworthy current-state inputs. It does not yet
-implement Capacity, Priority, next-action selection, Morning Briefing
-narration, or AI.
+implement active-Space APIs or frontend selection, Capacity, Priority,
+next-action selection, Morning Briefing narration, or AI.
 
 ---
 

@@ -4,6 +4,7 @@ import json
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.default_space import DEFAULT_SPACE_ID
 from app.repositories import project_migrations as migration_repository
 from app.repositories import projects as project_repository
 from app.schemas.project_migration import (
@@ -118,6 +119,7 @@ def migrate_browser_project(
             source_record_id=data.source_record_id,
             project_id=project.id,
             payload_hash=payload_hash,
+            space_id=DEFAULT_SPACE_ID,
         )
         session.commit()
     except IntegrityError:

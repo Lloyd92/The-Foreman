@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from app.core.default_space import DEFAULT_SPACE_ID
 from app.models.project import Project
 from app.models.project_material_requirement import (
     ProjectMaterialRequirement,
@@ -183,7 +184,10 @@ def build_project(
         )
 
     project_data = data.model_dump(exclude={"materials"})
-    project = Project(**project_data)
+    project = Project(
+        space_id=DEFAULT_SPACE_ID,
+        **project_data,
+    )
     project.material_requirements = [
         ProjectMaterialRequirement(
             inventory_item_id=material.inventory_item_id,

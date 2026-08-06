@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from pydantic import ValidationError
 
+from app.core.default_space import DEFAULT_SPACE_ID
 from app.models.inventory import InventoryItem
 from app.models.inventory_migration import InventoryMigration
 from app.models.project import Project
@@ -25,6 +26,7 @@ class PortableDataExportServiceTests(DatabaseTestCase):
     def add_committed_fixture(self) -> None:
         inventory_b = InventoryItem(
             id="inventory-b",
+            space_id=DEFAULT_SPACE_ID,
             name="Board",
             category="Lumber",
             quantity=8,
@@ -39,6 +41,7 @@ class PortableDataExportServiceTests(DatabaseTestCase):
         )
         inventory_a = InventoryItem(
             id="inventory-a",
+            space_id=DEFAULT_SPACE_ID,
             name="Fastener",
             category="Hardware",
             quantity=100,
@@ -53,6 +56,7 @@ class PortableDataExportServiceTests(DatabaseTestCase):
         )
         archived_project = Project(
             id="project-b",
+            space_id=DEFAULT_SPACE_ID,
             name="Archived Project",
             type="internal",
             status="archived",
@@ -69,6 +73,7 @@ class PortableDataExportServiceTests(DatabaseTestCase):
         )
         active_project = Project(
             id="project-a",
+            space_id=DEFAULT_SPACE_ID,
             name="Active Project",
             type="build",
             status="active",
@@ -97,6 +102,7 @@ class PortableDataExportServiceTests(DatabaseTestCase):
         ]
         task_b = Task(
             id="task-b",
+            space_id=DEFAULT_SPACE_ID,
             title="Archived project follow-up",
             priority="low",
             completed=True,
@@ -106,6 +112,7 @@ class PortableDataExportServiceTests(DatabaseTestCase):
         )
         task_a = Task(
             id="task-a",
+            space_id=DEFAULT_SPACE_ID,
             title="Cut material",
             priority="high",
             completed=False,
@@ -129,6 +136,7 @@ class PortableDataExportServiceTests(DatabaseTestCase):
             [
                 InventoryMigration(
                     id=1,
+                    space_id=DEFAULT_SPACE_ID,
                     source="browser",
                     source_record_id="legacy-inventory",
                     inventory_item_id="inventory-a",
@@ -136,6 +144,7 @@ class PortableDataExportServiceTests(DatabaseTestCase):
                 ),
                 ProjectMigration(
                     id=1,
+                    space_id=DEFAULT_SPACE_ID,
                     source="browser",
                     source_record_id="legacy-project",
                     project_id="project-a",
@@ -144,6 +153,7 @@ class PortableDataExportServiceTests(DatabaseTestCase):
                 ),
                 TaskMigration(
                     id=1,
+                    space_id=DEFAULT_SPACE_ID,
                     source="browser",
                     source_record_id="legacy-task",
                     task_id="task-a",
@@ -280,6 +290,7 @@ class PortableDataExportServiceTests(DatabaseTestCase):
         self.add_committed_fixture()
         pending = InventoryItem(
             id="inventory-pending",
+            space_id=DEFAULT_SPACE_ID,
             name="Uncommitted",
             category="Test",
             quantity=1,

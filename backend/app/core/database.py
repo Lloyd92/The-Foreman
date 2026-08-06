@@ -1,7 +1,7 @@
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -11,6 +11,7 @@ from app.core.maintenance import (
     maintenance_coordinator,
 )
 from app.core.schema_upgrades import (
+    SPACE_SCOPED_TABLE_UPGRADES,
     apply_schema_upgrades,
     assert_supported_database_version,
 )
@@ -49,13 +50,41 @@ def enable_sqlite_foreign_keys(
 def prepare_database_schema(connection) -> None:
     import app.models  # noqa: F401
 
+    if connection.in_transaction():
+        raise RuntimeError(
+            "Schema preparation requires a connection without an active "
+            "transaction."
+        )
+
     assert_supported_database_version(connection)
-    Base.metadata.create_all(bind=connection)
+    connection.rollback()
+
+    with connection.begin():
+        existing_tables = set(inspect(connection).get_table_names())
+        interrupted_tables = {
+            upgrade.table_name
+            for upgrade in SPACE_SCOPED_TABLE_UPGRADES
+            if upgrade.table_name not in existing_tables
+            and (
+                upgrade.shadow_name in existing_tables
+                or upgrade.ready_name in existing_tables
+            )
+        }
+        tables_to_create = [
+            table
+            for table in Base.metadata.sorted_tables
+            if table.name not in interrupted_tables
+        ]
+        Base.metadata.create_all(
+            bind=connection,
+            tables=tables_to_create,
+        )
+
     apply_schema_upgrades(connection)
 
 
 def initialize_database() -> None:
-    with engine.begin() as connection:
+    with engine.connect() as connection:
         prepare_database_schema(connection)
 
 

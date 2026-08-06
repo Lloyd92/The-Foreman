@@ -1,5 +1,11 @@
 from datetime import datetime, timezone
 
+from sqlalchemy import select
+
+from app.core.database import SessionLocal
+from app.core.default_space import DEFAULT_SPACE_ID
+from app.models.task import Task
+from app.models.task_migration import TaskMigration
 from test_support import ApiTestCase
 
 
@@ -36,6 +42,14 @@ class TaskMigrationTests(ApiTestCase):
             result["confirmedSourceIds"],
             [record["id"]],
         )
+        self.assertNotIn("spaceId", result)
+
+        with SessionLocal() as session:
+            task = session.scalar(select(Task))
+            provenance = session.scalar(select(TaskMigration))
+            self.assertEqual(task.space_id, DEFAULT_SPACE_ID)
+            self.assertEqual(provenance.space_id, DEFAULT_SPACE_ID)
+            self.assertEqual(provenance.space_id, task.space_id)
 
         task_response = await self.client.get(
             f"/api/tasks/{record['id']}"
@@ -147,6 +161,19 @@ class TaskMigrationTests(ApiTestCase):
             malformed_record["id"],
         )
         self.assertTrue(result["errors"][0]["reason"])
+
+        scoped_record = browser_task(
+            "00000000-0000-4000-8000-000000000099"
+        )
+        scoped_record["spaceId"] = "client-space"
+        scoped_response = await self.client.post(
+            "/api/task-migrations/browser",
+            json={"records": [scoped_record]},
+        )
+        self.assertEqual(scoped_response.status_code, 200)
+        self.assertEqual(scoped_response.json()["status"], "failed")
+        self.assertEqual(scoped_response.json()["migrated"], 0)
+        self.assertEqual(scoped_response.json()["skipped"], 1)
 
         tasks_response = await self.client.get("/api/tasks")
         self.assertEqual(len(tasks_response.json()), 1)

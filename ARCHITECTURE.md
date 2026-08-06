@@ -87,8 +87,11 @@ Persistence:
   item ID.
 - The universal foundation schema persists Spaces, People, Organizations,
   Organization-Space relationships, Members, and mutable local module state.
-  It does not yet create the default Space or associate existing operational
-  records with a Space.
+- A deterministic fixed-ID default Space exists. Version 4 migration assigns
+  all existing Inventory, Project, Task, and browser-migration provenance
+  records to it, and current creation paths explicitly use that same Space.
+- Active-Space APIs, authoritative request context, and frontend Space
+  selection are not yet implemented.
 - Unified Operational Facts derive current lifecycle, material-readiness,
   Task-work, and Inventory-stock conclusions from one authoritative database
   snapshot. Dashboard, Projects, and Inventory consume these facts rather than
@@ -251,17 +254,18 @@ commit successful mutations and roll back failed mutations; repositories
 remain responsible for database queries and record access. Application startup
 creates missing tables from SQLAlchemy metadata and applies versioned,
 idempotent SQLite schema upgrades. The current internal SQLite schema version
-is 3. Startup refuses a database whose schema version is newer than the
+is 4. Startup refuses a database whose schema version is newer than the
 application supports before table creation can mutate it, then verifies the
-required Project and universal-foundation schemas before advancing the schema
-version.
+required Project, universal-foundation, and default-Space ownership schemas
+before advancing the schema version.
 
 The versioned `GET /api/operational-facts` endpoint derives normalized facts
 from backend Inventory, Projects, materials, and Tasks. One explicit
 transaction supplies the authoritative snapshot for each request. Facts are
 computed on demand; there is no persisted fact table and the SQLite schema
-version is 3. The operational-fact schema remains version 1, and existing
-operational records do not yet contain `space_id` fields.
+version is 4. The operational-fact schema remains version 1. Internal
+operational records now carry required `space_id` ownership, but current API
+and operational-fact responses do not expose it.
 
 The operational-fact schema version is numeric 1. Its current vocabulary is
 `project.lifecycle`, `project.material-readiness`, `task.work-state`, and

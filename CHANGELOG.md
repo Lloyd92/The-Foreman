@@ -17,6 +17,8 @@ Each release represents a stable, working version of the application.
   module state.
 - Added the typed static module-definition boundary without registering
   modules or adding module-management behavior.
+- Added the deterministic fixed-ID `HardHead Works` default Space for records
+  created before Space support.
 
 ## Changed
 
@@ -26,6 +28,15 @@ Each release represents a stable, working version of the application.
 - Included all six universal-foundation tables in backup and restore
   required-table and record-count handling while preserving portable export
   format 1.
+- Advanced the internal SQLite schema from version 3 to version 4. The six
+  operational and browser-migration provenance tables now have required,
+  indexed `space_id` ownership with restricted Space deletion.
+- Rebuilt and backfilled existing Inventory, Project, Task, and browser-
+  migration provenance records with the fixed default Space while preserving
+  IDs, relationships, timestamps, hashes, tombstones, and global migration
+  uniqueness.
+- Assigned the fixed default Space explicitly in current ordinary and browser-
+  migration creation paths without changing request or response contracts.
 
 ## Reliability
 
@@ -35,6 +46,9 @@ Each release represents a stable, working version of the application.
   unique and check constraints, foreign keys, and restricted root deletion.
 - Made version 2 restore staging and partial foundation creation resume safely
   into the empty version 3 foundation.
+- Added restart-safe, state-aware SQLite table replacement, deterministic
+  default-Space conflict handling, foreign-key verification, and recovery
+  staging support for schema versions 2, 3, and 4.
 
 ## Validation
 
@@ -42,6 +56,9 @@ Each release represents a stable, working version of the application.
   typed-contract coverage for the universal foundation.
 - Verified version 2 records and structures remain unchanged during upgrade and
   version 3 backup round trips preserve foundation records.
+- Added real-SQLite coverage for version 4 backfill, exact structures,
+  interruption states, conflicts, transitional writes, and recovery count
+  deltas while preserving operational-fact schema 1 and portable export 1.
 
 ## Documentation
 
@@ -62,7 +79,8 @@ Each release represents a stable, working version of the application.
   persistence terminology.
 - Confirmed FastAPI, SQLAlchemy, Pydantic, and SQLite as the Version 1.0 target
   stack.
-- Reconciled current persistence documentation with SQLite schema version 3.
+- Reconciled current persistence documentation with SQLite schema version 4
+  and the deterministic default-Space migration.
 
 ---
 

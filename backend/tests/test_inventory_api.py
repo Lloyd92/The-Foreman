@@ -1,3 +1,8 @@
+from sqlalchemy import select
+
+from app.core.database import SessionLocal
+from app.core.default_space import DEFAULT_SPACE_ID
+from app.models.inventory import InventoryItem
 from test_support import ApiTestCase
 
 
@@ -29,7 +34,18 @@ class InventoryApiTests(ApiTestCase):
         )
         self.assertEqual(created.status_code, 201)
         item = created.json()
+        self.assertNotIn("spaceId", item)
         self.assertEqual(item["status"], "in-stock")
+
+        with SessionLocal() as session:
+            self.assertEqual(
+                session.scalar(
+                    select(InventoryItem.space_id).where(
+                        InventoryItem.id == item["id"]
+                    )
+                ),
+                DEFAULT_SPACE_ID,
+            )
         self.assertEqual(
             (await self.client.get(f"/api/inventory/{item['id']}")).status_code,
             200,
@@ -136,3 +152,11 @@ class InventoryApiTests(ApiTestCase):
             (await self.client.get("/api/inventory/missing")).status_code,
             404,
         )
+
+        space_payload = inventory_payload()
+        space_payload["spaceId"] = "client-space"
+        response = await self.client.post(
+            "/api/inventory",
+            json=space_payload,
+        )
+        self.assertEqual(response.status_code, 422)

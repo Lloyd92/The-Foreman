@@ -1,6 +1,13 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -18,9 +25,19 @@ class TaskMigration(Base):
             "source_record_id",
             name="uq_task_migration_source_record",
         ),
+        Index("ix_task_migrations_space_id", "space_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    space_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "spaces.id",
+            ondelete="RESTRICT",
+            name="fk_task_migrations_space_id",
+        ),
+        nullable=False,
+    )
     source: Mapped[str] = mapped_column(String(40), nullable=False)
     source_record_id: Mapped[str] = mapped_column(
         String(120),

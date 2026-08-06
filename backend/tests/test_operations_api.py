@@ -6,6 +6,7 @@ from sqlalchemy import inspect
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.database import SessionLocal, engine
+from app.core.default_space import DEFAULT_SPACE_ID
 from app.core.schema_upgrades import CURRENT_DATABASE_SCHEMA_VERSION
 from app.models.project_migration import ProjectMigration
 from app.services.operations import (
@@ -186,6 +187,7 @@ class OperationalFactsApiTests(ApiTestCase):
         with SessionLocal() as session:
             session.add(
                 ProjectMigration(
+                    space_id=DEFAULT_SPACE_ID,
                     source="browser-local",
                     source_record_id="legacy-project",
                     project_id=active_project["id"],

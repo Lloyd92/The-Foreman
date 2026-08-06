@@ -47,8 +47,7 @@ class UniversalFoundationSchemaTests(unittest.TestCase):
         )
         self.engine = create_engine(f"sqlite:///{database_path}")
 
-        with self.engine.begin() as connection:
-            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+        with self.engine.connect() as connection:
             prepare_database_schema(connection)
 
         self.session = Session(self.engine)
@@ -59,7 +58,7 @@ class UniversalFoundationSchemaTests(unittest.TestCase):
         self.engine.dispose()
         self.temporary_directory.cleanup()
 
-    def test_clean_database_creates_complete_empty_foundation_schema(
+    def test_clean_database_creates_complete_foundation_schema(
         self,
     ) -> None:
         tables = set(inspect(self.engine).get_table_names())
@@ -73,11 +72,18 @@ class UniversalFoundationSchemaTests(unittest.TestCase):
                 CURRENT_DATABASE_SCHEMA_VERSION,
             )
 
-            for table_name in FOUNDATION_TABLES:
+            for table_name in FOUNDATION_TABLES - {"spaces"}:
                 count = connection.execute(
                     text(f'SELECT COUNT(*) FROM "{table_name}"')
                 ).scalar_one()
                 self.assertEqual(count, 0)
+
+            self.assertEqual(
+                connection.execute(
+                    text("SELECT COUNT(*) FROM spaces")
+                ).scalar_one(),
+                1,
+            )
 
     def test_future_schema_is_rejected_before_create_all(self) -> None:
         future_engine = create_engine("sqlite:///:memory:")
@@ -89,6 +95,7 @@ class UniversalFoundationSchemaTests(unittest.TestCase):
                     f"{CURRENT_DATABASE_SCHEMA_VERSION + 1}"
                 )
 
+            with future_engine.connect() as connection:
                 with patch.object(Base.metadata, "create_all") as create_all:
                     with self.assertRaisesRegex(
                         RuntimeError,
@@ -110,8 +117,6 @@ class UniversalFoundationSchemaTests(unittest.TestCase):
             )
 
     def test_space_names_are_case_insensitively_unique(self) -> None:
-        self.session.add(Space(name="HardHead Works"))
-        self.session.commit()
         self.session.add(Space(name="hardhead works"))
 
         with self.assertRaises(IntegrityError):

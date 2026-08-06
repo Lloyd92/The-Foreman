@@ -8,6 +8,7 @@ from sqlalchemy import inspect, select
 
 from app.core.database import engine
 from app.core.schema_upgrades import CURRENT_DATABASE_SCHEMA_VERSION
+from app.core.default_space import DEFAULT_SPACE_ID
 from app.models.inventory import InventoryItem
 from app.models.project import Project
 from app.models.project_material_requirement import (
@@ -887,6 +888,7 @@ class OperationalSnapshotDatabaseTests(DatabaseTestCase):
     ) -> None:
         inventory_item = InventoryItem(
             id="inventory-1",
+            space_id=DEFAULT_SPACE_ID,
             name="Fasteners",
             category="Hardware",
             quantity=4,
@@ -901,6 +903,7 @@ class OperationalSnapshotDatabaseTests(DatabaseTestCase):
         )
         project_model = Project(
             id="project-1",
+            space_id=DEFAULT_SPACE_ID,
             name="Workbench",
             type="build",
             status="active",
@@ -921,6 +924,7 @@ class OperationalSnapshotDatabaseTests(DatabaseTestCase):
         ]
         task_model = Task(
             id="task-1",
+            space_id=DEFAULT_SPACE_ID,
             title="Assemble top",
             priority="high",
             completed=False,
@@ -929,6 +933,7 @@ class OperationalSnapshotDatabaseTests(DatabaseTestCase):
             updated_at=NOW,
         )
         migration = ProjectMigration(
+            space_id=DEFAULT_SPACE_ID,
             source="browser-local",
             source_record_id="legacy-project",
             project_id=project_model.id,
@@ -988,6 +993,7 @@ class OperationalSnapshotDatabaseTests(DatabaseTestCase):
     def test_calculation_does_not_persist_or_mutate_records(self) -> None:
         item = InventoryItem(
             id="inventory-1",
+            space_id=DEFAULT_SPACE_ID,
             name="Oil",
             category="Vehicle",
             quantity=1,

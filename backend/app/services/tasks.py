@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from app.core.default_space import DEFAULT_SPACE_ID
 from app.models.task import Task
 from app.repositories import tasks as task_repository
 from app.schemas.task import TaskCreate, TaskUpdate
@@ -40,7 +41,10 @@ def create_task(
     data: TaskCreate,
 ) -> Task:
     validate_project_reference(session, data.project_id)
-    task = Task(**data.model_dump())
+    task = Task(
+        space_id=DEFAULT_SPACE_ID,
+        **data.model_dump(),
+    )
 
     try:
         task_repository.add_task(session, task)
