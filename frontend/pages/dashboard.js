@@ -293,7 +293,10 @@ async function refreshDashboardOperationalFacts() {
     renderDashboardProjects(dashboardOperationalFacts);
 }
 
-export async function initializeDashboard() {
+export async function initializeDashboard({
+    workEnabled = true,
+    inventoryEnabled = true
+} = {}) {
     if (dashboardInitialized) {
         return;
     }
@@ -301,36 +304,44 @@ export async function initializeDashboard() {
 
     initializeGreeting();
 
-    document.addEventListener(
-        "inventory:updated",
-        event => {
-            dashboardInventoryRevision += 1;
-            dashboardInventoryItems = event.detail.items;
-            void refreshDashboardOperationalFacts();
-        }
-    );
-    document.addEventListener(
-        "projects:updated",
-        () => {
-            void refreshDashboardOperationalFacts();
-        }
-    );
-
-    const startingRevision = dashboardInventoryRevision;
-
-    try {
-        const loadedItems = await listInventoryItems();
-
-        if (dashboardInventoryRevision === startingRevision) {
-            dashboardInventoryItems = loadedItems;
-        }
-    } catch (error) {
-        console.error(
-            "Unable to load backend inventory for Dashboard:",
-            error
+    if (inventoryEnabled) {
+        document.addEventListener(
+            "inventory:updated",
+            event => {
+                dashboardInventoryRevision += 1;
+                dashboardInventoryItems = event.detail.items;
+                void refreshDashboardOperationalFacts();
+            }
         );
-
     }
 
-    await refreshDashboardOperationalFacts();
+    if (workEnabled) {
+        document.addEventListener(
+            "projects:updated",
+            () => {
+                void refreshDashboardOperationalFacts();
+            }
+        );
+    }
+
+    if (inventoryEnabled) {
+        const startingRevision = dashboardInventoryRevision;
+
+        try {
+            const loadedItems = await listInventoryItems();
+
+            if (dashboardInventoryRevision === startingRevision) {
+                dashboardInventoryItems = loadedItems;
+            }
+        } catch (error) {
+            console.error(
+                "Unable to load backend inventory for Dashboard:",
+                error
+            );
+        }
+    }
+
+    if (workEnabled || inventoryEnabled) {
+        await refreshDashboardOperationalFacts();
+    }
 }

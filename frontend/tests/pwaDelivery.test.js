@@ -140,18 +140,42 @@ test("application startup gates operations behind PWA and health initialization"
         app,
         /import \{[\s\S]*initializeSpaceSelection[\s\S]*\} from "\.\/utils\/spaceSelection\.js";/
     );
+    assert.match(
+        app,
+        /import \{[\s\S]*initializeModuleContext,[\s\S]*isModuleEnabled[\s\S]*\} from "\.\/utils\/moduleContext\.js";/
+    );
+    assert.match(
+        app,
+        /import \{[\s\S]*applyModuleContributions[\s\S]*\} from "\.\/utils\/modulePresentation\.js";/
+    );
     assert.match(app, /await initializePwa\(\)\.catch/);
     assert.match(app, /await connectionController\.initialize\(\);/);
     assert.match(app, /void initializeApplication\(\)\.catch/);
     assert.match(app, /initializeRouter\(\);/);
-    assert.match(app, /initializeDashboard\(\),/);
+    assert.match(
+        app,
+        /initializeDashboard\(\{[\s\S]*workEnabled,[\s\S]*inventoryEnabled[\s\S]*\}\)/
+    );
     assert.match(app, /await initializeSpaceSelection\(\);/);
-    assert.match(app, /migrateLegacyInventory\(\);/);
+    assert.match(app, /await initializeModuleContext\(\);/);
+    assert.match(app, /applyModuleContributions\(\);/);
+    assert.match(
+        app,
+        /inventoryEnabled \|\| workEnabled[\s\S]*await migrateLegacyInventory\(\)/
+    );
     assert.match(app, /migrateProjectsAfterInventory\(/);
     assert.match(app, /migrateLegacyTasks\(/);
     assert.match(app, /initializeInventoryPage\(/);
     assert.match(app, /initializeTasksPage\(/);
     assert.match(app, /initializeProjectsPage\(/);
+    assert.match(
+        app,
+        /if \(inventoryEnabled\) \{[\s\S]*initializeInventoryPage\(/
+    );
+    assert.match(
+        app,
+        /if \(workEnabled\) \{[\s\S]*initializeTasksPage\([\s\S]*initializeProjectsPage\(/
+    );
     assert.match(app, /initializeRecoveryPage\(\)/);
     assert.match(app, /initializeSystemStatus\(\)/);
 
@@ -161,20 +185,28 @@ test("application startup gates operations behind PWA and health initialization"
     const spaceSelection = app.indexOf(
         "await initializeSpaceSelection()"
     );
+    const moduleContext = app.indexOf(
+        "await initializeModuleContext()"
+    );
+    const contributions = app.indexOf(
+        "applyModuleContributions();"
+    );
     const inventoryMigration = app.indexOf(
-        "const inventoryMigrationResult = await migrateLegacyInventory()"
+        "const inventoryMigrationResult = ("
     );
     const projectMigration = app.indexOf(
-        "const projectMigrationResult = await migrateProjectsAfterInventory"
+        "const projectMigrationResult = workEnabled"
     );
     const taskMigration = app.indexOf(
-        "const taskMigrationResult = await migrateLegacyTasks"
+        "const taskMigrationResult = workEnabled"
     );
     const router = app.indexOf("initializeRouter();");
 
     assert.ok(pwa < controller);
     assert.ok(controller < health);
-    assert.ok(spaceSelection < inventoryMigration);
+    assert.ok(spaceSelection < moduleContext);
+    assert.ok(moduleContext < contributions);
+    assert.ok(contributions < inventoryMigration);
     assert.ok(inventoryMigration < projectMigration);
     assert.ok(projectMigration < taskMigration);
     assert.ok(taskMigration < router);

@@ -23,8 +23,10 @@ from app.models.space import Space
 from app.schemas.member import MemberCreate, MemberRead, MemberUpdate
 from app.schemas.module_registry import (
     ModuleDefinition,
+    ModuleRegistryRead,
     ModuleStateCreate,
     ModuleStateRead,
+    ModuleStateUpdate,
 )
 from app.schemas.organization import OrganizationSpaceRelationshipCreate
 
@@ -383,7 +385,26 @@ class UniversalFoundationSchemaTests(unittest.TestCase):
             set(ModuleStateRead.model_fields),
             {"module_id", "enabled", "created_at", "updated_at"},
         )
-        self.assertEqual(MODULE_DEFINITIONS, ())
+        self.assertEqual(
+            set(ModuleStateUpdate.model_fields),
+            {"enabled"},
+        )
+        self.assertEqual(
+            set(ModuleRegistryRead.model_fields),
+            {
+                "module_id",
+                "name",
+                "description",
+                "dependencies",
+                "contribution_locations",
+                "safe_enable_rule",
+                "safe_disable_rule",
+                "data_retention_behavior",
+                "default_enabled",
+                "enabled",
+                "health",
+            },
+        )
 
         for prohibited_field in (
             "billing",
@@ -407,6 +428,46 @@ class UniversalFoundationSchemaTests(unittest.TestCase):
                             prohibited_field: "prohibited",
                         }
                     )
+
+    def test_static_module_catalog_is_deterministic(self) -> None:
+        self.assertEqual(
+            tuple(
+                definition.module_id
+                for definition in MODULE_DEFINITIONS
+            ),
+            ("work", "inventory"),
+        )
+
+        definitions = {
+            definition.module_id: definition
+            for definition in MODULE_DEFINITIONS
+        }
+
+        self.assertEqual(
+            definitions["work"].contribution_locations,
+            ("today", "work"),
+        )
+        self.assertEqual(
+            definitions["inventory"].contribution_locations,
+            ("today", "resources"),
+        )
+
+        for definition in MODULE_DEFINITIONS:
+            with self.subTest(module_id=definition.module_id):
+                self.assertTrue(definition.default_enabled)
+                self.assertEqual(definition.dependencies, ())
+                self.assertEqual(
+                    definition.safe_enable_rule,
+                    "dependencies-satisfied",
+                )
+                self.assertEqual(
+                    definition.safe_disable_rule,
+                    "no-enabled-dependents",
+                )
+                self.assertEqual(
+                    definition.data_retention_behavior,
+                    "retain",
+                )
 
     def test_static_module_definition_validation_is_strict(self) -> None:
         base_definition = {

@@ -1727,3 +1727,131 @@ footer {
         flex: 1;
     }
 }
+
+
+/* Module Registry */
+
+.module-settings-panel {
+    max-width: 760px;
+    margin-top: 18px;
+    padding: 24px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.module-settings-panel h3 {
+    margin: 0 0 8px;
+}
+
+.module-settings-panel > p {
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.module-settings-list {
+    display: grid;
+    gap: 14px;
+    margin-top: 22px;
+}
+
+.module-setting-card {
+    padding: 18px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+}
+
+.module-setting-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.module-setting-heading h4 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.module-setting-state {
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.06em;
+}
+
+.module-setting-state[data-state="enabled"] {
+    color: var(--green);
+}
+
+.module-setting-state[data-state="disabled"] {
+    color: var(--muted);
+}
+
+.module-setting-card > p {
+    margin: 10px 0 14px;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.module-setting-metadata {
+    display: grid;
+    gap: 7px;
+    margin-bottom: 16px;
+}
+
+.module-setting-metadata-row {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: 12px;
+    font-size: 13px;
+}
+
+.module-setting-label {
+    color: var(--muted);
+    font-weight: bold;
+}
+
+.module-setting-action {
+    min-width: 100px;
+    padding: 9px 14px;
+    cursor: pointer;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.module-setting-action:hover:not(:disabled) {
+    border-color: var(--orange);
+}
+
+.module-setting-action:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.module-settings-message {
+    min-height: 20px;
+    margin: 16px 0 0;
+    font-size: 13px;
+}
+
+.module-settings-message[data-state="working"] {
+    color: var(--orange);
+}
+
+.module-settings-message[data-state="success"] {
+    color: var(--green);
+}
+
+.module-settings-message[data-state="error"] {
+    color: #ff8a80;
+}
+
+@media (max-width: 600px) {
+    .module-setting-metadata-row {
+        grid-template-columns: 1fr;
+        gap: 2px;
+    }
+}

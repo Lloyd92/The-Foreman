@@ -1289,7 +1289,8 @@ async function loadProjectInventory() {
 }
 
 export async function initializeProjectsPage(
-    projectMigration = Promise.resolve()
+    projectMigration = Promise.resolve(),
+    { inventoryEnabled = true } = {}
 ) {
     if (projectsInitialized) {
         return;
@@ -1362,11 +1363,13 @@ export async function initializeProjectsPage(
         "retry-projects"
     )?.addEventListener("click", () => void refreshProjects());
     document.addEventListener("keydown", handleEscapeKey);
-    document.addEventListener("inventory:updated", event => {
-        inventoryRevision += 1;
-        inventoryItems = event.detail.items;
-        void refreshProjectOperationalFacts();
-    });
+    if (inventoryEnabled) {
+        document.addEventListener("inventory:updated", event => {
+            inventoryRevision += 1;
+            inventoryItems = event.detail.items;
+            void refreshProjectOperationalFacts();
+        });
+    }
 
     setProjectsLoading();
 
@@ -1385,7 +1388,9 @@ export async function initializeProjectsPage(
 
     const [, , factsLoaded] = await Promise.all([
         refreshProjects(),
-        loadProjectInventory(),
+        inventoryEnabled
+            ? loadProjectInventory()
+            : Promise.resolve(),
         refreshProjectOperationalFacts()
     ]);
 

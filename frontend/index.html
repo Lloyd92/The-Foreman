@@ -281,7 +281,7 @@
                 <section class="dashboard-grid">
 
                     <!-- Tasks card -->
-                    <article class="card task-card">
+                    <article class="card task-card" data-module-contribution="work">
                         <div class="card-heading">
                             <h3>Today's Tasks</h3>
 
@@ -358,7 +358,10 @@
                     </article>
 
                     <!-- Inventory alerts card -->
-                    <article class="card">
+                    <article
+                        class="card"
+                        data-module-contribution="inventory"
+                    >
                         <div class="card-heading">
                             <h3>Inventory Alerts</h3>
 
@@ -385,7 +388,10 @@
                     </article>
 
                     <!-- Projects card -->
-                    <article class="card">
+                    <article
+                        class="card"
+                        data-module-contribution="work"
+                    >
                         <div class="card-heading">
                             <h3>Project Readiness</h3>
 
@@ -531,8 +537,8 @@
                         class="secondary-navigation"
                         aria-label="Work sections"
                     >
-                        <a href="#tasks">Tasks</a>
-                        <a href="#projects">Projects</a>
+                        <a href="#tasks" data-module-contribution="work">Tasks</a>
+                        <a href="#projects" data-module-contribution="work">Projects</a>
                     </nav>
                 </section>
             </main>
@@ -559,7 +565,7 @@
                         class="secondary-navigation"
                         aria-label="Resource sections"
                     >
-                        <a href="#inventory">Inventory</a>
+                        <a href="#inventory" data-module-contribution="inventory">Inventory</a>
                         <a href="#mealworms">Mealworms</a>
                     </nav>
                 </section>
@@ -636,6 +642,35 @@
                     >
                         <a href="#recovery">Backup &amp; Recovery</a>
                     </nav>
+                </section>
+
+                <section
+                    class="module-settings-panel"
+                    aria-labelledby="module-settings-title"
+                >
+                    <p class="section-eyebrow">
+                        Local Configuration
+                    </p>
+
+                    <h3 id="module-settings-title">Modules</h3>
+
+                    <p>
+                        Enable or disable local Foreman capabilities.
+                        Existing module data is retained when a module
+                        is disabled.
+                    </p>
+
+                    <div
+                        id="module-settings-list"
+                        class="module-settings-list"
+                    ></div>
+
+                    <p
+                        id="module-settings-message"
+                        class="module-settings-message"
+                        role="status"
+                        aria-live="polite"
+                    ></p>
                 </section>
             </main>
 

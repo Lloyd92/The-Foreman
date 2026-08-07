@@ -21,6 +21,7 @@ const expectedShellAssets = [
     "/pages/inventory.js",
     "/pages/projects.js",
     "/pages/recovery.js",
+    "/pages/settings.js",
     "/pages/tasks.js",
     "/utils/api.js",
     "/utils/connectionState.js",
@@ -28,6 +29,9 @@ const expectedShellAssets = [
     "/utils/spaceContext.js",
     "/utils/spaceSelection.js",
     "/utils/spacesApi.js",
+    "/utils/modulesApi.js",
+    "/utils/moduleContext.js",
+    "/utils/modulePresentation.js",
     "/utils/inventoryApi.js",
     "/utils/inventoryStorage.js",
     "/utils/migrationOrchestrator.js",
@@ -152,7 +156,7 @@ test("install atomically precaches the exact versioned shell", async () => {
 
     await install.waitPromise;
 
-    assert.equal(expectedShellAssets.length, 36);
+    assert.equal(expectedShellAssets.length, 40);
     assert.equal(
         expectedShellAssets.includes("/utils/operationsApi.js"),
         true
@@ -172,7 +176,7 @@ test("install atomically precaches the exact versioned shell", async () => {
     assert.equal(expectedShellAssets.includes("/index.html"), true);
     assert.deepEqual(
         harness.calls.cacheOpens,
-        ["foreman-shell-v0.7.5-c3"]
+        ["foreman-shell-v0.7.5-c5"]
     );
     assert.deepEqual(
         harness.calls.addAll,
@@ -256,6 +260,8 @@ test("activate removes only stale Foreman shell caches", async () => {
             "foreman-shell-v0.7.4-c1",
             "foreman-shell-v0.7.5-c1",
             "foreman-shell-v0.7.5-c2",
+            "foreman-shell-v0.7.5-c3",
+            "foreman-shell-v0.7.5-c4",
             "unrelated-cache"
         ]
     });
@@ -278,7 +284,9 @@ test("activate removes only stale Foreman shell caches", async () => {
             "foreman-shell-v0.7.3-c5",
             "foreman-shell-v0.7.4-c1",
             "foreman-shell-v0.7.5-c1",
-            "foreman-shell-v0.7.5-c2"
+            "foreman-shell-v0.7.5-c2",
+            "foreman-shell-v0.7.5-c3",
+            "foreman-shell-v0.7.5-c4"
         ]
     );
     assert.equal(harness.calls.skipWaiting, 0);
@@ -326,7 +334,7 @@ test("v0.7.5 c1 shell updates to the permanent navigation shell", async () => {
     assert.doesNotMatch(indexSource, /data-route="dashboard"/);
     assert.deepEqual(
         harness.calls.cacheOpens,
-        ["foreman-shell-v0.7.5-c3"]
+        ["foreman-shell-v0.7.5-c5"]
     );
     assert.equal(
         harness.calls.addAll[0].includes("/pages/recovery.js"),
@@ -397,7 +405,7 @@ test("exact shell assets are served only from the current cache", async () => {
     assert.equal(await fetchEvent.responsePromise, cachedResponse);
     assert.deepEqual(
         harness.calls.cacheOpens,
-        ["foreman-shell-v0.7.5-c3"]
+        ["foreman-shell-v0.7.5-c5"]
     );
     assert.deepEqual(harness.calls.cacheMatches, ["/app.js"]);
     assert.deepEqual(harness.calls.fetches, []);

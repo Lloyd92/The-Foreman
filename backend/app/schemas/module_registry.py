@@ -42,6 +42,7 @@ ContributionLocation = Literal[
 SafeEnableRule = Literal["dependencies-satisfied"]
 SafeDisableRule = Literal["no-enabled-dependents"]
 DataRetentionBehavior = Literal["retain"]
+ModuleHealth = Literal["ready"]
 
 
 class ModuleDefinition(ApiModel):
@@ -82,6 +83,15 @@ class ModuleStateCreate(ApiModel):
     enabled: bool
 
 
+class ModuleStateUpdate(ApiModel):
+    enabled: bool
+
+
 class ModuleStateRead(ModuleStateCreate):
     created_at: datetime
     updated_at: datetime
+
+
+class ModuleRegistryRead(ModuleDefinition):
+    enabled: bool
+    health: ModuleHealth = "ready"

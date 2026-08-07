@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
+import {
+    clearModuleContext,
+    setModuleRegistry
+} from "../utils/moduleContext.js";
+
 const html = await readFile(
     new URL("../index.html", import.meta.url),
     "utf8"
@@ -126,6 +131,41 @@ test("shell wording is neutral while preserving The Foreman identity", () => {
     assert.doesNotMatch(html, /At-a-glance operations for HardHead Works/);
 });
 
+function setTestModuleRegistry({
+    workEnabled = true,
+    inventoryEnabled = true
+} = {}) {
+    setModuleRegistry([
+        {
+            moduleId: "work",
+            name: "Work",
+            description: "Work module",
+            dependencies: [],
+            contributionLocations: ["today", "work"],
+            safeEnableRule: "dependencies-satisfied",
+            safeDisableRule: "no-enabled-dependents",
+            dataRetentionBehavior: "retain",
+            defaultEnabled: true,
+            enabled: workEnabled,
+            health: "ready"
+        },
+        {
+            moduleId: "inventory",
+            name: "Inventory",
+            description: "Inventory module",
+            dependencies: [],
+            contributionLocations: ["today", "resources"],
+            safeEnableRule: "dependencies-satisfied",
+            safeDisableRule: "no-enabled-dependents",
+            dataRetentionBehavior: "retain",
+            defaultEnabled: true,
+            enabled: inventoryEnabled,
+            health: "ready"
+        }
+    ]);
+}
+
+
 function createElement(dataName, route) {
     const classes = new Set();
     const attributes = new Map();
@@ -239,6 +279,8 @@ test("router defaults and canonicalizes while preserving secondary routes", asyn
     }
 
     try {
+        setTestModuleRegistry();
+
         const router = await import(
             `../utils/router.js?navigation-shell=${Date.now()}`
         );
@@ -271,6 +313,129 @@ test("router defaults and canonicalizes while preserving secondary routes", asyn
             "/index.html?source=test#today"
         ]);
     } finally {
+        clearModuleContext();
+        globalThis.window = previousWindow;
+        globalThis.document = previousDocument;
+    }
+});
+
+test("disabled module routes return to their permanent category", async () => {
+    const pageRoutes = [
+        "today",
+        "work",
+        "resources",
+        "money",
+        "settings",
+        "tasks",
+        "projects",
+        "inventory",
+        "mealworms",
+        "budget",
+        "recovery"
+    ];
+    const navigationRoutes = [
+        "today",
+        "work",
+        "resources",
+        "money",
+        "settings"
+    ];
+    const pages = pageRoutes.map(route => createElement("page", route));
+    const links = navigationRoutes.map(route => createElement("route", route));
+    const listeners = new Map();
+    const replacementUrls = [];
+    const location = {
+        hash: "#tasks",
+        pathname: "/index.html",
+        search: "?source=modules"
+    };
+    const previousWindow = globalThis.window;
+    const previousDocument = globalThis.document;
+
+    globalThis.window = {
+        location,
+        history: {
+            replaceState(_state, _title, url) {
+                replacementUrls.push(url);
+                location.hash = url.slice(url.indexOf("#"));
+            }
+        },
+        addEventListener(type, listener) {
+            listeners.set(type, listener);
+        }
+    };
+
+    globalThis.document = {
+        querySelectorAll(selector) {
+            if (selector === "[data-page]") {
+                return pages;
+            }
+            if (selector === "[data-route]") {
+                return links;
+            }
+            return [];
+        }
+    };
+
+    function assertRoute(visibleRoute, activeRoute) {
+        assert.deepEqual(
+            pages.filter(page => !page.hidden)
+                .map(page => page.dataset.page),
+            [visibleRoute]
+        );
+        assert.deepEqual(
+            links.filter(link => link.classList.contains("active"))
+                .map(link => link.dataset.route),
+            [activeRoute]
+        );
+    }
+
+    try {
+        setTestModuleRegistry({
+            workEnabled: false,
+            inventoryEnabled: false
+        });
+
+        const router = await import(
+            `../utils/router.js?disabled-modules=${Date.now()}`
+        );
+        router.initializeRouter();
+
+        assert.equal(location.hash, "#work");
+        assertRoute("work", "work");
+
+        location.hash = "#projects";
+        listeners.get("hashchange")();
+        assert.equal(location.hash, "#work");
+        assertRoute("work", "work");
+
+        location.hash = "#inventory";
+        listeners.get("hashchange")();
+        assert.equal(location.hash, "#resources");
+        assertRoute("resources", "resources");
+
+        location.hash = "#mealworms";
+        listeners.get("hashchange")();
+        assert.equal(location.hash, "#mealworms");
+        assertRoute("mealworms", "resources");
+
+        location.hash = "#budget";
+        listeners.get("hashchange")();
+        assert.equal(location.hash, "#budget");
+        assertRoute("budget", "money");
+
+        location.hash = "#recovery";
+        listeners.get("hashchange")();
+        assert.equal(location.hash, "#recovery");
+        assertRoute("recovery", "settings");
+
+        assert.deepEqual(replacementUrls, [
+            "/index.html?source=modules#work",
+            "/index.html?source=modules#work",
+            "/index.html?source=modules#resources"
+        ]);
+    } finally {
+        clearModuleContext();
         globalThis.window = previousWindow;
         globalThis.document = previousDocument;
     }

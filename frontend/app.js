@@ -11,6 +11,7 @@ import {
 } from "./pages/inventory.js";
 import { initializeProjectsPage } from "./pages/projects.js";
 import { initializeRecoveryPage } from "./pages/recovery.js";
+import { initializeModuleSettings } from "./pages/settings.js";
 import {
     migrateProjectsAfterInventory
 } from "./utils/migrationOrchestrator.js";
@@ -22,30 +23,75 @@ import {
 import {
     initializeSpaceSelection
 } from "./utils/spaceSelection.js";
+import {
+    initializeModuleContext,
+    isModuleEnabled
+} from "./utils/moduleContext.js";
+import {
+    applyModuleContributions
+} from "./utils/modulePresentation.js";
 
 async function initializeOperationalApplication() {
     await initializeSpaceSelection();
+    await initializeModuleContext();
+    applyModuleContributions();
 
-    const inventoryMigrationResult = await migrateLegacyInventory();
-    const projectMigrationResult = await migrateProjectsAfterInventory(
-        Promise.resolve(inventoryMigrationResult)
-    );
-    const taskMigrationResult = await migrateLegacyTasks(
-        Promise.resolve(projectMigrationResult)
-    );
+    const workEnabled = isModuleEnabled("work");
+    const inventoryEnabled = isModuleEnabled("inventory");
+
+    // Inventory migration may still be required as continuity plumbing
+    // for legacy Project material references even when its UI is disabled.
+    const inventoryMigrationResult = (
+        inventoryEnabled || workEnabled
+    )
+        ? await migrateLegacyInventory()
+        : null;
+
+    const projectMigrationResult = workEnabled
+        ? await migrateProjectsAfterInventory(
+            Promise.resolve(inventoryMigrationResult)
+        )
+        : null;
+
+    const taskMigrationResult = workEnabled
+        ? await migrateLegacyTasks(
+            Promise.resolve(projectMigrationResult)
+        )
+        : null;
 
     initializeRouter();
 
-    await Promise.all([
-        initializeDashboard(),
-        initializeInventoryPage(
-            Promise.resolve(inventoryMigrationResult)
-        ),
-        initializeTasksPage(Promise.resolve(taskMigrationResult)),
-        initializeProjectsPage(Promise.resolve(projectMigrationResult)),
+    const initializers = [
+        initializeDashboard({
+            workEnabled,
+            inventoryEnabled
+        }),
         initializeRecoveryPage(),
+        initializeModuleSettings(),
         initializeSystemStatus()
-    ]);
+    ];
+
+    if (inventoryEnabled) {
+        initializers.push(
+            initializeInventoryPage(
+                Promise.resolve(inventoryMigrationResult)
+            )
+        );
+    }
+
+    if (workEnabled) {
+        initializers.push(
+            initializeTasksPage(
+                Promise.resolve(taskMigrationResult)
+            ),
+            initializeProjectsPage(
+                Promise.resolve(projectMigrationResult),
+                { inventoryEnabled }
+            )
+        );
+    }
+
+    await Promise.all(initializers);
 }
 
 async function initializeApplication() {
