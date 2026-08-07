@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_session
+from app.core.space_context import ActiveSpaceDependency
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
 from app.services import tasks as task_service
 
@@ -27,8 +28,9 @@ def task_error(error: Exception) -> HTTPException:
 @router.get("", response_model=list[TaskRead])
 def list_tasks(
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> list[TaskRead]:
-    return task_service.list_tasks(session)
+    return task_service.list_tasks(session, active_space)
 
 
 @router.post(
@@ -39,9 +41,14 @@ def list_tasks(
 def create_task(
     data: TaskCreate,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> TaskRead:
     try:
-        return task_service.create_task(session, data)
+        return task_service.create_task(
+            session,
+            active_space,
+            data,
+        )
     except (LookupError, ValueError) as error:
         raise task_error(error) from error
 
@@ -50,9 +57,14 @@ def create_task(
 def read_task(
     task_id: str,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> TaskRead:
     try:
-        return task_service.require_task(session, task_id)
+        return task_service.require_task(
+            session,
+            active_space,
+            task_id,
+        )
     except LookupError as error:
         raise task_error(error) from error
 
@@ -62,10 +74,12 @@ def update_task(
     task_id: str,
     data: TaskUpdate,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> TaskRead:
     try:
         return task_service.update_task(
             session,
+            active_space,
             task_id,
             data,
         )
@@ -77,10 +91,12 @@ def update_task(
 def complete_task(
     task_id: str,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> TaskRead:
     try:
         return task_service.set_task_completion(
             session,
+            active_space,
             task_id,
             completed=True,
         )
@@ -92,10 +108,12 @@ def complete_task(
 def reopen_task(
     task_id: str,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> TaskRead:
     try:
         return task_service.set_task_completion(
             session,
+            active_space,
             task_id,
             completed=False,
         )
@@ -110,9 +128,14 @@ def reopen_task(
 def delete_task(
     task_id: str,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> Response:
     try:
-        task_service.delete_task(session, task_id)
+        task_service.delete_task(
+            session,
+            active_space,
+            task_id,
+        )
     except LookupError as error:
         raise task_error(error) from error
 

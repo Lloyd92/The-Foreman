@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_session
+from app.core.space_context import ActiveSpaceDependency
 from app.schemas.project_migration import (
     BrowserProjectMigrationRequest,
     ProjectMigrationResponse,
@@ -30,9 +31,14 @@ def migrate_browser_project_record(
     data: BrowserProjectMigrationRequest,
     session: SessionDependency,
     response: Response,
+    active_space: ActiveSpaceDependency,
 ) -> ProjectMigrationResponse:
     try:
-        result = migrate_browser_project(session, data)
+        result = migrate_browser_project(
+            session,
+            active_space,
+            data,
+        )
     except ProjectMigrationConflictError as error:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

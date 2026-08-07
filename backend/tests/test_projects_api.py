@@ -5,6 +5,7 @@ from sqlalchemy import select
 from app.core.database import SessionLocal
 from app.core.default_space import DEFAULT_SPACE_ID
 from app.models.project import Project
+from app.models.space import Space
 from app.schemas.project import ProjectUpdate
 from app.services.projects import update_project
 from test_inventory_api import inventory_payload
@@ -278,6 +279,10 @@ class ProjectApiTests(ApiTestCase):
                 ):
                     update_project(
                         session,
+                        Space(
+                            id=DEFAULT_SPACE_ID,
+                            name="HardHead Works",
+                        ),
                         project["id"],
                         ProjectUpdate(name="Rolled back name"),
                     )

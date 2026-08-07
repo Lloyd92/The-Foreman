@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_session
+from app.core.space_context import ActiveSpaceDependency
 from app.schemas.inventory_migration import (
     InventoryMigrationRequest,
     InventoryMigrationResponse,
@@ -21,9 +22,14 @@ SessionDependency = Annotated[Session, Depends(get_session)]
 def migrate_browser_records(
     data: InventoryMigrationRequest,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> InventoryMigrationResponse:
     try:
-        return migrate_browser_inventory(session, data.records)
+        return migrate_browser_inventory(
+            session,
+            active_space,
+            data.records,
+        )
     except Exception as error:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

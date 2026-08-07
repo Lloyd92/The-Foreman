@@ -9,12 +9,14 @@ from app.models.project_material_requirement import (
 
 def list_projects(
     session: Session,
+    space_id: str,
     *,
     include_archived: bool = False,
 ) -> list[Project]:
     statement = (
         select(Project)
         .options(selectinload(Project.material_requirements))
+        .where(Project.space_id == space_id)
         .order_by(Project.created_at.desc())
     )
 
@@ -26,12 +28,16 @@ def list_projects(
 
 def get_project(
     session: Session,
+    space_id: str,
     project_id: str,
 ) -> Project | None:
     statement = (
         select(Project)
         .options(selectinload(Project.material_requirements))
-        .where(Project.id == project_id)
+        .where(
+            Project.id == project_id,
+            Project.space_id == space_id,
+        )
     )
     return session.scalar(statement)
 
@@ -65,10 +71,17 @@ def delete_project(
     session.delete(project)
 
 
-def project_status_counts(session: Session) -> dict[str, int]:
+def project_status_counts(
+    session: Session,
+    space_id: str,
+) -> dict[str, int]:
     counts: dict[str, int] = {}
 
-    for project in list_projects(session, include_archived=True):
+    for project in list_projects(
+        session,
+        space_id,
+        include_archived=True,
+    ):
         counts[project.status] = counts.get(project.status, 0) + 1
 
     return counts

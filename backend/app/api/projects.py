@@ -11,6 +11,7 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app.core.database import get_session
+from app.core.space_context import ActiveSpaceDependency
 from app.schemas.project import (
     ProjectCreate,
     ProjectMaterialCreate,
@@ -40,6 +41,7 @@ def project_error(error: Exception) -> HTTPException:
 @router.get("", response_model=list[ProjectRead])
 def list_projects(
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
     include_archived: Annotated[
         bool,
         Query(alias="includeArchived"),
@@ -47,6 +49,7 @@ def list_projects(
 ) -> list[ProjectRead]:
     return project_service.list_projects(
         session,
+        active_space,
         include_archived=include_archived,
     )
 
@@ -59,9 +62,14 @@ def list_projects(
 def create_project(
     data: ProjectCreate,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> ProjectRead:
     try:
-        return project_service.create_project(session, data)
+        return project_service.create_project(
+            session,
+            active_space,
+            data,
+        )
     except ValueError as error:
         raise project_error(error) from error
 
@@ -70,9 +78,14 @@ def create_project(
 def read_project(
     project_id: str,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> ProjectRead:
     try:
-        return project_service.read_project(session, project_id)
+        return project_service.read_project(
+            session,
+            active_space,
+            project_id,
+        )
     except LookupError as error:
         raise project_error(error) from error
 
@@ -82,10 +95,12 @@ def update_project(
     project_id: str,
     data: ProjectUpdate,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> ProjectRead:
     try:
         return project_service.update_project(
             session,
+            active_space,
             project_id,
             data,
         )
@@ -100,9 +115,14 @@ def update_project(
 def delete_project(
     project_id: str,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> Response:
     try:
-        project_service.delete_project(session, project_id)
+        project_service.delete_project(
+            session,
+            active_space,
+            project_id,
+        )
     except LookupError as error:
         raise project_error(error) from error
 
@@ -117,10 +137,12 @@ def add_material_requirement(
     project_id: str,
     data: ProjectMaterialCreate,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> ProjectRead:
     try:
         return project_service.add_material_requirement(
             session,
+            active_space,
             project_id,
             data,
         )
@@ -137,10 +159,12 @@ def update_material_requirement(
     inventory_item_id: str,
     data: ProjectMaterialUpdate,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> ProjectRead:
     try:
         return project_service.update_material_requirement(
             session,
+            active_space,
             project_id,
             inventory_item_id,
             data,
@@ -157,10 +181,12 @@ def remove_material_requirement(
     project_id: str,
     inventory_item_id: str,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> ProjectRead:
     try:
         return project_service.remove_material_requirement(
             session,
+            active_space,
             project_id,
             inventory_item_id,
         )
@@ -176,10 +202,12 @@ def remove_material_requirement(
 def archive_project(
     project_id: str,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> ProjectRead:
     try:
         return project_service.archive_project(
             session,
+            active_space,
             project_id,
         )
     except LookupError as error:

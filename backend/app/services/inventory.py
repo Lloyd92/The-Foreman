@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-from app.core.default_space import DEFAULT_SPACE_ID
 from app.models.inventory import InventoryItem
+from app.models.space import Space
 from app.repositories import inventory as inventory_repository
 from app.schemas.inventory import (
     InventoryCreate,
@@ -75,6 +75,7 @@ def serialize_inventory_item(item: InventoryItem) -> InventoryRead:
 
 def list_inventory(
     session: Session,
+    active_space: Space,
     *,
     search: str | None = None,
     category: str | None = None,
@@ -84,6 +85,7 @@ def list_inventory(
 ) -> list[InventoryRead]:
     items = inventory_repository.list_inventory(
         session,
+        active_space.id,
         search=search,
         category=category,
         sort_by="name" if sort_by == "stock" else sort_by,
@@ -109,10 +111,12 @@ def list_inventory(
 
 def require_inventory_model(
     session: Session,
+    active_space: Space,
     inventory_item_id: str,
 ) -> InventoryItem:
     item = inventory_repository.get_inventory_item(
         session,
+        active_space.id,
         inventory_item_id,
     )
 
@@ -124,19 +128,25 @@ def require_inventory_model(
 
 def require_inventory_item(
     session: Session,
+    active_space: Space,
     inventory_item_id: str,
 ) -> InventoryRead:
     return serialize_inventory_item(
-        require_inventory_model(session, inventory_item_id)
+        require_inventory_model(
+            session,
+            active_space,
+            inventory_item_id,
+        )
     )
 
 
 def create_inventory_item(
     session: Session,
+    active_space: Space,
     data: InventoryCreate,
 ) -> InventoryRead:
     item = InventoryItem(
-        space_id=DEFAULT_SPACE_ID,
+        space_id=active_space.id,
         **data.model_dump(),
     )
 
@@ -153,10 +163,15 @@ def create_inventory_item(
 
 def update_inventory_item(
     session: Session,
+    active_space: Space,
     inventory_item_id: str,
     data: InventoryUpdate,
 ) -> InventoryRead:
-    item = require_inventory_model(session, inventory_item_id)
+    item = require_inventory_model(
+        session,
+        active_space,
+        inventory_item_id,
+    )
 
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(item, field, value)
@@ -173,9 +188,14 @@ def update_inventory_item(
 
 def delete_inventory_item(
     session: Session,
+    active_space: Space,
     inventory_item_id: str,
 ) -> None:
-    item = require_inventory_model(session, inventory_item_id)
+    item = require_inventory_model(
+        session,
+        active_space,
+        inventory_item_id,
+    )
 
     try:
         session.delete(item)

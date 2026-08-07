@@ -11,6 +11,7 @@ from app.models.project_material_requirement import (
     ProjectMaterialRequirement,
 )
 from app.models.project_migration import ProjectMigration
+from app.models.space import Space
 from app.schemas.project_migration import BrowserProjectMigrationRequest
 from app.services.project_migrations import migrate_browser_project
 from test_support import ApiTestCase
@@ -234,7 +235,14 @@ class ProjectMigrationTests(ApiTestCase):
                     RuntimeError,
                     "forced migration failure",
                 ):
-                    migrate_browser_project(session, data)
+                    migrate_browser_project(
+                        session,
+                        Space(
+                            id=DEFAULT_SPACE_ID,
+                            name="HardHead Works",
+                        ),
+                        data,
+                    )
 
         self.assertEqual(self.database_counts(), (0, 0, 0))
 

@@ -6,6 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_session
+from app.core.space_context import ActiveSpaceDependency
 from app.schemas.operations import OperationalFactsResponse
 from app.services.operations import get_operational_facts
 
@@ -20,9 +21,13 @@ logger = logging.getLogger(__name__)
 )
 def operational_facts(
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> OperationalFactsResponse:
     try:
-        return get_operational_facts(session)
+        return get_operational_facts(
+            session,
+            active_space,
+        )
     except SQLAlchemyError:
         logger.exception("Operational facts database query failed.")
         raise HTTPException(

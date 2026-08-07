@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_session
+from app.core.space_context import ActiveSpaceDependency
 from app.schemas.inventory import (
     InventoryCreate,
     InventoryListQuery,
@@ -26,10 +27,12 @@ def not_found(error: LookupError) -> HTTPException:
 @router.get("", response_model=list[InventoryRead])
 def list_inventory(
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
     filters: Annotated[InventoryListQuery, Query()],
 ) -> list[InventoryRead]:
     return inventory_service.list_inventory(
         session,
+        active_space,
         search=filters.search.strip() if filters.search else None,
         category=filters.category,
         stock=filters.stock,
@@ -46,18 +49,25 @@ def list_inventory(
 def create_inventory_item(
     data: InventoryCreate,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> InventoryRead:
-    return inventory_service.create_inventory_item(session, data)
+    return inventory_service.create_inventory_item(
+        session,
+        active_space,
+        data,
+    )
 
 
 @router.get("/{inventory_item_id}", response_model=InventoryRead)
 def read_inventory_item(
     inventory_item_id: str,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> InventoryRead:
     try:
         return inventory_service.require_inventory_item(
             session,
+            active_space,
             inventory_item_id,
         )
     except LookupError as error:
@@ -69,10 +79,12 @@ def update_inventory_item(
     inventory_item_id: str,
     data: InventoryUpdate,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> InventoryRead:
     try:
         return inventory_service.update_inventory_item(
             session,
+            active_space,
             inventory_item_id,
             data,
         )
@@ -87,10 +99,12 @@ def update_inventory_item(
 def delete_inventory_item(
     inventory_item_id: str,
     session: SessionDependency,
+    active_space: ActiveSpaceDependency,
 ) -> Response:
     try:
         inventory_service.delete_inventory_item(
             session,
+            active_space,
             inventory_item_id,
         )
     except LookupError as error:

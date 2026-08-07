@@ -12,13 +12,16 @@ SORT_FIELDS = {
 
 def list_inventory(
     session: Session,
+    space_id: str,
     *,
     search: str | None = None,
     category: str | None = None,
     sort_by: str = "name",
     sort_direction: str = "asc",
 ) -> list[InventoryItem]:
-    statement = select(InventoryItem)
+    statement = select(InventoryItem).where(
+        InventoryItem.space_id == space_id
+    )
 
     if search:
         pattern = f"%{search}%"
@@ -42,9 +45,14 @@ def list_inventory(
 
 def get_inventory_item(
     session: Session,
+    space_id: str,
     inventory_item_id: str,
 ) -> InventoryItem | None:
-    return session.get(InventoryItem, inventory_item_id)
+    statement = select(InventoryItem).where(
+        InventoryItem.id == inventory_item_id,
+        InventoryItem.space_id == space_id,
+    )
+    return session.scalar(statement)
 
 
 def add_inventory_item(
@@ -59,6 +67,7 @@ def add_inventory_item(
 
 def inventory_names_by_ids(
     session: Session,
+    space_id: str,
     inventory_item_ids: set[str],
 ) -> dict[str, str]:
     if not inventory_item_ids:
@@ -67,7 +76,10 @@ def inventory_names_by_ids(
     statement = select(
         InventoryItem.id,
         InventoryItem.name,
-    ).where(InventoryItem.id.in_(inventory_item_ids))
+    ).where(
+        InventoryItem.space_id == space_id,
+        InventoryItem.id.in_(inventory_item_ids),
+    )
     return {
         inventory_item_id: name
         for inventory_item_id, name in session.execute(statement)

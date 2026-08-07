@@ -5,6 +5,7 @@ from math import isfinite
 
 from sqlalchemy.orm import Session
 
+from app.models.space import Space
 from app.repositories import inventory as inventory_repository
 from app.repositories import projects as project_repository
 from app.repositories import tasks as task_repository
@@ -185,13 +186,23 @@ def _shortage(
     )
 
 
-def _read_operational_snapshot(session: Session) -> OperationalSnapshot:
+def _read_operational_snapshot(
+    session: Session,
+    active_space: Space,
+) -> OperationalSnapshot:
     projects = project_repository.list_projects(
         session,
+        active_space.id,
         include_archived=True,
     )
-    tasks = task_repository.list_tasks(session)
-    inventory = inventory_repository.list_inventory(session)
+    tasks = task_repository.list_tasks(
+        session,
+        active_space.id,
+    )
+    inventory = inventory_repository.list_inventory(
+        session,
+        active_space.id,
+    )
 
     return OperationalSnapshot(
         projects=tuple(
@@ -231,7 +242,13 @@ def _read_operational_snapshot(session: Session) -> OperationalSnapshot:
             )
             for item in inventory
         ),
-        legacy_projects=tuple(serialize_projects(session, projects)),
+        legacy_projects=tuple(
+            serialize_projects(
+                session,
+                active_space,
+                projects,
+            )
+        ),
         legacy_tasks=tuple(
             TaskRead.model_validate(task)
             for task in tasks
@@ -243,14 +260,23 @@ def _read_operational_snapshot(session: Session) -> OperationalSnapshot:
     )
 
 
-def load_operational_snapshot(session: Session) -> OperationalSnapshot:
+def load_operational_snapshot(
+    session: Session,
+    active_space: Space,
+) -> OperationalSnapshot:
     if session.in_transaction():
-        return _read_operational_snapshot(session)
+        return _read_operational_snapshot(
+            session,
+            active_space,
+        )
 
     transaction = session.begin()
 
     try:
-        snapshot = _read_operational_snapshot(session)
+        snapshot = _read_operational_snapshot(
+            session,
+            active_space,
+        )
     except Exception:
         transaction.rollback()
         raise
@@ -650,16 +676,24 @@ def derive_operational_facts(
 
 def calculate_normalized_operational_facts(
     session: Session,
+    active_space: Space,
 ) -> NormalizedOperationalFactsResult:
     return derive_operational_facts(
-        load_operational_snapshot(session)
+        load_operational_snapshot(
+            session,
+            active_space,
+        )
     )
 
 
 def get_operational_facts(
     session: Session,
+    active_space: Space,
 ) -> OperationalFactsResponse:
-    snapshot = load_operational_snapshot(session)
+    snapshot = load_operational_snapshot(
+        session,
+        active_space,
+    )
     normalized = derive_operational_facts(snapshot)
 
     project_status_counts: dict[str, int] = {}

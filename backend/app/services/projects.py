@@ -2,8 +2,8 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from app.core.default_space import DEFAULT_SPACE_ID
 from app.models.project import Project
+from app.models.space import Space
 from app.models.project_material_requirement import (
     ProjectMaterialRequirement,
 )
@@ -25,17 +25,20 @@ def utc_now() -> datetime:
 
 def list_project_models(
     session: Session,
+    active_space: Space,
     *,
     include_archived: bool = False,
 ) -> list[Project]:
     return project_repository.list_projects(
         session,
+        active_space.id,
         include_archived=include_archived,
     )
 
 
 def _inventory_names(
     session: Session,
+    active_space: Space,
     projects: list[Project],
 ) -> dict[str, str]:
     inventory_ids = {
@@ -45,6 +48,7 @@ def _inventory_names(
     }
     return inventory_repository.inventory_names_by_ids(
         session,
+        active_space.id,
         inventory_ids,
     )
 
@@ -84,9 +88,14 @@ def _ordered_materials(
 
 def serialize_projects(
     session: Session,
+    active_space: Space,
     projects: list[Project],
 ) -> list[ProjectRead]:
-    inventory_names = _inventory_names(session, projects)
+    inventory_names = _inventory_names(
+        session,
+        active_space,
+        projects,
+    )
 
     return [
         ProjectRead(
@@ -115,28 +124,44 @@ def serialize_projects(
 
 def serialize_project(
     session: Session,
+    active_space: Space,
     project: Project,
 ) -> ProjectRead:
-    return serialize_projects(session, [project])[0]
+    return serialize_projects(
+        session,
+        active_space,
+        [project],
+    )[0]
 
 
 def list_projects(
     session: Session,
+    active_space: Space,
     *,
     include_archived: bool = False,
 ) -> list[ProjectRead]:
     projects = list_project_models(
         session,
+        active_space,
         include_archived=include_archived,
     )
-    return serialize_projects(session, projects)
+    return serialize_projects(
+        session,
+        active_space,
+        projects,
+    )
 
 
 def require_project(
     session: Session,
+    active_space: Space,
     project_id: str,
 ) -> Project:
-    project = project_repository.get_project(session, project_id)
+    project = project_repository.get_project(
+        session,
+        active_space.id,
+        project_id,
+    )
 
     if project is None:
         raise LookupError("Project not found.")
@@ -146,11 +171,17 @@ def require_project(
 
 def read_project(
     session: Session,
+    active_space: Space,
     project_id: str,
 ) -> ProjectRead:
     return serialize_project(
         session,
-        require_project(session, project_id),
+        active_space,
+        require_project(
+            session,
+            active_space,
+            project_id,
+        ),
     )
 
 
@@ -161,11 +192,13 @@ def _require_editable(project: Project) -> None:
 
 def _require_inventory_item(
     session: Session,
+    active_space: Space,
     inventory_item_id: str,
 ) -> None:
     if (
         inventory_repository.get_inventory_item(
             session,
+            active_space.id,
             inventory_item_id,
         )
         is None
@@ -175,17 +208,19 @@ def _require_inventory_item(
 
 def build_project(
     session: Session,
+    active_space: Space,
     data: ProjectCreate,
 ) -> Project:
     for material in data.materials:
         _require_inventory_item(
             session,
+            active_space,
             material.inventory_item_id,
         )
 
     project_data = data.model_dump(exclude={"materials"})
     project = Project(
-        space_id=DEFAULT_SPACE_ID,
+        space_id=active_space.id,
         **project_data,
     )
     project.material_requirements = [
@@ -201,9 +236,14 @@ def build_project(
 
 def create_project(
     session: Session,
+    active_space: Space,
     data: ProjectCreate,
 ) -> ProjectRead:
-    project = build_project(session, data)
+    project = build_project(
+        session,
+        active_space,
+        data,
+    )
 
     try:
         project_repository.add_project(session, project)
@@ -212,15 +252,24 @@ def create_project(
         session.rollback()
         raise
 
-    return read_project(session, project.id)
+    return read_project(
+        session,
+        active_space,
+        project.id,
+    )
 
 
 def update_project(
     session: Session,
+    active_space: Space,
     project_id: str,
     data: ProjectUpdate,
 ) -> ProjectRead:
-    project = require_project(session, project_id)
+    project = require_project(
+        session,
+        active_space,
+        project_id,
+    )
     _require_editable(project)
     changes = data.model_dump(exclude_unset=True)
 
@@ -235,17 +284,30 @@ def update_project(
         session.rollback()
         raise
 
-    return read_project(session, project.id)
+    return read_project(
+        session,
+        active_space,
+        project.id,
+    )
 
 
 def add_material_requirement(
     session: Session,
+    active_space: Space,
     project_id: str,
     data: ProjectMaterialCreate,
 ) -> ProjectRead:
-    project = require_project(session, project_id)
+    project = require_project(
+        session,
+        active_space,
+        project_id,
+    )
     _require_editable(project)
-    _require_inventory_item(session, data.inventory_item_id)
+    _require_inventory_item(
+        session,
+        active_space,
+        data.inventory_item_id,
+    )
 
     if project_repository.get_material_requirement(
         session,
@@ -271,16 +333,25 @@ def add_material_requirement(
         session.rollback()
         raise
 
-    return read_project(session, project.id)
+    return read_project(
+        session,
+        active_space,
+        project.id,
+    )
 
 
 def update_material_requirement(
     session: Session,
+    active_space: Space,
     project_id: str,
     inventory_item_id: str,
     data: ProjectMaterialUpdate,
 ) -> ProjectRead:
-    project = require_project(session, project_id)
+    project = require_project(
+        session,
+        active_space,
+        project_id,
+    )
     _require_editable(project)
     requirement = project_repository.get_material_requirement(
         session,
@@ -302,15 +373,24 @@ def update_material_requirement(
         session.rollback()
         raise
 
-    return read_project(session, project.id)
+    return read_project(
+        session,
+        active_space,
+        project.id,
+    )
 
 
 def remove_material_requirement(
     session: Session,
+    active_space: Space,
     project_id: str,
     inventory_item_id: str,
 ) -> ProjectRead:
-    project = require_project(session, project_id)
+    project = require_project(
+        session,
+        active_space,
+        project_id,
+    )
     _require_editable(project)
     requirement = project_repository.get_material_requirement(
         session,
@@ -330,14 +410,23 @@ def remove_material_requirement(
         session.rollback()
         raise
 
-    return read_project(session, project.id)
+    return read_project(
+        session,
+        active_space,
+        project.id,
+    )
 
 
 def delete_project(
     session: Session,
+    active_space: Space,
     project_id: str,
 ) -> None:
-    project = require_project(session, project_id)
+    project = require_project(
+        session,
+        active_space,
+        project_id,
+    )
 
     try:
         project_repository.delete_project(session, project)
@@ -349,12 +438,21 @@ def delete_project(
 
 def archive_project(
     session: Session,
+    active_space: Space,
     project_id: str,
 ) -> ProjectRead:
-    project = require_project(session, project_id)
+    project = require_project(
+        session,
+        active_space,
+        project_id,
+    )
 
     if project.archived_at is not None:
-        return serialize_project(session, project)
+        return serialize_project(
+            session,
+            active_space,
+            project,
+        )
 
     archived_at = utc_now()
     project.status = "archived"
@@ -367,4 +465,8 @@ def archive_project(
         session.rollback()
         raise
 
-    return read_project(session, project.id)
+    return read_project(
+        session,
+        active_space,
+        project.id,
+    )

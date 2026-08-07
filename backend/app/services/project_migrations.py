@@ -4,7 +4,7 @@ import json
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.default_space import DEFAULT_SPACE_ID
+from app.models.space import Space
 from app.repositories import project_migrations as migration_repository
 from app.repositories import projects as project_repository
 from app.schemas.project_migration import (
@@ -40,6 +40,7 @@ def migration_payload_hash(
 
 def _existing_migration_response(
     session: Session,
+    active_space: Space,
     data: BrowserProjectMigrationRequest,
     payload_hash: str,
 ) -> ProjectMigrationResponse | None:
@@ -50,6 +51,12 @@ def _existing_migration_response(
 
     if migration is None:
         return None
+
+    if migration.space_id != active_space.id:
+        raise ProjectMigrationConflictError(
+            "This browser Project source ID was already migrated "
+            "in another Space."
+        )
 
     if migration.payload_hash != payload_hash:
         raise ProjectMigrationConflictError(
@@ -65,6 +72,7 @@ def _existing_migration_response(
 
     project = project_repository.get_project(
         session,
+        active_space.id,
         migration.project_id,
     )
 
@@ -77,6 +85,7 @@ def _existing_migration_response(
     return ProjectMigrationResponse(
         **project_service.serialize_project(
             session,
+            active_space,
             project,
         ).model_dump(),
         migration_status="already-migrated",
@@ -86,11 +95,13 @@ def _existing_migration_response(
 
 def migrate_browser_project(
     session: Session,
+    active_space: Space,
     data: BrowserProjectMigrationRequest,
 ) -> ProjectMigrationResponse:
     payload_hash = migration_payload_hash(data)
     existing = _existing_migration_response(
         session,
+        active_space,
         data,
         payload_hash,
     )
@@ -107,6 +118,7 @@ def migrate_browser_project(
     )
     project = project_service.build_project(
         session,
+        active_space,
         ProjectCreate.model_validate(project_data),
     )
     project.created_at = data.created_at
@@ -119,13 +131,14 @@ def migrate_browser_project(
             source_record_id=data.source_record_id,
             project_id=project.id,
             payload_hash=payload_hash,
-            space_id=DEFAULT_SPACE_ID,
+            space_id=active_space.id,
         )
         session.commit()
     except IntegrityError:
         session.rollback()
         concurrent = _existing_migration_response(
             session,
+            active_space,
             data,
             payload_hash,
         )
@@ -141,6 +154,7 @@ def migrate_browser_project(
     return ProjectMigrationResponse(
         **project_service.read_project(
             session,
+            active_space,
             project.id,
         ).model_dump(),
         migration_status="migrated",

@@ -30,6 +30,7 @@ from app.core.default_space import (
 )
 from app.core.schema_upgrades import CURRENT_DATABASE_SCHEMA_VERSION
 from app.models.base import Base
+from app.models.space import Space
 from app.schemas.recovery import (
     BackupCompatibility,
     BackupManifest,
@@ -2214,8 +2215,22 @@ def _verify_activated_database(
         )
 
         with session_factory() as session:
+            default_space = session.get(
+                Space,
+                DEFAULT_SPACE_ID,
+            )
+
+            if default_space is None:
+                raise RecoveryContractError(
+                    "RESTORE_ACTIVATION_HEALTH_FAILED",
+                    "Activated database is missing the default Space.",
+                )
+
             operational_fact_count = len(
-                get_operational_facts(session).facts
+                get_operational_facts(
+                    session,
+                    default_space,
+                ).facts
             )
     finally:
         verification_engine.dispose()

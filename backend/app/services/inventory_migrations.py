@@ -3,9 +3,9 @@ from typing import Any
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
-from app.core.default_space import DEFAULT_SPACE_ID
 from app.models.inventory import InventoryItem
-from app.repositories.inventory import add_inventory_item, get_inventory_item
+from app.models.space import Space
+from app.repositories.inventory import add_inventory_item
 from app.repositories.inventory_migrations import (
     add_browser_migration,
     get_browser_migration,
@@ -24,6 +24,7 @@ def get_source_record_id(raw_record: dict[str, Any]) -> str | None:
 
 def migrate_browser_inventory(
     session: Session,
+    active_space: Space,
     raw_records: list[dict[str, Any]],
 ) -> InventoryMigrationResponse:
     migrated = 0
@@ -53,11 +54,25 @@ def migrate_browser_inventory(
             migration = get_browser_migration(session, record.id)
 
             if migration is not None:
+                if migration.space_id != active_space.id:
+                    duplicates += 1
+                    errors.append(
+                        InventoryMigrationError(
+                            index=index,
+                            source_record_id=record.id,
+                            reason=(
+                                "This browser inventory item was already "
+                                "migrated in another Space."
+                            ),
+                        )
+                    )
+                    continue
+
                 already_migrated += 1
                 confirmed_source_ids.append(record.id)
                 continue
 
-            if get_inventory_item(session, record.id) is not None:
+            if session.get(InventoryItem, record.id) is not None:
                 duplicates += 1
                 errors.append(
                     InventoryMigrationError(
@@ -76,7 +91,7 @@ def migrate_browser_inventory(
             )
             item = InventoryItem(
                 id=record.id,
-                space_id=DEFAULT_SPACE_ID,
+                space_id=active_space.id,
                 created_at=record.created_at,
                 updated_at=record.updated_at or record.created_at,
                 **item_data,
@@ -86,7 +101,7 @@ def migrate_browser_inventory(
                 session,
                 source_record_id=record.id,
                 inventory_item_id=item.id,
-                space_id=DEFAULT_SPACE_ID,
+                space_id=active_space.id,
             )
             migrated += 1
             confirmed_source_ids.append(record.id)

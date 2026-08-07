@@ -3,13 +3,13 @@ from typing import Any
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
-from app.core.default_space import DEFAULT_SPACE_ID
+from app.models.space import Space
 from app.models.task import Task
 from app.repositories.task_migrations import (
     add_browser_migration,
     get_browser_migration,
 )
-from app.repositories.tasks import add_task, get_task
+from app.repositories.tasks import add_task
 from app.schemas.task_migration import (
     BrowserTaskRecord,
     TaskMigrationError,
@@ -31,6 +31,7 @@ def get_source_record_id(
 
 def migrate_browser_tasks(
     session: Session,
+    active_space: Space,
     raw_records: list[dict[str, Any]],
 ) -> TaskMigrationResponse:
     migrated = 0
@@ -62,11 +63,25 @@ def migrate_browser_tasks(
             )
 
             if migration is not None:
+                if migration.space_id != active_space.id:
+                    skipped += 1
+                    errors.append(
+                        TaskMigrationError(
+                            index=index,
+                            source_record_id=record.id,
+                            reason=(
+                                "This browser task was already migrated "
+                                "in another Space."
+                            ),
+                        )
+                    )
+                    continue
+
                 already_migrated += 1
                 confirmed_source_ids.append(record.id)
                 continue
 
-            if get_task(session, record.id) is not None:
+            if session.get(Task, record.id) is not None:
                 skipped += 1
                 errors.append(
                     TaskMigrationError(
@@ -83,6 +98,7 @@ def migrate_browser_tasks(
             try:
                 validate_project_reference(
                     session,
+                    active_space,
                     record.project_id,
                 )
             except (LookupError, ValueError) as error:
@@ -98,7 +114,7 @@ def migrate_browser_tasks(
 
             task = Task(
                 id=record.id,
-                space_id=DEFAULT_SPACE_ID,
+                space_id=active_space.id,
                 title=record.title,
                 priority=record.priority,
                 completed=record.completed,
@@ -111,7 +127,7 @@ def migrate_browser_tasks(
                 session,
                 source_record_id=record.id,
                 task_id=task.id,
-                space_id=DEFAULT_SPACE_ID,
+                space_id=active_space.id,
             )
             migrated += 1
             confirmed_source_ids.append(record.id)

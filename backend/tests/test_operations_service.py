@@ -15,6 +15,7 @@ from app.models.project_material_requirement import (
     ProjectMaterialRequirement,
 )
 from app.models.project_migration import ProjectMigration
+from app.models.space import Space
 from app.models.task import Task
 from app.services.operations import (
     InventorySnapshot,
@@ -951,7 +952,13 @@ class OperationalSnapshotDatabaseTests(DatabaseTestCase):
         self.session.commit()
         self.assertFalse(self.session.in_transaction())
 
-        snapshot = load_operational_snapshot(self.session)
+        snapshot = load_operational_snapshot(
+            self.session,
+            Space(
+                id=DEFAULT_SPACE_ID,
+                name="HardHead Works",
+            ),
+        )
 
         self.assertFalse(self.session.in_transaction())
         self.assertEqual(
@@ -1010,7 +1017,13 @@ class OperationalSnapshotDatabaseTests(DatabaseTestCase):
         self.session.commit()
         tables_before = set(inspect(engine).get_table_names())
 
-        result = calculate_normalized_operational_facts(self.session)
+        result = calculate_normalized_operational_facts(
+            self.session,
+            Space(
+                id=DEFAULT_SPACE_ID,
+                name="HardHead Works",
+            ),
+        )
 
         self.assertEqual(len(result.facts), 1)
         tables_after = set(inspect(engine).get_table_names())
