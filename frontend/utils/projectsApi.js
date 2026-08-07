@@ -1,19 +1,19 @@
-import { apiRequest } from "./api.js";
+import { spaceApiRequest } from "./spaceApi.js";
 
 
 export function listProjects(includeArchived = false) {
     const query = includeArchived ? "?includeArchived=true" : "";
-    return apiRequest(`/api/projects${query}`);
+    return spaceApiRequest(`/api/projects${query}`);
 }
 
 
 export function getProject(projectId) {
-    return apiRequest(`/api/projects/${encodeURIComponent(projectId)}`);
+    return spaceApiRequest(`/api/projects/${encodeURIComponent(projectId)}`);
 }
 
 
 export function createProject(project) {
-    return apiRequest("/api/projects", {
+    return spaceApiRequest("/api/projects", {
         method: "POST",
         body: JSON.stringify(project)
     });
@@ -21,7 +21,7 @@ export function createProject(project) {
 
 
 export function updateProject(projectId, changes) {
-    return apiRequest(
+    return spaceApiRequest(
         `/api/projects/${encodeURIComponent(projectId)}`,
         {
             method: "PATCH",
@@ -32,13 +32,13 @@ export function updateProject(projectId, changes) {
 
 
 export function deleteProject(projectId) {
-    return apiRequest(`/api/projects/${encodeURIComponent(projectId)}`, {
+    return spaceApiRequest(`/api/projects/${encodeURIComponent(projectId)}`, {
         method: "DELETE"
     });
 }
 
 export function addProjectMaterial(projectId, requirement) {
-    return apiRequest(
+    return spaceApiRequest(
         `/api/projects/${encodeURIComponent(projectId)}/materials`,
         {
             method: "POST",
@@ -53,7 +53,7 @@ export function updateProjectMaterial(
     inventoryItemId,
     changes
 ) {
-    return apiRequest(
+    return spaceApiRequest(
         `/api/projects/${encodeURIComponent(projectId)}/materials/${encodeURIComponent(inventoryItemId)}`,
         {
             method: "PATCH",
@@ -64,7 +64,7 @@ export function updateProjectMaterial(
 
 
 export function deleteProjectMaterial(projectId, inventoryItemId) {
-    return apiRequest(
+    return spaceApiRequest(
         `/api/projects/${encodeURIComponent(projectId)}/materials/${encodeURIComponent(inventoryItemId)}`,
         { method: "DELETE" }
     );
@@ -72,7 +72,7 @@ export function deleteProjectMaterial(projectId, inventoryItemId) {
 
 
 export function migrateBrowserProject(project) {
-    return apiRequest("/api/project-migrations/browser", {
+    return spaceApiRequest("/api/project-migrations/browser", {
         method: "POST",
         body: JSON.stringify(project)
     });

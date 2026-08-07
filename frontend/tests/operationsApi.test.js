@@ -312,7 +312,7 @@ test("module has no browser storage, direct fetch, or legacy fallback", async ()
         "utf8"
     );
 
-    assert.match(source, /import \{ apiRequest \} from "\.\/api\.js"/);
+    assert.match(source, /import \{ spaceApiRequest \} from "\.\/spaceApi\.js"/);
     assert.doesNotMatch(source, /\bfetch\s*\(/);
     assert.doesNotMatch(source, /localStorage|indexedDB/i);
     assert.doesNotMatch(

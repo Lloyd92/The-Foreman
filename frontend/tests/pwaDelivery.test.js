@@ -136,11 +136,16 @@ test("application startup gates operations behind PWA and health initialization"
         app,
         /import \{[\s\S]*createConnectionController,[\s\S]*setActiveConnectionController[\s\S]*\} from "\.\/utils\/connectionState\.js";/
     );
+    assert.match(
+        app,
+        /import \{[\s\S]*initializeSpaceSelection[\s\S]*\} from "\.\/utils\/spaceSelection\.js";/
+    );
     assert.match(app, /await initializePwa\(\)\.catch/);
     assert.match(app, /await connectionController\.initialize\(\);/);
     assert.match(app, /void initializeApplication\(\)\.catch/);
     assert.match(app, /initializeRouter\(\);/);
     assert.match(app, /initializeDashboard\(\),/);
+    assert.match(app, /await initializeSpaceSelection\(\);/);
     assert.match(app, /migrateLegacyInventory\(\);/);
     assert.match(app, /migrateProjectsAfterInventory\(/);
     assert.match(app, /migrateLegacyTasks\(/);
@@ -153,6 +158,9 @@ test("application startup gates operations behind PWA and health initialization"
     const pwa = app.indexOf("await initializePwa()");
     const controller = app.indexOf("createConnectionController({");
     const health = app.indexOf("await connectionController.initialize()");
+    const spaceSelection = app.indexOf(
+        "await initializeSpaceSelection()"
+    );
     const inventoryMigration = app.indexOf(
         "const inventoryMigrationResult = await migrateLegacyInventory()"
     );
@@ -166,6 +174,7 @@ test("application startup gates operations behind PWA and health initialization"
 
     assert.ok(pwa < controller);
     assert.ok(controller < health);
+    assert.ok(spaceSelection < inventoryMigration);
     assert.ok(inventoryMigration < projectMigration);
     assert.ok(projectMigration < taskMigration);
     assert.ok(taskMigration < router);

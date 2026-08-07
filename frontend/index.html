@@ -225,18 +225,38 @@
                     </p>
                 </div>
 
-                <div
-                    class="system-indicator"
-                    aria-live="polite"
-                >
-                    <span
-                        id="status-dot"
-                        aria-hidden="true"
-                    ></span>
+                <div class="topbar-controls">
+                    <label
+                        class="space-selector"
+                        for="active-space-select"
+                    >
+                        <span>Space</span>
 
-                    <span id="system-status">
-                        Checking system...
-                    </span>
+                        <select
+                            id="active-space-select"
+                            name="active-space-select"
+                            aria-label="Active Space"
+                            disabled
+                        >
+                            <option>
+                                Loading…
+                            </option>
+                        </select>
+                    </label>
+
+                    <div
+                        class="system-indicator"
+                        aria-live="polite"
+                    >
+                        <span
+                            id="status-dot"
+                            aria-hidden="true"
+                        ></span>
+
+                        <span id="system-status">
+                            Checking system...
+                        </span>
+                    </div>
                 </div>
             </header>
 

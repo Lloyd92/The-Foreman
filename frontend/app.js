@@ -19,8 +19,13 @@ import {
     createConnectionController,
     setActiveConnectionController
 } from "./utils/connectionState.js";
+import {
+    initializeSpaceSelection
+} from "./utils/spaceSelection.js";
 
 async function initializeOperationalApplication() {
+    await initializeSpaceSelection();
+
     const inventoryMigrationResult = await migrateLegacyInventory();
     const projectMigrationResult = await migrateProjectsAfterInventory(
         Promise.resolve(inventoryMigrationResult)

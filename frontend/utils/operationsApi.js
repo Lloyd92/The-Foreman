@@ -1,4 +1,4 @@
-import { apiRequest } from "./api.js";
+import { spaceApiRequest } from "./spaceApi.js";
 
 
 export const OPERATIONAL_FACT_TYPES = Object.freeze({
@@ -306,7 +306,7 @@ export function validateOperationalFactsResponse(response) {
 
 export async function getOperationalFacts() {
     return validateOperationalFactsResponse(
-        await apiRequest("/api/operational-facts")
+        await spaceApiRequest("/api/operational-facts")
     );
 }
 
