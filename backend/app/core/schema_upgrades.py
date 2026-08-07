@@ -1534,15 +1534,24 @@ def _complete_final_table(
                 f"{upgrade.table_name} replacement structure is invalid."
             )
 
-        if not _replacement_has_exact_space(connection, upgrade.table_name):
-            raise RuntimeError(
-                f"{upgrade.table_name} contains invalid Space ownership."
-            )
-
         evidence = _read_migration_evidence(
             connection,
             upgrade.table_name,
         )
+
+        # Exact default-Space ownership is migration evidence, not a
+        # steady-state v4 invariant. Once migration is complete, records may
+        # legitimately belong to any existing Space.
+        if (
+            (record_journal or evidence is not None)
+            and not _replacement_has_exact_space(
+                connection,
+                upgrade.table_name,
+            )
+        ):
+            raise RuntimeError(
+                f"{upgrade.table_name} contains invalid Space ownership."
+            )
 
         if evidence is not None and not _final_matches_durable_evidence(
             connection,
@@ -1758,20 +1767,6 @@ def _verify_space_scoped_schema(connection: Connection) -> None:
             )
 
         _verify_scoped_indexes(connection, upgrade.table_name)
-        invalid_count = connection.execute(
-            text(
-                f"SELECT COUNT(*) FROM "
-                f"{_quote_identifier(upgrade.table_name)} "
-                "WHERE space_id IS NULL OR space_id != :default_space_id"
-            ),
-            {"default_space_id": DEFAULT_SPACE_ID},
-        ).scalar_one()
-
-        if invalid_count:
-            raise RuntimeError(
-                f"{upgrade.table_name} contains records outside the "
-                "deterministic default Space."
-            )
 
     for provenance_table, target_table, target_column in (
         ("inventory_migrations", "inventory_items", "inventory_item_id"),

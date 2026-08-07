@@ -946,6 +946,79 @@ class DefaultSpaceMigrationTests(unittest.TestCase):
         self.run_upgrade()
         self.assert_completed_upgrade()
 
+    def test_completed_v4_database_accepts_multi_space_rows_on_restart(
+        self,
+    ) -> None:
+        self.create_version_three_database()
+        self.run_upgrade()
+
+        second_space_id = "11111111-2222-4333-8444-555555555555"
+        timestamp = "2026-08-07 19:00:00.123456"
+
+        with self.engine.begin() as connection:
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO spaces (
+                        id, name, description, created_at, updated_at
+                    ) VALUES (
+                        :space_id, 'Workshop', 'Restart regression Space',
+                        :timestamp, :timestamp
+                    )
+                    """
+                ),
+                {
+                    "space_id": second_space_id,
+                    "timestamp": timestamp,
+                },
+            )
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO inventory_items (
+                        id, space_id, name, category, quantity, unit,
+                        minimum, location, cost, supplier, notes,
+                        created_at, updated_at
+                    ) VALUES (
+                        'inventory-workshop', :space_id,
+                        'Workshop Fastener', 'Hardware', 8, 'each',
+                        2, 'Workshop Shelf', 1.25, '', '',
+                        :timestamp, :timestamp
+                    )
+                    """
+                ),
+                {
+                    "space_id": second_space_id,
+                    "timestamp": timestamp,
+                },
+            )
+
+        # A normal application restart re-runs schema preparation.
+        self.run_upgrade()
+
+        with self.engine.connect() as connection:
+            self.assertEqual(
+                connection.exec_driver_sql(
+                    "PRAGMA user_version"
+                ).scalar_one(),
+                CURRENT_DATABASE_SCHEMA_VERSION,
+            )
+            self.assertEqual(
+                connection.execute(
+                    text(
+                        "SELECT space_id FROM inventory_items "
+                        "WHERE id = 'inventory-workshop'"
+                    )
+                ).scalar_one(),
+                second_space_id,
+            )
+            self.assertEqual(
+                connection.exec_driver_sql(
+                    "PRAGMA foreign_key_check"
+                ).all(),
+                [],
+            )
+
     def test_completed_table_with_later_legacy_table_resumes(self) -> None:
         self.create_version_three_database()
 
