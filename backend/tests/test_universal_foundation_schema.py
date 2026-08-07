@@ -20,7 +20,7 @@ from app.models.organization_space_relationship import (
 )
 from app.models.person import Person
 from app.models.space import Space
-from app.schemas.member import MemberCreate, MemberRead
+from app.schemas.member import MemberCreate, MemberRead, MemberUpdate
 from app.schemas.module_registry import (
     ModuleDefinition,
     ModuleStateCreate,
@@ -267,12 +267,10 @@ class UniversalFoundationSchemaTests(unittest.TestCase):
 
     def test_roles_are_normalized_by_typed_schemas(self) -> None:
         member = MemberCreate(
-            space_id="space-id",
             person_id="person-id",
             role="  Household   Administrator ",
         )
         relationship = OrganizationSpaceRelationshipCreate(
-            space_id="space-id",
             organization_id="organization-id",
             role=" Service Provider ",
         )
@@ -283,19 +281,15 @@ class UniversalFoundationSchemaTests(unittest.TestCase):
     def test_relationship_ids_follow_stable_string_conventions(self) -> None:
         valid_id = "a" * 36
         member = MemberCreate(
-            space_id="  space-id  ",
             person_id=valid_id,
             role="member",
         )
         relationship = OrganizationSpaceRelationshipCreate(
-            space_id=valid_id,
             organization_id="  organization-id  ",
             role="utility",
         )
 
-        self.assertEqual(member.space_id, "space-id")
         self.assertEqual(member.person_id, valid_id)
-        self.assertEqual(relationship.space_id, valid_id)
         self.assertEqual(
             relationship.organization_id,
             "organization-id",
@@ -305,20 +299,18 @@ class UniversalFoundationSchemaTests(unittest.TestCase):
             (
                 MemberCreate,
                 {
-                    "space_id": "space-id",
                     "person_id": "person-id",
                     "role": "member",
                 },
-                ("space_id", "person_id"),
+                ("person_id",),
             ),
             (
                 OrganizationSpaceRelationshipCreate,
                 {
-                    "space_id": "space-id",
                     "organization_id": "organization-id",
                     "role": "utility",
                 },
-                ("space_id", "organization_id"),
+                ("organization_id",),
             ),
         )
 
@@ -367,14 +359,15 @@ class UniversalFoundationSchemaTests(unittest.TestCase):
                 self.session.rollback()
 
     def test_member_and_module_schemas_exclude_prohibited_fields(self) -> None:
-        member_fields = set(MemberCreate.model_fields) | set(
-            MemberRead.model_fields
+        member_fields = (
+            set(MemberCreate.model_fields)
+            | set(MemberUpdate.model_fields)
+            | set(MemberRead.model_fields)
         )
         self.assertEqual(
             member_fields,
             {
                 "id",
-                "space_id",
                 "person_id",
                 "role",
                 "responsibilities",
