@@ -1,4 +1,15 @@
-const DEFAULT_ROUTE = "dashboard";
+const DEFAULT_ROUTE = "today";
+const ROUTE_ALIASES = Object.freeze({
+    dashboard: DEFAULT_ROUTE
+});
+const PARENT_NAV_ROUTES = Object.freeze({
+    tasks: "work",
+    projects: "work",
+    inventory: "resources",
+    mealworms: "resources",
+    budget: "money",
+    recovery: "settings"
+});
 let routerInitialized = false;
 
 function getRouteFromHash() {
@@ -6,19 +17,37 @@ function getRouteFromHash() {
     return route || DEFAULT_ROUTE;
 }
 
-function showRoute(route) {
-    const pages = document.querySelectorAll("[data-page]");
-    const links = document.querySelectorAll("[data-route]");
+function canonicalizeToToday() {
+    if (window.location.hash === `#${DEFAULT_ROUTE}`) {
+        return;
+    }
 
-    const matchingPage = document.querySelector(`[data-page="${route}"]`);
+    const canonicalUrl = (
+        `${window.location.pathname}${window.location.search}` +
+        `#${DEFAULT_ROUTE}`
+    );
+    window.history.replaceState(null, "", canonicalUrl);
+}
+
+function showRoute(requestedRoute) {
+    const pages = [...document.querySelectorAll("[data-page]")];
+    const links = document.querySelectorAll("[data-route]");
+    const route = ROUTE_ALIASES[requestedRoute] || requestedRoute;
+    const matchingPage = pages.find(page => page.dataset.page === route);
     const safeRoute = matchingPage ? route : DEFAULT_ROUTE;
+
+    if (requestedRoute !== route || !matchingPage) {
+        canonicalizeToToday();
+    }
 
     pages.forEach(page => {
         page.hidden = page.dataset.page !== safeRoute;
     });
 
+    const activeNavRoute = PARENT_NAV_ROUTES[safeRoute] || safeRoute;
+
     links.forEach(link => {
-        const isActive = link.dataset.route === safeRoute;
+        const isActive = link.dataset.route === activeNavRoute;
 
         link.classList.toggle("active", isActive);
 

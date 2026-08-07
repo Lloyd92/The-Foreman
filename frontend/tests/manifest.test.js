@@ -16,10 +16,10 @@ const manifestPath = path.join(
 
 const expectedManifest = {
     id: "/",
-    name: "The Foreman — HardHead Works",
+    name: "The Foreman",
     short_name: "Foreman",
-    description: "The local workshop command center for HardHead Works.",
-    start_url: "/#dashboard",
+    description: "An offline-first operations and continuity workspace.",
+    start_url: "/#today",
     scope: "/",
     display: "standalone",
     orientation: "any",

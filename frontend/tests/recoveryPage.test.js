@@ -359,7 +359,7 @@ test("attachment saving revokes its temporary URL after one click", () => {
 });
 
 
-test("recovery UI is a utility route with no direct backend transport", async () => {
+test("recovery UI remains linked from Settings with no direct backend transport", async () => {
     const [html, source] = await Promise.all([
         readFile(new URL("../index.html", import.meta.url), "utf8"),
         readFile(new URL("../pages/recovery.js", import.meta.url), "utf8")
@@ -367,7 +367,7 @@ test("recovery UI is a utility route with no direct backend transport", async ()
 
     assert.match(
         html,
-        /aria-label="Application utilities"[\s\S]*data-route="recovery"/
+        /data-page="settings"[\s\S]*href="#recovery"/
     );
     assert.match(html, /data-page="recovery"/);
     assert.match(html, /RESTORE THE FOREMAN/);

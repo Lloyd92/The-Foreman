@@ -394,7 +394,7 @@ test("release version and shell cache are finalized", async () => {
     assert.match(backendSource, /APPLICATION_VERSION = "0\.7\.5"/);
     assert.match(
         workerSource,
-        /SHELL_CACHE_NAME = "foreman-shell-v0\.7\.5-c1"/
+        /SHELL_CACHE_NAME = "foreman-shell-v0\.7\.5-c2"/
     );
 });
 

@@ -164,25 +164,33 @@ body.connection-blocked .pwa-update-notice {
     font-weight: bold;
 }
 
-nav {
+.primary-nav,
+.utility-nav,
+.secondary-navigation {
     display: grid;
     gap: 8px;
 }
 
-nav a {
+.primary-nav a,
+.utility-nav a,
+.secondary-navigation a {
     padding: 12px 14px;
     color: var(--muted);
     text-decoration: none;
     border-radius: 9px;
 }
 
-nav a:hover,
-nav a.active {
+.primary-nav a:hover,
+.primary-nav a.active,
+.utility-nav a:hover,
+.utility-nav a.active,
+.secondary-navigation a:hover {
     color: var(--text);
     background: var(--panel);
 }
 
-nav a.active {
+.primary-nav a.active,
+.utility-nav a.active {
     border-left: 4px solid var(--orange);
     padding-left: 10px;
 }
@@ -323,7 +331,7 @@ footer {
         border-bottom: 1px solid var(--border);
     }
 
-    nav {
+    .primary-nav {
         grid-template-columns: repeat(3, 1fr);
     }
 
@@ -520,6 +528,31 @@ footer {
 .page-heading p {
     margin: 0;
     color: var(--muted);
+}
+
+.category-page .page-heading {
+    max-width: 760px;
+}
+
+.category-page .section-eyebrow {
+    margin-bottom: 8px;
+    color: var(--orange);
+}
+
+.secondary-navigation {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.secondary-navigation a {
+    color: var(--text);
+    background: var(--background);
+    border: 1px solid var(--border);
+}
+
+.secondary-navigation a:hover {
+    border-color: var(--orange);
 }
 
 .inventory-page {
@@ -1620,6 +1653,7 @@ footer {
     .utility-nav {
         margin-top: 18px;
         padding-top: 18px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .recovery-grid,
@@ -1629,5 +1663,12 @@ footer {
 
     .recovery-card-wide {
         grid-column: auto;
+    }
+}
+
+@media (max-width: 520px) {
+    .primary-nav,
+    .secondary-navigation {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }

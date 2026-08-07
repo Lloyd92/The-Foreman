@@ -46,7 +46,7 @@ test("index includes approved PWA and Apple metadata", async () => {
         html,
         /name="viewport"[\s\S]*content="[^"]*viewport-fit=cover[^"]*"/
     );
-    assert.match(html, /<title>The Foreman \| HardHead Works<\/title>/);
+    assert.match(html, /<title>The Foreman<\/title>/);
     assert.match(html, /0\.7\.5/);
 });
 

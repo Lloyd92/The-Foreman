@@ -5,14 +5,38 @@ from __future__ import annotations
 from typing import Any
 
 
-ROUTE_HEADINGS = {
-    "dashboard": ", Tyler.",
+PRIMARY_ROUTE_HEADINGS = {
+    "today": ", Tyler.",
+    "calendar": "Calendar",
+    "work": "Work",
+    "resources": "Resources",
+    "money": "Money",
+    "library": "Library",
+    "settings": "Settings",
+    "account": "Account",
+}
+
+SECONDARY_ROUTE_HEADINGS = {
     "tasks": "Tasks",
     "inventory": "Inventory",
     "projects": "Projects",
     "mealworms": "Mealworm Production",
     "budget": "Budget",
     "recovery": "Backup & Recovery",
+}
+
+ROUTE_HEADINGS = {
+    **PRIMARY_ROUTE_HEADINGS,
+    **SECONDARY_ROUTE_HEADINGS,
+}
+
+PARENT_NAV_ROUTES = {
+    "tasks": "work",
+    "projects": "work",
+    "inventory": "resources",
+    "mealworms": "resources",
+    "budget": "money",
+    "recovery": "settings",
 }
 
 
@@ -32,7 +56,7 @@ class ForemanApplication:
 
     def open(
         self,
-        route: str = "dashboard",
+        route: str = "today",
         *,
         expected_route: str | None = None,
     ) -> None:
@@ -117,12 +141,14 @@ class ForemanApplication:
     def wait_for_route(self, route: str) -> None:
         from selenium.webdriver.support.ui import WebDriverWait
 
+        expected_navigation_route = PARENT_NAV_ROUTES.get(route, route)
+
         WebDriverWait(
             self.driver,
             self.timeout_seconds,
         ).until(
             lambda _driver: self.visible_routes() == [route]
-            and self.active_route() == route
+            and self.active_route() == expected_navigation_route
         )
 
     def visible_routes(self) -> list[str]:
@@ -145,7 +171,7 @@ class ForemanApplication:
         return active_links[0].get_attribute("data-route")
 
     def heading(self, route: str) -> str:
-        if route == "dashboard":
+        if route == "today":
             selector = "#greeting"
         else:
             selector = f'[data-page="{route}"] h2'

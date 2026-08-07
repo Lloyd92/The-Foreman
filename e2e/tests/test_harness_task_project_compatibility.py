@@ -52,7 +52,7 @@ class TaskProjectCompatibilityTests(BrowserE2ETestCase):
         self.app.open("projects")
         self.projects.create_project(project)
 
-        self.app.open("dashboard")
+        self.app.open("today")
         self.tasks.create_task(task_title, "high")
 
         self.assertEqual(
@@ -72,7 +72,7 @@ class TaskProjectCompatibilityTests(BrowserE2ETestCase):
         )
 
         # Reload proves completion came back from HardHead.
-        self.app.open("dashboard")
+        self.app.open("today")
         self.assertTrue(
             self.tasks.is_completed(task_title),
         )
@@ -151,7 +151,7 @@ class TaskProjectCompatibilityTests(BrowserE2ETestCase):
             task_after_project_deletion["completed"],
         )
 
-        self.app.open("dashboard")
+        self.app.open("today")
         self.tasks.wait_for_row(task_title)
         self.assertFalse(
             self.tasks.is_completed(task_title),

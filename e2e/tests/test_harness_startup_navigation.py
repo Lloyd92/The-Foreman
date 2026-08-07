@@ -6,6 +6,8 @@ import os
 import unittest
 
 from foreman_e2e.application import (
+    PARENT_NAV_ROUTES,
+    PRIMARY_ROUTE_HEADINGS,
     ROUTE_HEADINGS,
     ForemanApplication,
 )
@@ -32,16 +34,16 @@ class StartupNavigationTests(BrowserE2ETestCase):
     ) -> None:
         actual_heading = self.app.heading(route)
 
-        if route == "dashboard":
+        if route == "today":
             self.assertTrue(
                 actual_heading.endswith(expected_heading),
-                f"Unexpected dashboard greeting: {actual_heading!r}",
+                f"Unexpected Today greeting: {actual_heading!r}",
             )
             return
 
         self.assertEqual(actual_heading, expected_heading)
 
-    def test_operational_dashboard_reports_release_identity(self) -> None:
+    def test_operational_today_reports_release_identity(self) -> None:
         self.app.open()
 
         gate = self.driver.find_element(
@@ -69,13 +71,13 @@ class StartupNavigationTests(BrowserE2ETestCase):
         )
         # Mutating browser modules share this disposable database.
         # Release and operational checks must not depend on test order.
-        self.assertEqual(self.app.visible_routes(), ["dashboard"])
-        self.assertEqual(self.app.active_route(), "dashboard")
+        self.assertEqual(self.app.visible_routes(), ["today"])
+        self.assertEqual(self.app.active_route(), "today")
 
-    def test_sidebar_navigation_reaches_every_route(self) -> None:
+    def test_sidebar_navigation_reaches_every_primary_route(self) -> None:
         self.app.open()
 
-        for route, expected_heading in ROUTE_HEADINGS.items():
+        for route, expected_heading in PRIMARY_ROUTE_HEADINGS.items():
             with self.subTest(route=route):
                 self.app.navigate(route)
 
@@ -98,23 +100,26 @@ class StartupNavigationTests(BrowserE2ETestCase):
                 self.app.open(route)
 
                 self.assertEqual(self.app.visible_routes(), [route])
-                self.assertEqual(self.app.active_route(), route)
+                self.assertEqual(
+                    self.app.active_route(),
+                    PARENT_NAV_ROUTES.get(route, route),
+                )
                 self.assert_route_heading(
                     route,
                     expected_heading,
                 )
 
-    def test_unknown_route_falls_back_to_dashboard(self) -> None:
+    def test_unknown_route_falls_back_to_today(self) -> None:
         self.app.open(
             "not-a-real-route",
-            expected_route="dashboard",
+            expected_route="today",
         )
 
-        self.assertEqual(self.app.visible_routes(), ["dashboard"])
-        self.assertEqual(self.app.active_route(), "dashboard")
+        self.assertEqual(self.app.visible_routes(), ["today"])
+        self.assertEqual(self.app.active_route(), "today")
         self.assert_route_heading(
-            "dashboard",
-            ROUTE_HEADINGS["dashboard"],
+            "today",
+            ROUTE_HEADINGS["today"],
         )
 
 

@@ -10,7 +10,7 @@
 
     <meta
         name="description"
-        content="The Foreman — HardHead Works workshop command center."
+        content="The Foreman — a clear operational workspace."
     >
 
     <meta name="theme-color" content="#1d2024">
@@ -22,7 +22,7 @@
     >
     <meta name="apple-mobile-web-app-title" content="The Foreman">
 
-    <title>The Foreman | HardHead Works</title>
+    <title>The Foreman</title>
 
     <link rel="manifest" href="/manifest.webmanifest">
     <link
@@ -141,54 +141,54 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="brand">
-                <h1>HardHead Works</h1>
-                <p>The Foreman</p>
+                <h1>The Foreman</h1>
+                <p>Keep the work moving.</p>
             </div>
 
             <nav
-                class="nav"
+                class="primary-nav"
                 aria-label="Main navigation"
             >
                 <a
-                    href="#dashboard"
-                    data-route="dashboard"
+                    href="#today"
+                    data-route="today"
                 >
-                    Dashboard
+                    Today
                 </a>
 
                 <a
-                    href="#tasks"
-                    data-route="tasks"
+                    href="#calendar"
+                    data-route="calendar"
                 >
-                    Tasks
+                    Calendar
                 </a>
 
                 <a
-                    href="#inventory"
-                    data-route="inventory"
+                    href="#work"
+                    data-route="work"
                 >
-                    Inventory
+                    Work
                 </a>
 
                 <a
-                    href="#projects"
-                    data-route="projects"
+                    href="#resources"
+                    data-route="resources"
                 >
-                    Projects
+                    Resources
                 </a>
 
                 <a
-                    href="#mealworms"
-                    data-route="mealworms"
+                    href="#money"
+                    data-route="money"
                 >
-                    Mealworms
+                    Money
                 </a>
 
                 <a
-                    href="#budget"
-                    data-route="budget"
+                    href="#library"
+                    data-route="library"
                 >
-                    Budget
+                    Library
                 </a>
             </nav>
 
@@ -197,10 +197,17 @@
                 aria-label="Application utilities"
             >
                 <a
-                    href="#recovery"
-                    data-route="recovery"
+                    href="#settings"
+                    data-route="settings"
                 >
-                    Backup &amp; Recovery
+                    Settings
+                </a>
+
+                <a
+                    href="#account"
+                    data-route="account"
+                >
+                    Account
                 </a>
             </nav>
         </aside>
@@ -211,10 +218,10 @@
             <!-- Top status bar -->
             <header class="topbar">
                 <div>
-                    <h2>Workshop Command Center</h2>
+                    <h2>Operational Overview</h2>
 
                     <p>
-                        At-a-glance operations for HardHead Works
+                        Clear context for the work ahead
                     </p>
                 </div>
 
@@ -233,11 +240,11 @@
                 </div>
             </header>
 
-            <!-- Dashboard page -->
+            <!-- Today page -->
             <main
                 class="content page-view"
                 id="dashboard"
-                data-page="dashboard"
+                data-page="today"
             >
                 <section class="welcome">
                     <h2 id="greeting">
@@ -463,6 +470,174 @@
                 </section>
             </main>
 
+            <!-- Calendar page -->
+            <main
+                class="content page-view category-page"
+                data-page="calendar"
+                hidden
+            >
+                <section class="page-heading">
+                    <p class="section-eyebrow">
+                        Commitments &amp; Availability
+                    </p>
+
+                    <h2>Calendar</h2>
+
+                    <p>
+                        Calendar capabilities are planned for a future
+                        release.
+                    </p>
+                </section>
+            </main>
+
+            <!-- Work page -->
+            <main
+                class="content page-view category-page"
+                data-page="work"
+                hidden
+            >
+                <section class="page-heading">
+                    <p class="section-eyebrow">
+                        Tasks &amp; Projects
+                    </p>
+
+                    <h2>Work</h2>
+
+                    <p>
+                        Open an existing workspace to manage current work.
+                    </p>
+
+                    <nav
+                        class="secondary-navigation"
+                        aria-label="Work sections"
+                    >
+                        <a href="#tasks">Tasks</a>
+                        <a href="#projects">Projects</a>
+                    </nav>
+                </section>
+            </main>
+
+            <!-- Resources page -->
+            <main
+                class="content page-view category-page"
+                data-page="resources"
+                hidden
+            >
+                <section class="page-heading">
+                    <p class="section-eyebrow">
+                        Operational Resources
+                    </p>
+
+                    <h2>Resources</h2>
+
+                    <p>
+                        Open an existing workspace to review tracked
+                        resources.
+                    </p>
+
+                    <nav
+                        class="secondary-navigation"
+                        aria-label="Resource sections"
+                    >
+                        <a href="#inventory">Inventory</a>
+                        <a href="#mealworms">Mealworms</a>
+                    </nav>
+                </section>
+            </main>
+
+            <!-- Money page -->
+            <main
+                class="content page-view category-page"
+                data-page="money"
+                hidden
+            >
+                <section class="page-heading">
+                    <p class="section-eyebrow">
+                        Financial Records
+                    </p>
+
+                    <h2>Money</h2>
+
+                    <p>
+                        Open the existing budget workspace. Broader Money
+                        capabilities are planned for a future release.
+                    </p>
+
+                    <nav
+                        class="secondary-navigation"
+                        aria-label="Money sections"
+                    >
+                        <a href="#budget">Budget</a>
+                    </nav>
+                </section>
+            </main>
+
+            <!-- Library page -->
+            <main
+                class="content page-view category-page"
+                data-page="library"
+                hidden
+            >
+                <section class="page-heading">
+                    <p class="section-eyebrow">
+                        Records &amp; Reference
+                    </p>
+
+                    <h2>Library</h2>
+
+                    <p>
+                        Library capabilities are planned for a future
+                        release.
+                    </p>
+                </section>
+            </main>
+
+            <!-- Settings page -->
+            <main
+                class="content page-view category-page"
+                data-page="settings"
+                hidden
+            >
+                <section class="page-heading">
+                    <p class="section-eyebrow">
+                        Application Settings
+                    </p>
+
+                    <h2>Settings</h2>
+
+                    <p>
+                        Open Backup &amp; Recovery to protect or restore local
+                        application data.
+                    </p>
+
+                    <nav
+                        class="secondary-navigation"
+                        aria-label="Settings sections"
+                    >
+                        <a href="#recovery">Backup &amp; Recovery</a>
+                    </nav>
+                </section>
+            </main>
+
+            <!-- Account page -->
+            <main
+                class="content page-view category-page"
+                data-page="account"
+                hidden
+            >
+                <section class="page-heading">
+                    <p class="section-eyebrow">
+                        Account
+                    </p>
+
+                    <h2>Account</h2>
+
+                    <p>
+                        Account capabilities are not yet available.
+                    </p>
+                </section>
+            </main>
+
             <!-- Tasks page -->
             <main
                 class="content page-view"
@@ -479,7 +654,7 @@
                     <p>
                         The dedicated task workspace will be expanded in a
                         future release. Task management remains available on
-                        the Dashboard.
+                        Today.
                     </p>
                 </section>
             </main>
@@ -1835,7 +2010,7 @@
 
             <!-- Footer -->
             <footer>
-                The Foreman · HardHead Works · Version
+                The Foreman · Version
                 <span id="footer-version">
                     0.7.5
                 </span>
