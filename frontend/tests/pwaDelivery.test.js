@@ -166,6 +166,7 @@ test("application startup gates operations behind PWA and health initialization"
     assert.match(app, /migrateProjectsAfterInventory\(/);
     assert.match(app, /migrateLegacyTasks\(/);
     assert.match(app, /initializeInventoryPage\(/);
+    assert.match(app, /initializeWorkPage\(/);
     assert.match(app, /initializeTasksPage\(/);
     assert.match(app, /initializeProjectsPage\(/);
     assert.match(
@@ -174,7 +175,7 @@ test("application startup gates operations behind PWA and health initialization"
     );
     assert.match(
         app,
-        /if \(workEnabled\) \{[\s\S]*initializeTasksPage\([\s\S]*initializeProjectsPage\(/
+        /if \(workEnabled\) \{[\s\S]*initializeWorkPage\(\)[\s\S]*initializeTasksPage\([\s\S]*initializeProjectsPage\(/
     );
     assert.match(app, /initializeRecoveryPage\(\)/);
     assert.match(app, /initializeSystemStatus\(\)/);

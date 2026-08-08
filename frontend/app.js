@@ -1,6 +1,7 @@
 import { initializeRouter } from "./utils/router.js";
 import { initializeSystemStatus } from "./utils/api.js";
 import { initializeDashboard } from "./pages/dashboard.js";
+import { initializeWorkPage } from "./pages/work.js";
 import {
     initializeTasksPage,
     migrateLegacyTasks
@@ -81,6 +82,7 @@ async function initializeOperationalApplication() {
 
     if (workEnabled) {
         initializers.push(
+            initializeWorkPage(),
             initializeTasksPage(
                 Promise.resolve(taskMigrationResult)
             ),

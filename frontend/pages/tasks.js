@@ -21,6 +21,30 @@ let currentTasks = [];
 let backendAvailable = false;
 let tasksInitialized = false;
 
+export function buildTaskCreatePayload({
+    title,
+    priority,
+    dueDate
+}) {
+    return {
+        title,
+        priority,
+        dueDate: dueDate || null
+    };
+}
+
+export function formatTaskDueDate(dueDate) {
+    return dueDate ? `Due ${dueDate}` : "No due date";
+}
+
+function notifyTasksUpdated() {
+    document.dispatchEvent(
+        new CustomEvent("tasks:updated", {
+            detail: { tasks: [...currentTasks] }
+        })
+    );
+}
+
 function priorityRank(priority) {
     const ranks = {
         high: 1,
@@ -88,6 +112,8 @@ function renderTasks(tasks = currentTasks) {
                 </label>
 
                 <div class="task-actions">
+                    <span class="task-due-date"></span>
+
                     <span class="priority priority-${task.priority}">
                         ${task.priority.toUpperCase()}
                     </span>
@@ -104,6 +130,8 @@ function renderTasks(tasks = currentTasks) {
             `;
 
             row.querySelector(".task-title").textContent = task.title;
+            row.querySelector(".task-due-date").textContent =
+                formatTaskDueDate(task.dueDate);
             taskList.appendChild(row);
         });
     }
@@ -115,6 +143,7 @@ function renderTasks(tasks = currentTasks) {
 async function refreshBackendTasks() {
     currentTasks = await getBackendTasks();
     renderTasks();
+    notifyTasksUpdated();
 }
 
 export async function migrateLegacyTasks(projectMigration) {
@@ -176,8 +205,9 @@ async function addTask(event) {
 
     const titleInput = document.getElementById("task-title");
     const priorityInput = document.getElementById("task-priority");
+    const dueDateInput = document.getElementById("task-due-date");
 
-    if (!titleInput || !priorityInput) {
+    if (!titleInput || !priorityInput || !dueDateInput) {
         return;
     }
 
@@ -193,14 +223,18 @@ async function addTask(event) {
             throw new Error("HardHead Tasks are unavailable.");
         }
 
-        await createBackendTask({
-            title,
-            priority: priorityInput.value
-        });
+        await createBackendTask(
+            buildTaskCreatePayload({
+                title,
+                priority: priorityInput.value,
+                dueDate: dueDateInput.value
+            })
+        );
         await refreshBackendTasks();
 
         titleInput.value = "";
         priorityInput.value = "medium";
+        dueDateInput.value = "";
         titleInput.focus();
     } catch (error) {
         setTaskMessage(error.message, true);

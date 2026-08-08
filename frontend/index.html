@@ -280,83 +280,6 @@
 
                 <section class="dashboard-grid">
 
-                    <!-- Tasks card -->
-                    <article class="card task-card" data-module-contribution="work">
-                        <div class="card-heading">
-                            <h3>Today's Tasks</h3>
-
-                            <span id="task-count">
-                                0 OPEN
-                            </span>
-                        </div>
-
-                        <form
-                            id="task-form"
-                            class="task-form"
-                        >
-                            <label
-                                class="visually-hidden"
-                                for="task-title"
-                            >
-                                Task description
-                            </label>
-
-                            <input
-                                id="task-title"
-                                name="task-title"
-                                type="text"
-                                maxlength="120"
-                                placeholder="What needs to be done?"
-                                autocomplete="off"
-                                required
-                            >
-
-                            <label
-                                class="visually-hidden"
-                                for="task-priority"
-                            >
-                                Task priority
-                            </label>
-
-                            <select
-                                id="task-priority"
-                                name="task-priority"
-                            >
-                                <option value="high">
-                                    High
-                                </option>
-
-                                <option
-                                    value="medium"
-                                    selected
-                                >
-                                    Medium
-                                </option>
-
-                                <option value="low">
-                                    Low
-                                </option>
-                            </select>
-
-                            <button type="submit">
-                                Add Task
-                            </button>
-                        </form>
-
-                        <div
-                            id="task-list"
-                            class="task-list"
-                            aria-live="polite"
-                        ></div>
-
-                        <p
-                            id="task-migration-status"
-                            class="task-migration-status"
-                            role="status"
-                            aria-live="polite"
-                        ></p>
-                    </article>
-
                     <!-- Inventory alerts card -->
                     <article
                         class="card"
@@ -518,28 +441,116 @@
 
             <!-- Work page -->
             <main
-                class="content page-view category-page"
+                class="content page-view work-page"
                 data-page="work"
                 hidden
             >
                 <section class="page-heading">
                     <p class="section-eyebrow">
-                        Tasks &amp; Projects
+                        Tasks, Projects &amp; Dependencies
                     </p>
 
                     <h2>Work</h2>
 
                     <p>
-                        Open an existing workspace to manage current work.
+                        Review the backend-authoritative state of current
+                        Tasks, Projects, and their recorded dependencies.
                     </p>
 
                     <nav
-                        class="secondary-navigation"
+                        class="secondary-navigation work-section-navigation"
                         aria-label="Work sections"
                     >
-                        <a href="#tasks" data-module-contribution="work">Tasks</a>
-                        <a href="#projects" data-module-contribution="work">Projects</a>
+                        <a href="#work">Overview</a>
+                        <a href="#tasks">Tasks</a>
+                        <a href="#projects">Projects</a>
                     </nav>
+                </section>
+
+                <section
+                    class="work-overview"
+                    aria-labelledby="work-overview-title"
+                >
+                    <div class="work-overview-heading">
+                        <div>
+                            <p class="section-eyebrow">
+                                Authoritative Work State
+                            </p>
+
+                            <h3 id="work-overview-title">
+                                Overview
+                            </h3>
+                        </div>
+
+                        <button
+                            id="retry-work"
+                            class="secondary-button"
+                            type="button"
+                            hidden
+                        >
+                            Retry Overview
+                        </button>
+                    </div>
+
+                    <div
+                        class="work-overview-summary"
+                        aria-label="Work summary"
+                    >
+                        <article class="work-summary-card">
+                            <span>Total Work</span>
+                            <strong id="work-total-count">0</strong>
+                        </article>
+
+                        <article class="work-summary-card">
+                            <span>Open Tasks</span>
+                            <strong id="work-open-task-count">0</strong>
+                        </article>
+
+                        <article class="work-summary-card">
+                            <span>Projects</span>
+                            <strong id="work-project-count">0</strong>
+                        </article>
+
+                        <article class="work-summary-card">
+                            <span>Dependencies</span>
+                            <strong id="work-dependency-count">0</strong>
+                        </article>
+                    </div>
+
+                    <div class="work-overview-grid">
+                        <section class="work-overview-panel">
+                            <h3>Work Items</h3>
+
+                            <div
+                                id="work-overview-items"
+                                class="work-overview-items"
+                            ></div>
+
+                            <p
+                                id="work-overview-empty"
+                                class="empty-message"
+                                hidden
+                            >
+                                No Work records are currently stored.
+                            </p>
+                        </section>
+
+                        <section class="work-overview-panel">
+                            <h3>Dependencies</h3>
+
+                            <div
+                                id="work-overview-dependencies"
+                                class="work-overview-dependencies"
+                            ></div>
+                        </section>
+                    </div>
+
+                    <p
+                        id="work-page-message"
+                        class="work-page-message"
+                        role="status"
+                        aria-live="polite"
+                    ></p>
                 </section>
             </main>
 
@@ -699,18 +710,113 @@
                 data-page="tasks"
                 hidden
             >
-                <section class="page-heading">
-                    <p class="section-eyebrow">
-                        Daily Operations
-                    </p>
+                <section class="tasks-page">
+                    <header class="tasks-header">
+                        <div>
+                            <p class="section-eyebrow">
+                                Work
+                            </p>
 
-                    <h2>Tasks</h2>
+                            <h2>Tasks</h2>
 
-                    <p>
-                        The dedicated task workspace will be expanded in a
-                        future release. Task management remains available on
-                        Today.
-                    </p>
+                            <p class="tasks-description">
+                                Capture actionable Work, track completion,
+                                and record optional due dates.
+                            </p>
+                        </div>
+                    </header>
+
+                    <nav
+                        class="secondary-navigation work-section-navigation"
+                        aria-label="Work sections"
+                    >
+                        <a href="#work">Overview</a>
+                        <a href="#tasks">Tasks</a>
+                        <a href="#projects">Projects</a>
+                    </nav>
+
+                    <article
+                        class="card task-card"
+                        data-module-contribution="work"
+                    >
+                        <div class="card-heading">
+                            <h3>Tasks</h3>
+
+                            <span id="task-count">
+                                0 OPEN
+                            </span>
+                        </div>
+
+                        <form
+                            id="task-form"
+                            class="task-form"
+                        >
+                            <label
+                                class="visually-hidden"
+                                for="task-title"
+                            >
+                                Task description
+                            </label>
+
+                            <input
+                                id="task-title"
+                                name="task-title"
+                                type="text"
+                                maxlength="120"
+                                placeholder="What needs to be done?"
+                                autocomplete="off"
+                                required
+                            >
+
+                            <label
+                                class="visually-hidden"
+                                for="task-priority"
+                            >
+                                Task priority
+                            </label>
+
+                            <select
+                                id="task-priority"
+                                name="task-priority"
+                            >
+                                <option value="high">High</option>
+                                <option value="medium" selected>
+                                    Medium
+                                </option>
+                                <option value="low">Low</option>
+                            </select>
+
+                            <label
+                                class="visually-hidden"
+                                for="task-due-date"
+                            >
+                                Task due date
+                            </label>
+
+                            <input
+                                id="task-due-date"
+                                name="task-due-date"
+                                type="date"
+                            >
+
+                            <button type="submit">
+                                Add Task
+                            </button>
+                        </form>
+
+                        <div
+                            id="task-list"
+                            class="task-list"
+                            aria-live="polite"
+                        ></div>
+
+                        <p
+                            id="task-migration-status"
+                            class="task-migration-status"
+                            role="status"
+                            aria-live="polite"
+                        ></p>
+                    </article>
                 </section>
             </main>
 
@@ -1225,6 +1331,15 @@
     hidden
 >
     <section class="projects-page">
+
+        <nav
+            class="secondary-navigation work-section-navigation"
+            aria-label="Work sections"
+        >
+            <a href="#work">Overview</a>
+            <a href="#tasks">Tasks</a>
+            <a href="#projects">Projects</a>
+        </nav>
 
         <header class="projects-header">
             <div>

@@ -394,7 +394,7 @@ test("release version and shell cache are finalized", async () => {
     assert.match(backendSource, /APPLICATION_VERSION = "0\.8\.0"/);
     assert.match(
         workerSource,
-        /SHELL_CACHE_NAME = "foreman-shell-v0\.8\.0-c1"/
+        /SHELL_CACHE_NAME = "foreman-shell-v0\.8\.0-c2"/
     );
 });
 
@@ -683,7 +683,7 @@ test("approved v0.8 and v0.9 architecture boundaries are documented", async () =
         universal: extractBetween(
             normalized.universal,
             "# 7. Universal Work",
-            "Work may reference Calendar routines",
+            "# 8. Resources",
             documentPaths.universal
         ),
         design: extractSentenceStartingWith(
@@ -706,25 +706,41 @@ test("approved v0.8 and v0.9 architecture boundaries are documented", async () =
     ];
 
     for (const [name, scope] of Object.entries(workScopes)) {
-        assertScopeIncludes(
-            scope,
-            requiredWorkOwnership,
-            `${documentPaths[name]} Work scope`
-        );
-        assertScopeExcludes(
-            scope,
-            /\b(?:routines?|recurrence)\b/i,
-            `${documentPaths[name]} Work scope`
-        );
-    }
-    for (const name of ["roadmap", "universal"]) {
-        assertScopeIncludes(normalized[name], [
-            "Work may reference Calendar routines or scheduled occurrences",
-            "does not own routine definitions"
-        ], `${documentPaths[name]} routine-reference boundary`);
-    }
+    assertScopeIncludes(
+        scope,
+        requiredWorkOwnership,
+        `${documentPaths[name]} Work scope`
+    );
+}
 
-    const roadmapResourcesSection = extractBetween(
+/*
+ * Design Principles and AGENTS use terse "Work owns..." statements,
+ * so those ownership statements must not claim Calendar concepts.
+ *
+ * Roadmap and Universal Architecture intentionally mention routines and
+ * recurrence while defining the boundary that Calendar owns them.
+ */
+for (const name of ["design", "agents"]) {
+    assertScopeExcludes(
+        workScopes[name],
+        /\b(?:routines?|recurrence)\b/i,
+        `${documentPaths[name]} Work ownership statement`
+    );
+}
+
+for (const name of ["roadmap", "universal"]) {
+    assertScopeIncludes(normalized[name], [
+        "Calendar routines or scheduled occurrences",
+        "does not own routine definitions"
+    ], `${documentPaths[name]} routine-reference boundary`);
+}
+
+assertScopeIncludes(normalized.universal, [
+    "Calendar remains authoritative for commitments, events, routines, recurrence, and availability.",
+    "A dependency does not determine Capacity, feasibility, scheduling, Priority, recommendations, or Morning Briefing behavior."
+], `${documentPaths.universal} Work boundary`);
+
+const roadmapResourcesSection = extractBetween(
         normalized.roadmap,
         "## v0.8.2 — Tools, Inventory & Care",
         "## v0.8.3 — Calendar & Scheduling",

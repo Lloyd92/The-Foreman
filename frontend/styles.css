@@ -1855,3 +1855,173 @@ footer {
         gap: 2px;
     }
 }
+
+/* Universal Work */
+.work-page,
+.tasks-page,
+.work-overview {
+    display: grid;
+    gap: 22px;
+}
+
+.work-section-navigation {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.work-overview-heading,
+.tasks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.work-overview-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.work-summary-card {
+    padding: 16px;
+    display: grid;
+    gap: 8px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.work-summary-card span {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.work-summary-card strong {
+    font-size: 28px;
+}
+
+.work-overview-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+    gap: 16px;
+}
+
+.work-overview-panel {
+    min-width: 0;
+    padding: 18px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.work-overview-panel h3 {
+    margin-top: 0;
+}
+
+.work-overview-items,
+.work-overview-dependencies {
+    display: grid;
+    gap: 10px;
+}
+
+.work-overview-item,
+.work-dependency-row {
+    padding: 14px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.work-item-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.work-item-type,
+.work-item-state {
+    margin: 0;
+    color: var(--orange);
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.work-item-title {
+    margin: 4px 0 0;
+}
+
+.work-item-details {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin: 14px 0 0;
+}
+
+.work-item-details dt {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.work-item-details dd {
+    margin: 4px 0 0;
+    overflow-wrap: anywhere;
+}
+
+.work-page-message {
+    min-height: 20px;
+    margin: 0;
+    color: var(--muted);
+}
+
+.work-page-message.error {
+    color: #ff8a80;
+}
+
+.tasks-description {
+    max-width: 680px;
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.task-form {
+    grid-template-columns:
+        minmax(0, 1fr)
+        130px
+        170px
+        auto;
+}
+
+.task-due-date {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+@media (max-width: 900px) {
+    .work-overview-summary,
+    .work-item-details {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .work-overview-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 650px) {
+    .work-section-navigation,
+    .work-overview-summary,
+    .work-item-details,
+    .task-form {
+        grid-template-columns: 1fr;
+    }
+
+    .work-overview-heading,
+    .tasks-header,
+    .work-item-heading {
+        flex-direction: column;
+    }
+}

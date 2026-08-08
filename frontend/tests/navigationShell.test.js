@@ -110,7 +110,7 @@ test("permanent and secondary route pages exist exactly once", () => {
 
 test("category pages link to their preserved secondary workspaces", () => {
     const expectedLinks = {
-        work: ["tasks", "projects"],
+        work: ["work", "tasks", "projects"],
         resources: ["inventory", "mealworms"],
         money: ["budget"],
         settings: ["recovery"]
@@ -123,6 +123,40 @@ test("category pages link to their preserved secondary workspaces", () => {
             assert.match(page, new RegExp(`href="#${link}"`));
         }
     }
+});
+
+test("Task editing belongs to the Work Tasks child workspace", () => {
+    const today = getPageMarkup("today");
+    const tasks = getPageMarkup("tasks");
+
+    assert.doesNotMatch(today, /id="task-form"/);
+    assert.doesNotMatch(today, /id="task-list"/);
+
+    assert.match(tasks, /id="task-form"/);
+    assert.match(tasks, /id="task-title"/);
+    assert.match(tasks, /id="task-priority"/);
+    assert.match(tasks, /id="task-due-date"/);
+    assert.match(tasks, /id="task-list"/);
+    assert.match(tasks, /href="#work">Overview<\/a>/);
+    assert.match(tasks, /href="#projects">Projects<\/a>/);
+});
+
+test("Work exposes a backend-derived Overview", () => {
+    const work = getPageMarkup("work");
+
+    for (const id of [
+        "work-total-count",
+        "work-open-task-count",
+        "work-project-count",
+        "work-dependency-count",
+        "work-overview-items",
+        "work-overview-dependencies",
+        "work-page-message"
+    ]) {
+        assert.match(work, new RegExp(`id="${id}"`));
+    }
+
+    assert.match(work, /backend-authoritative state/i);
 });
 
 test("shell wording is neutral while preserving The Foreman identity", () => {
