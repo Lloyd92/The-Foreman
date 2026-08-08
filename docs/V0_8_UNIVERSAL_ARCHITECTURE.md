@@ -228,22 +228,130 @@ Secure authentication and authorization belong to later approved work.
 
 # 7. Universal Work
 
-The Work category eventually includes:
+The Work category includes:
 
 - Tasks
 - Projects
 - Requirements
 - Dependencies
 - Progress
-
-Work may reference Calendar routines or scheduled occurrences through stable
-identifiers and relationships, but it does not own routine definitions.
+- Responsibility
+- Dates
+- Relationships
+- Shared lifecycle concepts
 
 v0.8.1 owns the universal Work convergence.
 
-v0.8.0 may establish relationships and navigation placeholders required for
-that future work, but it must not prematurely implement the complete universal
-Work model.
+## 7.1 Work Ownership
+
+Work is an architectural ownership and integration domain. It is not a
+universal persistence superclass.
+
+v0.8.1 must preserve Tasks and Projects as distinct authoritative record types.
+Their existing models, APIs, migration provenance, and native lifecycle
+semantics remain authoritative.
+
+Universal Work may provide shared relationships and normalized backend read
+models derived from those records, but it must not introduce a competing
+persistence authority or browser-side source of truth.
+
+Existing `/api/tasks` and `/api/projects` mutation boundaries remain
+compatible.
+
+## 7.2 Lifecycle and Progress
+
+Tasks retain their existing open/completed lifecycle.
+
+Projects retain their existing planning, active, on-hold, completed, and
+archived lifecycle.
+
+Universal Work may normalize these states for common presentation without
+rewriting the authoritative records.
+
+Task progress may be represented deterministically as 0 percent while open and
+100 percent when completed. Projects retain their explicit persisted progress.
+
+## 7.3 Responsibility
+
+Work responsibility may reference a nullable Member participating in the same
+active Space as the Task or Project.
+
+Existing records remain valid without an assigned Member. Migration must not
+fabricate responsibility for historical records.
+
+## 7.4 Work Dates and Calendar
+
+Projects retain their existing start and target dates.
+
+Tasks may gain a nullable due date.
+
+A Work due or target date is a fact about the Work. It is not a Calendar
+commitment, scheduled occurrence, reserved work period, or statement that
+Capacity exists.
+
+Calendar remains authoritative for commitments, events, routines, recurrence,
+and availability.
+
+## 7.5 Requirements
+
+Existing Project material requirements remain the first concrete Work
+requirement type.
+
+Work owns the requirement relationship. Inventory remains authoritative for
+the referenced Inventory record and stock state.
+
+v0.8.1 must not create generalized requirement types for future modules merely
+to anticipate later milestones.
+
+## 7.6 Dependencies
+
+Work dependencies are factual relationships between supported Work records.
+
+Supported relationships may include:
+
+- Task to Task
+- Task to Project
+- Project to Task
+- Project to Project
+
+Dependency services must enforce active-Space isolation and reject missing,
+duplicate, self-referential, and cyclic relationships.
+
+A dependency does not determine Capacity, feasibility, scheduling, Priority,
+recommendations, or Morning Briefing behavior.
+
+## 7.7 Universal Work Read Model
+
+v0.8.1 may expose a backend-authoritative normalized Work read model derived
+from the selected Space Tasks, Projects, and approved Work relationships.
+
+The read model may normalize record type, stable ID, title or name, lifecycle
+state, priority, progress, dates, responsibility, and Project relationships.
+
+It remains derived state and does not replace the authoritative Task or Project
+mutation APIs.
+
+## 7.8 Compatibility
+
+v0.8.1 must preserve:
+
+- existing Task and Project APIs
+- existing Task and Project records
+- existing browser migration provenance
+- Project material requirements
+- Inventory to Project to Task migration ordering
+- Task compatibility when related Projects are deleted
+- backend-authoritative active-Space isolation
+- module enable and disable behavior
+- backup, restore, and portable export compatibility
+- isolated disposable browser acceptance
+
+New Work fields must be optional or migrated safely so existing records and
+existing migration payloads remain valid.
+
+Work may reference future Calendar routines or scheduled occurrences through
+stable identifiers and relationships, but Work does not own routine
+definitions.
 
 ---
 

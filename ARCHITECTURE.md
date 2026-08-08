@@ -91,7 +91,7 @@ Persistence:
   all existing Inventory, Project, Task, and browser-migration provenance
   records to it, and current creation paths explicitly use that same Space.
 - Active-Space APIs, authoritative request context, and frontend Space
-  selection are not yet implemented.
+  selection are implemented and enforce selected-Space operational isolation.
 - Unified Operational Facts derive current lifecycle, material-readiness,
   Task-work, and Inventory-stock conclusions from one authoritative database
   snapshot. Dashboard, Projects, and Inventory consume these facts rather than

@@ -171,6 +171,52 @@ Modules provide authoritative facts → Calendar records commitments and
 availability → Capacity determines realistic eligibility → Priority ranks
 eligible Work → Morning Briefing presents explainable recommendations.
 
+## v0.8.1 Universal Work System — In Progress
+
+Architecture review completed before implementation.
+
+Approved direction:
+
+- [x] Preserve Tasks and Projects as distinct authoritative record types.
+- [x] Define Work as the owning domain and integration boundary rather than a
+      universal persistence superclass.
+- [x] Preserve native Task and Project lifecycle semantics.
+- [x] Preserve existing Task and Project APIs and browser migration provenance.
+- [x] Use same-Space Members for optional Work responsibility.
+- [x] Treat Task due dates as Work facts rather than Calendar commitments.
+- [x] Retain Project material requirements as the first concrete Work
+      requirement type.
+- [x] Define Work dependencies as factual relationships without Capacity,
+      Priority, scheduling, or recommendation behavior.
+- [x] Define a normalized Work read model as derived backend state rather than
+      duplicate persistence authority.
+
+Planned implementation sequence:
+
+1. Documentation-only Universal Work architecture contract.
+2. Safe persistence and schema upgrade for new Work relationships.
+3. Responsibility and Task-date behavior.
+4. Work dependency relationships.
+5. Backend normalized Work read model.
+6. Universal Work frontend convergence.
+7. Isolated browser compatibility acceptance.
+8. v0.8.1 release reconciliation.
+
+Commit 1 is documentation-only. It does not change the SQLite schema,
+application version, PWA cache identity, APIs, frontend runtime behavior,
+migration behavior, Docker deployment, or live data.
+
+Explicitly deferred beyond v0.8.1:
+
+- Capacity eligibility
+- Priority ranking
+- automatic recommendations
+- automatic optional-Work placement
+- Calendar scheduling behavior
+- recurrence ownership
+- generalized future-module requirement systems
+- Morning Briefing decision logic
+
 ## v0.8.0 Architecture Boundaries
 
 - Ordinary workflows use one clearly selected active Space.

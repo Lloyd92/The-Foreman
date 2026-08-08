@@ -462,7 +462,7 @@ Explicitly excluded:
 
 ## v0.8.1 — Universal Work System
 
-Status: Planned
+Status: In Progress
 
 Purpose:
 
@@ -480,6 +480,22 @@ Scope:
 
 Work may reference Calendar routines or scheduled occurrences through stable
 IDs and relationships, but it does not own routine definitions.
+
+Architecture boundary:
+
+- Work is the owning domain and integration boundary, not a universal
+  `work_items` persistence superclass.
+- Existing Task and Project records, APIs, migration provenance, and native
+  lifecycle semantics remain authoritative.
+- Universal Work may provide normalized read models and shared relationships
+  without duplicating persistence authority.
+- Responsibility references a Member participating in the same active Space.
+- Task due dates are Work facts and do not imply Calendar commitments,
+  scheduled work, or available Capacity.
+- Existing Project material requirements remain the first concrete Work
+  requirement type.
+- Dependencies are factual Work relationships, not scheduling, feasibility,
+  ranking, or recommendation behavior.
 
 Explicitly excluded:
 
