@@ -1,8 +1,9 @@
 # Foreman Browser E2E Harness
 
 The browser harness runs Firefox through geckodriver against a disposable
-Docker Compose deployment. It was established in v0.7.5 and is extended in
-v0.8.0 to validate Universal Navigation & Spaces behavior.
+Docker Compose deployment. It was established in v0.7.5, extended in v0.8.0 for
+Universal Navigation & Spaces, and now validates v0.8.1 Universal Work
+compatibility.
 
 It does not use the household deployment, the persistent `foreman-data`
 volume, Caddy state, certificates, private keys, or the live port at
@@ -35,7 +36,8 @@ The runner:
    elevated container access.
 5. Builds and starts only disposable backend and frontend services.
 6. Waits for `/api/health`.
-7. Verifies that Inventory, Projects, and Tasks begin empty.
+7. Verifies that Inventory, Projects, Tasks, and Work dependencies
+   begin empty.
 8. Starts Firefox with a fresh WebDriver session.
 9. Runs the E2E test suite.
 10. Explicitly removes the disposable containers, network, and locally built
@@ -48,6 +50,8 @@ The suite validates:
 
 - clean deployment startup and permanent primary navigation;
 - backend-authoritative Inventory, Project, material, and Task workflows;
+- backend-authoritative Universal Work Overview presentation, including
+  Task due dates, Task-to-Project relationships, and factual dependencies;
 - connection loss and safe recovery;
 - active-Space selection through the visible Space control;
 - hard-reload persistence of active-Space selection;

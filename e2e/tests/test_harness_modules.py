@@ -90,7 +90,7 @@ class ModuleRegistrationTests(BrowserE2ETestCase):
             "notes": "Must survive module disable and re-enable.",
         }
 
-        self.app.open("today")
+        self.app.open("tasks")
         space_id = self.spaces.active_space_id()
         self.tasks.create_task(task_title, "high")
 
@@ -142,7 +142,7 @@ class ModuleRegistrationTests(BrowserE2ETestCase):
                 self.modules.route_link_is_displayed("projects")
             )
 
-            self.app.open("today")
+            self.app.open("tasks")
             self.assertGreater(
                 self.modules.visible_contribution_count("work"),
                 0,

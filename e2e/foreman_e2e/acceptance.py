@@ -21,6 +21,7 @@ COLLECTION_ENDPOINTS = (
     "/api/inventory",
     "/api/projects",
     "/api/tasks",
+    "/api/work-dependencies",
 )
 
 
@@ -166,7 +167,8 @@ def main() -> None:
         verify_clean_collections(config.origin)
         print(
             "Clean deployment verified: "
-            "Inventory=0; Projects=0; Tasks=0."
+            "Inventory=0; Projects=0; Tasks=0; "
+            "WorkDependencies=0."
         )
         return
 

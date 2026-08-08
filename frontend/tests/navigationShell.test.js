@@ -138,7 +138,7 @@ test("Task editing belongs to the Work Tasks child workspace", () => {
     assert.match(tasks, /id="task-due-date"/);
     assert.match(tasks, /id="task-list"/);
     assert.match(tasks, /href="#work">Overview<\/a>/);
-    assert.match(tasks, /href="#projects">Projects<\/a>/);
+    assert.match(tasks, /href="#projects" data-module-contribution="work">Projects<\/a>/);
 });
 
 test("Work exposes a backend-derived Overview", () => {

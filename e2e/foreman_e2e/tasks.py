@@ -18,7 +18,13 @@ class TasksPage:
         self.driver = driver
         self.timeout_seconds = timeout_seconds
 
-    def create_task(self, title: str, priority: str) -> None:
+    def create_task(
+        self,
+        title: str,
+        priority: str,
+        *,
+        due_date: str | None = None,
+    ) -> None:
         from selenium.webdriver.support.ui import Select
 
         title_input = self.driver.find_element("id", "task-title")
@@ -28,6 +34,26 @@ class TasksPage:
         Select(
             self.driver.find_element("id", "task-priority")
         ).select_by_value(priority)
+
+        if due_date is not None:
+            due_date_input = self.driver.find_element(
+                "id",
+                "task-due-date",
+            )
+            self.driver.execute_script(
+                """
+                const input = arguments[0];
+                input.value = arguments[1];
+                input.dispatchEvent(
+                    new Event("input", { bubbles: true })
+                );
+                input.dispatchEvent(
+                    new Event("change", { bubbles: true })
+                );
+                """,
+                due_date_input,
+                due_date,
+            )
 
         self.driver.find_element(
             "css selector",
@@ -158,6 +184,12 @@ class TasksPage:
         return self.wait_for_row(title).find_element(
             "css selector",
             ".priority",
+        ).text
+
+    def due_date(self, title: str) -> str:
+        return self.wait_for_row(title).find_element(
+            "css selector",
+            ".task-due-date",
         ).text
 
     def task_count(self) -> str:
