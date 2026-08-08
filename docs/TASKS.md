@@ -123,38 +123,38 @@ Tasks should remain small, testable, and compatible with a Green Build.
 - [x] Reconcile v0.7.2 version metadata and release documentation.
 - [x] Complete v0.7.2 final release validation.
 
-## Current Work — v0.8.0 Universal Navigation & Spaces
+## Completed v0.8.0 — Universal Navigation & Spaces
 
-v0.8.0 is divided into nine reviewable commits:
+v0.8.0 was completed in nine reviewable commits:
 
 - [x] Commit 1 — Reconcile architecture contracts and documentation.
 - [x] Commit 2 — Add Space, Person, Organization, Member, and module-registry
   schema.
 - [x] Commit 3 — Migrate existing records into the default Space.
-- [ ] Commit 4 — Add backend services and Space-authoritative APIs.
-- [ ] Commit 5 — Add the permanent navigation shell.
-- [ ] Commit 6 — Present active-Space-scoped operational data.
-- [ ] Commit 7 — Add local module registration and enablement behavior.
-- [ ] Commit 8 — Add compatibility and isolated browser acceptance coverage.
-- [ ] Commit 9 — Reconcile release documentation and version metadata.
+- [x] Commit 4 — Add backend services and Space-authoritative APIs.
+- [x] Commit 5 — Add the permanent navigation shell.
+- [x] Commit 6 — Present active-Space-scoped operational data.
+- [x] Commit 7 — Add local module registration and enablement behavior.
+- [x] Commit 8 — Add compatibility and isolated browser acceptance coverage.
+- [x] Commit 9 — Reconcile release documentation and version metadata.
 
-Commit 1 is documentation-only. It must not change schema, APIs, frontend
+Commit 1 was documentation-only. It did not change schema, APIs, frontend
 navigation, migration behavior, runtime version metadata, cache identity,
 Docker deployment, or live data.
 
-Commit 2 establishes schema and typed contracts only. It creates no default
-Space record, adds no `space_id` to existing operational records, and adds no
-CRUD routes, active-Space selection, navigation, or module-management behavior.
+Commit 2 established schema and typed contracts only. Commit 3 advanced the
+internal SQLite schema to version 4, created the fixed-ID default Space
+deterministically, and assigned existing operational and browser-migration
+records to it.
 
-Commit 3 advances the internal SQLite schema to version 4, creates the fixed-ID
-default Space deterministically, and assigns existing and newly created
-Inventory, Project, Task, and browser-migration provenance records to it.
-Active-Space APIs and frontend selection remain Commit 4 and later work;
-v0.8.0 remains incomplete and release metadata remains v0.7.5.
+Commits 4 through 8 completed Space-authoritative APIs, permanent navigation,
+active-Space frontend context, local module registration, restart-safe
+multi-Space compatibility, and isolated browser acceptance. Commit 9 closes
+the milestone with v0.8.0 release identity and documentation reconciliation.
 
 ## Approved Universal Foundation Sequence
 
-- [ ] v0.8.0 — Universal Navigation & Spaces
+- [x] v0.8.0 — Universal Navigation & Spaces
 - [ ] v0.8.1 — Universal Work System
 - [ ] v0.8.2 — Tools, Inventory & Care
 - [ ] v0.8.3 — Calendar & Scheduling

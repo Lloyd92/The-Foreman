@@ -26,14 +26,14 @@ rather than replace it.
 
 **Current Version**
 
-v0.7.5 — Frontend Hardening and Browser E2E
+v0.8.0 — Universal Navigation & Spaces
 
 Current focus:
 
-- Implement v0.8.0 Universal Navigation and Spaces in reviewable commits
-- Migrate existing operational records into one deterministic default Space
-- Preserve v0.7.5 runtime, data, deployment, and cache behavior
-- Prepare active-Space authority without exposing selection before Commit 4
+- Begin v0.8.1 Universal Work System
+- Converge Tasks and Projects beneath the permanent Work category
+- Preserve authoritative active-Space isolation and module boundaries
+- Preserve the v0.8.0 Green Build while extending universal Work
 
 ---
 
@@ -58,10 +58,8 @@ Every feature is designed around one guiding question:
 
 # Primary Experience
 
-The current v0.7.5 Dashboard is the implemented application shell and
-operational workspace. It is not the target permanent navigation shell.
-
-The target permanent primary navigation is:
+The permanent application shell is implemented with these primary
+navigation categories:
 
 - Today
 - Calendar
@@ -72,9 +70,10 @@ The target permanent primary navigation is:
 
 Settings and Account remain separate below the primary navigation.
 
-Today is the target default daily workspace. Through v0.8.6, Today presents
-authoritative factual current state only. It does not claim feasibility, rank
-eligible Work, recommend next actions, or perform capacity-aware scheduling.
+Today is the implemented default primary workspace. Through v0.8.6, Today
+presents authoritative factual current state only. Its complete universal
+aggregation remains future work. It does not claim feasibility, rank eligible
+Work, recommend next actions, or perform capacity-aware scheduling.
 
 The v0.9.2 Morning Briefing becomes the capacity-aware primary daily
 experience presented through Today. It is intended to help the owner
@@ -89,8 +88,9 @@ availability before Capacity exists. Capacity must precede automatic
 optional-Work placement, feasibility claims, prioritization, recommendations,
 and capacity-aware scheduling decisions.
 
-The permanent navigation, Today workspace, Capacity Engine, Priority Engine,
-and complete Morning Briefing are not yet implemented.
+Permanent navigation and active-Space selection are implemented. Complete
+Today aggregation, the Capacity Engine, Priority Engine, and complete Morning
+Briefing remain future work.
 
 ---
 
@@ -118,11 +118,12 @@ For additional information, see:
 
 # Current Modules
 
-## Dashboard
+## Today
 
-The current v0.7.5 application shell and operational workspace. It does not
-yet provide the target permanent navigation, Today workspace, or complete
-Morning Briefing.
+Today is the default primary workspace within the permanent v0.8.0 shell.
+It currently presents the factual operational content carried forward from
+the earlier Dashboard while complete universal Today aggregation remains
+scheduled for v0.8.6.
 
 Current capabilities:
 
@@ -237,9 +238,11 @@ independently reconstructing readiness or stock state from quantities.
 Browser-local records remain migration and recovery evidence, never
 operational fact authority.
 
-This release establishes trustworthy current-state inputs. It does not yet
-implement active-Space APIs or frontend selection, Capacity, Priority,
-next-action selection, Morning Briefing narration, or AI.
+v0.8.0 adds authoritative active-Space APIs, persistent frontend Space
+selection, permanent navigation, universal People and Organization
+foundations, Space participation through Members, and local module
+registration. Capacity, Priority, next-action selection, Morning Briefing
+narration, and AI remain future capabilities.
 
 ---
 
@@ -253,11 +256,12 @@ iPhone Home Screen installation. Trusted HTTPS installation, standalone
 launch, backend-authoritative startup, and safe-area behavior have been
 accepted on a physical iPhone.
 
-The current v0.7.5 service worker atomically precaches an exact 32-resource
-static shell. It does not cache API responses, business records, migrations,
-or mutations and does not queue, replay, or synchronize writes. A cached shell
-can therefore remain available when HardHead is unavailable, but shell
-availability does not mean operational data is available.
+The current v0.8.0 service worker atomically precaches an exact 40-resource
+static shell as `foreman-shell-v0.8.0-c1`. It does not cache API responses,
+business records, migrations, or mutations and does not queue, replay, or
+synchronize writes. A cached shell can therefore remain available when
+HardHead is unavailable, but shell availability does not mean operational
+data is available.
 
 `/api/health` is the authoritative operational gate. Normal Projects, Tasks,
 and Inventory behavior starts only when HardHead reports both the application
@@ -310,9 +314,10 @@ Briefing, Capacity Engine, explainable recommendations, continued persistence
 and testing maturity, and backup and restore.
 
 Backup, export, restore, and verification are implemented in v0.7.4.
-Frontend hardening and verified browser-E2E acceptance are implemented in
-v0.7.5. Next-action identification and Morning Briefing narration remain
-future capabilities. AI is not part of v0.7.5.
+Frontend hardening and the isolated browser-E2E foundation are implemented in
+v0.7.5. Universal Navigation & Spaces is implemented in v0.8.0. Next-action
+identification and Morning Briefing narration remain future capabilities.
+AI is not part of v0.8.0.
 
 See `ROADMAP.md` for additional details.
 
@@ -361,12 +366,13 @@ recovery paths; they are not runtime fallback stores. Dashboard, Projects,
 and Inventory use the backend operational-facts API as the authority for
 current lifecycle, readiness, and stock classifications.
 
-The backend currently provides validated APIs for system status, Inventory,
-Projects, Project materials, Tasks, browser-data migration, and operational
-facts. Its service, repository, Pydantic schema, SQLAlchemy model, SQLite
-persistence, versioned schema-upgrade, and automated-test foundations are
-implemented. Capacity, Priority, the complete Morning Briefing, and scheduled
-backup automation remain target work.
+The backend currently provides validated APIs for system status, Spaces,
+People, Organizations, Members, Organization-Space relationships, module
+state, Inventory, Projects, Project materials, Tasks, browser-data migration,
+and operational facts. Its service, repository, Pydantic schema, SQLAlchemy
+model, SQLite persistence, versioned schema-upgrade, and automated-test
+foundations are implemented. Capacity, Priority, the complete Morning
+Briefing, and scheduled backup automation remain target work.
 
 ## Version 1.0 Target
 

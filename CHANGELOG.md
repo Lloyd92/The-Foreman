@@ -10,33 +10,47 @@ Each release represents a stable, working version of the application.
 
 # [Unreleased]
 
+No unreleased changes are recorded yet.
+
+---
+
+# v0.8.0 — 2026-08-07
+
 ## Added
 
-- Added SQLite models and minimal typed contracts for Spaces, People,
-  Organizations, Organization-Space relationships, Members, and mutable local
-  module state.
-- Added the typed static module-definition boundary without registering
-  modules or adding module-management behavior.
+- Added SQLite models and typed contracts for Spaces, People, Organizations,
+  Organization-Space relationships, Members, and mutable local module state.
+- Added Space-authoritative backend services and APIs for universal foundation
+  records.
 - Added the deterministic fixed-ID `HardHead Works` default Space for records
   created before Space support.
+- Added the permanent primary navigation for Today, Calendar, Work, Resources,
+  Money, and Library, with Settings and Account kept separate.
+- Added persistent active-Space selection and frontend Space context.
+- Added local module registration under Settings with built-in Work and
+  Inventory modules.
+- Added isolated Firefox acceptance coverage for Space switching, persistence,
+  backend isolation, module disable/re-enable behavior, route gating, and
+  retained module data.
 
 ## Changed
 
-- Advanced the internal SQLite schema from version 2 to version 3 without
-  changing existing Project, Task, Inventory, material-requirement, or
-  migration-provenance structures.
-- Included all six universal-foundation tables in backup and restore
-  required-table and record-count handling while preserving portable export
-  format 1.
-- Advanced the internal SQLite schema from version 3 to version 4. The six
-  operational and browser-migration provenance tables now have required,
-  indexed `space_id` ownership with restricted Space deletion.
-- Rebuilt and backfilled existing Inventory, Project, Task, and browser-
-  migration provenance records with the fixed default Space while preserving
-  IDs, relationships, timestamps, hashes, tombstones, and global migration
-  uniqueness.
-- Assigned the fixed default Space explicitly in current ordinary and browser-
-  migration creation paths without changing request or response contracts.
+- Advanced the internal SQLite schema from version 2 through version 4 while
+  preserving supported Project, Task, Inventory, material-requirement, and
+  migration-provenance data.
+- Added required indexed `space_id` ownership to operational and
+  browser-migration provenance records with restricted Space deletion.
+- Rebuilt and backfilled existing operational records into the deterministic
+  default Space while preserving IDs, relationships, timestamps, hashes,
+  tombstones, and migration uniqueness.
+- Made backend Space context authoritative for normal operational collection
+  access instead of relying on frontend filtering.
+- Made module enablement installation-wide product configuration while
+  preserving module-owned backend data when a module is disabled.
+- Updated application release identity to 0.8.0 and advanced the exact PWA
+  shell to `foreman-shell-v0.8.0-c1`.
+- Unified FastAPI metadata with the authoritative application-version
+  constant.
 
 ## Reliability
 
@@ -44,43 +58,42 @@ Each release represents a stable, working version of the application.
   can mutate a database.
 - Added structural verification for foundation columns, primary keys, indexes,
   unique and check constraints, foreign keys, and restricted root deletion.
-- Made version 2 restore staging and partial foundation creation resume safely
-  into the empty version 3 foundation.
 - Added restart-safe, state-aware SQLite table replacement, deterministic
   default-Space conflict handling, foreign-key verification, and recovery
-  staging support for schema versions 2, 3, and 4.
+  staging support across supported schema states.
+- Corrected completed-schema restart validation so valid records may belong to
+  any existing Space while foreign keys continue to reject orphan ownership.
+- Preserved network-only API and mutation behavior and explicit service-worker
+  update activation.
 
 ## Validation
 
-- Added focused schema, constraint, idempotence, future-version, recovery, and
+- Added focused schema, constraint, migration, recovery, Space, module, and
   typed-contract coverage for the universal foundation.
-- Verified version 2 records and structures remain unchanged during upgrade and
-  version 3 backup round trips preserve foundation records.
-- Added real-SQLite coverage for version 4 backfill, exact structures,
-  interruption states, conflicts, transitional writes, and recovery count
-  deltas while preserving operational-fact schema 1 and portable export 1.
+- Verified existing-data migration, backup/restore compatibility, and portable
+  export compatibility while retaining operational-fact schema version 1 and
+  portable export format version 1.
+- Completed final full backend acceptance with 288 tests passing.
+- Completed final full frontend acceptance with 162 tests passing.
+- Completed isolated disposable Firefox acceptance with 41 tests passing and
+  verified removal of all disposable containers, networks, and images.
 
 ## Documentation
 
 - Established the Constitution-first documentation authority order.
-- Reconciled the target permanent navigation as Today, Calendar, Work,
-  Resources, Money, and Library, with Settings and Account below the primary
-  categories.
+- Reconciled the permanent navigation as Today, Calendar, Work, Resources,
+  Money, and Library, with Settings and Account below the primary categories.
 - Documented one active Space for ordinary workflows and backend-enforced
   Space isolation.
 - Defined factual Today through v0.8.6, Capacity in v0.9.0, Priority in v0.9.1,
   and the capacity-aware Morning Briefing through Today in v0.9.2.
 - Established strict module ownership and local, non-commercial module
   registration under Settings.
-- Kept the first v0.8.0 reconciliation change documentation-only, without
-  implementing target v0.8 or v0.9 behavior.
+- Kept the first v0.8.0 reconciliation change documentation-only before
+  implementation began.
 - Separated current implementation from the Version 1.0 target architecture.
-- Reconciled current release status, planned work, repository paths, and
-  persistence terminology.
-- Confirmed FastAPI, SQLAlchemy, Pydantic, and SQLite as the Version 1.0 target
-  stack.
-- Reconciled current persistence documentation with SQLite schema version 4
-  and the deterministic default-Space migration.
+- Reconciled persistence documentation with SQLite schema version 4 and the
+  active-Space model.
 
 ---
 

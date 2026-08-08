@@ -418,9 +418,9 @@ adds deterministic Capacity, Priority, and Morning Briefing behavior.
 The approved dependency sequence is documented in
 `docs/V0_8_UNIVERSAL_ARCHITECTURE.md`.
 
-## v0.8.0 — Universal Navigation & Spaces
+## v0.8.0 — Universal Navigation & Spaces ✅
 
-Status: Planned
+Status: Complete
 
 Purpose:
 

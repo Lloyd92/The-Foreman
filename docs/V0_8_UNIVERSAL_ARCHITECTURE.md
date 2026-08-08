@@ -643,14 +643,20 @@ At minimum:
 
 ---
 
-# 21. Approval Boundary
+# 21. Completion Boundary
+
+v0.8.0 — Universal Navigation & Spaces is complete.
+
+The milestone established the permanent navigation shell, universal Space
+foundation, backend-authoritative active-Space isolation, minimal People and
+Organization foundations, Members, local module registration, existing-data
+migration, and isolated browser acceptance while preserving the exclusions
+defined by this architecture.
 
 The approved next milestone is:
 
-**v0.8.0 — Universal Navigation & Spaces**
+**v0.8.1 — Universal Work System**
 
-The first approved change is documentation-only.
-
-No schema, API, frontend, migration, Docker, deployment, or version changes may
-begin until the v0.8.0 Commit 1 documentation contract is reviewed and
-approved.
+Later milestones must preserve the v0.8.0 Space, module, data-ownership,
+deployment, compatibility, and Green Build boundaries unless an explicit
+architecture change is reviewed and approved.

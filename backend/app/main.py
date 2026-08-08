@@ -21,6 +21,7 @@ from app.api.spaces import router as spaces_router
 from app.api.system import router as system_router
 from app.api.task_migrations import router as task_migrations_router
 from app.api.tasks import router as tasks_router
+from app.core.config import APPLICATION_VERSION
 from app.core.database import initialize_database
 from app.core.maintenance import DatabaseMaintenanceActive
 
@@ -33,7 +34,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="The Foreman",
-    version="0.7.3",
+    version=APPLICATION_VERSION,
     lifespan=lifespan,
 )
 

@@ -73,15 +73,14 @@ Never lose sight of that purpose.
 
 # Primary Experience
 
-The current v0.7.5 Dashboard is the implemented shell and operational
-workspace. It is not the target permanent navigation architecture.
+The permanent navigation is implemented as Today, Calendar, Work,
+Resources, Money, and Library. Settings and Account remain below those
+categories.
 
-The permanent navigation is Today, Calendar, Work, Resources, Money, and
-Library. Settings and Account remain below those categories.
-
-Today is the target default daily workspace. Through v0.8.6, it presents
-authoritative factual state without feasibility, ranking, recommendation, or
-capacity-aware scheduling claims.
+Today is the implemented default primary workspace. Through v0.8.6, it
+presents authoritative factual state without feasibility, ranking,
+recommendation, or capacity-aware scheduling claims. Complete universal Today
+aggregation remains future work.
 
 The approved decision sequence is:
 

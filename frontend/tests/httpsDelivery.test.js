@@ -389,16 +389,16 @@ test("release version and shell cache are finalized", async () => {
 
     assert.match(
         indexSource,
-        /id="footer-version">\s*0\.7\.5\s*<\/span>/
+        /id="footer-version">\s*0\.8\.0\s*<\/span>/
     );
-    assert.match(backendSource, /APPLICATION_VERSION = "0\.7\.5"/);
+    assert.match(backendSource, /APPLICATION_VERSION = "0\.8\.0"/);
     assert.match(
         workerSource,
-        /SHELL_CACHE_NAME = "foreman-shell-v0\.7\.5-c5"/
+        /SHELL_CACHE_NAME = "foreman-shell-v0\.8\.0-c1"/
     );
 });
 
-test("v0.7.5 release documentation preserves continuity and boundaries", async () => {
+test("release documentation preserves history and v0.8.0 continuity", async () => {
     const [
         readme,
         architecture,
@@ -417,13 +417,13 @@ test("v0.7.5 release documentation preserves continuity and boundaries", async (
 
     assert.match(
         readme,
-        /v0\.7\.5 — Frontend Hardening and Browser E2E/
+        /v0\.8\.0 — Universal Navigation & Spaces/
     );
     assert.match(
         readme,
         /external working\s+memory and continuity system/
     );
-    assert.match(readme, /AI is not part of v0\.7\.5/);
+    assert.match(readme, /AI is not part of v0\.8\.0/);
     assert.match(architecture, /continuity system/i);
     assert.match(
         architecture,
@@ -655,8 +655,8 @@ test("approved v0.8 and v0.9 architecture boundaries are documented", async () =
     ], "prohibited Module Registry scope");
 
     assert.ok(normalized.readme.includes(
-        "Today is the target default daily workspace. Through v0.8.6, Today " +
-        "presents authoritative factual current state only."
+        "Today is the implemented default primary workspace. Through v0.8.6, " +
+        "Today presents authoritative factual current state only."
     ));
     assert.ok(normalized.readme.includes(
         "The v0.9.2 Morning Briefing becomes the capacity-aware primary daily " +
@@ -877,13 +877,22 @@ test("approved v0.8 and v0.9 architecture boundaries are documented", async () =
         "remain deferred until after v3.0."
     ));
     assert.ok(normalized.tasks.includes(
-        "Commit 1 is documentation-only. It must not change schema, APIs, " +
+        "Commit 1 was documentation-only. It did not change schema, APIs, " +
         "frontend navigation, migration behavior, runtime version metadata, " +
         "cache identity, Docker deployment, or live data."
     ));
 
     assert.ok(normalized.changelog.includes(
         "Kept the first v0.8.0 reconciliation change documentation-only"
+    ));
+    assert.ok(normalized.changelog.includes(
+        "# v0.8.0 — 2026-08-07"
+    ));
+    assert.ok(normalized.roadmap.includes(
+        "v0.8.0 — Universal Navigation & Spaces ✅ Status: Complete"
+    ));
+    assert.ok(normalized.tasks.includes(
+        "## Completed v0.8.0 — Universal Navigation & Spaces"
     ));
 
     const stalePatterns = [
