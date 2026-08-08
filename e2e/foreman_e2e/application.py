@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 
@@ -190,3 +191,91 @@ class ForemanApplication:
             element.get_attribute("textContent")
             or ""
         ).strip()
+
+    def api_request(
+        self,
+        path: str,
+        *,
+        method: str = "GET",
+        body: dict[str, object] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> object:
+        """Issue a same-origin request from the disposable browser."""
+
+        encoded_body = (
+            json.dumps(body)
+            if body is not None
+            else None
+        )
+        encoded_headers = json.dumps(headers or {})
+
+        result = self.driver.execute_async_script(
+            """
+            const path = arguments[0];
+            const method = arguments[1];
+            const encodedBody = arguments[2];
+            const encodedHeaders = arguments[3];
+            const done = arguments[arguments.length - 1];
+
+            const options = {
+                method,
+                headers: {
+                    Accept: "application/json",
+                    ...JSON.parse(encodedHeaders)
+                }
+            };
+
+            if (encodedBody !== null) {
+                options.headers["Content-Type"] =
+                    "application/json";
+                options.body = encodedBody;
+            }
+
+            fetch(path, options)
+                .then(async response => {
+                    const text = await response.text();
+                    let payload = null;
+
+                    if (text) {
+                        try {
+                            payload = JSON.parse(text);
+                        } catch (_error) {
+                            payload = text;
+                        }
+                    }
+
+                    done({
+                        ok: response.ok,
+                        status: response.status,
+                        payload
+                    });
+                })
+                .catch(error => {
+                    done({
+                        ok: false,
+                        status: 0,
+                        error: String(error)
+                    });
+                });
+            """,
+            path,
+            method,
+            encoded_body,
+            encoded_headers,
+        )
+
+        if not isinstance(result, dict):
+            raise AssertionError(
+                f"Unexpected API result for {method} {path}: "
+                f"{result!r}"
+            )
+
+        if not result.get("ok"):
+            raise AssertionError(
+                f"API request failed for {method} {path}: "
+                f"status={result.get('status')}; "
+                f"payload={result.get('payload')!r}; "
+                f"error={result.get('error')!r}"
+            )
+
+        return result.get("payload")
