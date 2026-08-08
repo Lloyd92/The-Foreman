@@ -21,6 +21,7 @@ from app.api.spaces import router as spaces_router
 from app.api.system import router as system_router
 from app.api.task_migrations import router as task_migrations_router
 from app.api.tasks import router as tasks_router
+from app.api.work import router as work_router
 from app.api.work_dependencies import router as work_dependencies_router
 from app.core.config import APPLICATION_VERSION
 from app.core.database import initialize_database
@@ -77,6 +78,7 @@ app.include_router(projects_router)
 app.include_router(project_migrations_router)
 app.include_router(tasks_router)
 app.include_router(task_migrations_router)
+app.include_router(work_router)
 app.include_router(work_dependencies_router)
 app.include_router(operations_router)
 app.include_router(recovery_router)
