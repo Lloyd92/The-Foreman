@@ -17,6 +17,7 @@ from app.models.project_material_requirement import (
 from app.models.space import Space
 from app.models.task import Task
 from app.models.task_migration import TaskMigration
+from app.models.work_dependency import WorkDependency
 
 __all__ = [
     "InventoryItem",
@@ -32,4 +33,5 @@ __all__ = [
     "Space",
     "Task",
     "TaskMigration",
+    "WorkDependency",
 ]

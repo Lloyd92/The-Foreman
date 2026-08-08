@@ -1,7 +1,7 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -42,6 +42,21 @@ class Task(Base):
         Boolean,
         nullable=False,
         default=False,
+        index=True,
+    )
+    due_date: Mapped[date | None] = mapped_column(
+        Date,
+        nullable=True,
+        index=True,
+    )
+    responsible_member_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey(
+            "members.id",
+            ondelete="SET NULL",
+            name="fk_tasks_responsible_member_id",
+        ),
+        nullable=True,
         index=True,
     )
     project_id: Mapped[str | None] = mapped_column(

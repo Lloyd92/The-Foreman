@@ -42,6 +42,7 @@ CURRENT_TABLES = [
     "spaces",
     "task_migrations",
     "tasks",
+    "work_dependencies",
 ]
 CURRENT_RECORD_COUNTS = {
     table_name: 1 if table_name == "projects" else 0

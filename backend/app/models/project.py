@@ -82,6 +82,16 @@ class Project(Base):
         nullable=False,
         default="",
     )
+    responsible_member_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey(
+            "members.id",
+            ondelete="SET NULL",
+            name="fk_projects_responsible_member_id",
+        ),
+        nullable=True,
+        index=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

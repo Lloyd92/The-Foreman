@@ -59,7 +59,10 @@ from app.services.recovery import (
     validate_archive_member_names,
     verify_backup_package,
 )
-from tests.test_support import create_pre_v4_tables
+from tests.test_support import (
+    PRE_V4_TABLE_NAMES,
+    create_pre_v4_tables,
+)
 
 
 CREATED_AT = datetime(2026, 7, 31, 16, 0, tzinfo=timezone.utc)
@@ -838,6 +841,9 @@ class BackupPackageTests(unittest.TestCase):
                     id TEXT PRIMARY KEY
                 );
                 CREATE TABLE task_migrations (
+                    id TEXT PRIMARY KEY
+                );
+                CREATE TABLE work_dependencies (
                     id TEXT PRIMARY KEY
                 );
                 """
@@ -1689,7 +1695,7 @@ class RestoreCandidateStagingTests(unittest.TestCase):
             with engine.begin() as connection:
                 create_pre_v4_tables(
                     connection,
-                    set(Base.metadata.tables),
+                    set(PRE_V4_TABLE_NAMES),
                 )
                 timestamp = "2026-07-31 16:00:00"
                 space_id = DEFAULT_SPACE_ID if fixed_default else "space-1"
@@ -2367,6 +2373,9 @@ class PreRestoreSafetyBackupTests(unittest.TestCase):
                     id TEXT PRIMARY KEY
                 );
                 CREATE TABLE task_migrations (
+                    id TEXT PRIMARY KEY
+                );
+                CREATE TABLE work_dependencies (
                     id TEXT PRIMARY KEY
                 );
                 """

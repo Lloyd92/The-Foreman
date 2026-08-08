@@ -32,7 +32,10 @@ from app.core.schema_upgrades import (
     _table_evidence,
 )
 from app.models.base import Base
-from tests.test_support import create_pre_v4_tables
+from tests.test_support import (
+    PRE_V4_TABLE_NAMES,
+    create_pre_v4_tables,
+)
 
 
 SCOPED_TABLES = (
@@ -43,6 +46,11 @@ SCOPED_TABLES = (
     "project_migrations",
     "task_migrations",
 )
+
+VERSION_FIVE_NULL_ADDITIONS = {
+    "projects": frozenset({"responsible_member_id"}),
+    "tasks": frozenset({"due_date", "responsible_member_id"}),
+}
 
 SPACE_INDEXES = {
     table_name: f"ix_{table_name}_space_id"
@@ -92,7 +100,7 @@ class DefaultSpaceMigrationTests(unittest.TestCase):
         with self.engine.begin() as connection:
             create_pre_v4_tables(
                 connection,
-                set(Base.metadata.tables),
+                set(PRE_V4_TABLE_NAMES),
             )
             timestamp = "2026-08-02 09:10:11.123456"
             connection.execute(
@@ -297,7 +305,7 @@ class DefaultSpaceMigrationTests(unittest.TestCase):
                 connection.exec_driver_sql(
                     "PRAGMA user_version"
                 ).scalar_one(),
-                4,
+                CURRENT_DATABASE_SCHEMA_VERSION,
             )
             self.assertEqual(
                 connection.exec_driver_sql(
@@ -336,7 +344,7 @@ class DefaultSpaceMigrationTests(unittest.TestCase):
                 connection.exec_driver_sql(
                     "PRAGMA user_version"
                 ).scalar_one(),
-                4,
+                CURRENT_DATABASE_SCHEMA_VERSION,
             )
             self.assertEqual(
                 connection.exec_driver_sql(
@@ -510,11 +518,21 @@ class DefaultSpaceMigrationTests(unittest.TestCase):
                     after,
                     strict=True,
                 ):
+                    null_additions = VERSION_FIVE_NULL_ADDITIONS.get(
+                        table_name,
+                        frozenset(),
+                    )
+
+                    for column_name in null_additions:
+                        self.assertIn(column_name, new_row)
+                        self.assertIsNone(new_row[column_name])
+
                     self.assertEqual(
                         {
                             key: value
                             for key, value in new_row.items()
                             if key != "space_id"
+                            and key not in null_additions
                         },
                         dict(old_row),
                     )
@@ -676,7 +694,7 @@ class DefaultSpaceMigrationTests(unittest.TestCase):
                 connection.exec_driver_sql(
                     "PRAGMA user_version"
                 ).scalar_one(),
-                4,
+                CURRENT_DATABASE_SCHEMA_VERSION,
             )
             self.assertEqual(
                 connection.exec_driver_sql(
@@ -1347,7 +1365,7 @@ class DefaultSpaceMigrationTests(unittest.TestCase):
                         connection.exec_driver_sql(
                             "PRAGMA user_version"
                         ).scalar_one(),
-                        4,
+                        CURRENT_DATABASE_SCHEMA_VERSION,
                     )
                     self.assertEqual(
                         connection.exec_driver_sql(
@@ -1383,7 +1401,7 @@ class DefaultSpaceMigrationTests(unittest.TestCase):
                 connection.exec_driver_sql(
                     "PRAGMA user_version"
                 ).scalar_one(),
-                4,
+                CURRENT_DATABASE_SCHEMA_VERSION,
             )
             self.assertEqual(
                 connection.exec_driver_sql(
@@ -1482,7 +1500,7 @@ class DefaultSpaceMigrationTests(unittest.TestCase):
                 connection.exec_driver_sql(
                     "PRAGMA user_version"
                 ).scalar_one(),
-                4,
+                CURRENT_DATABASE_SCHEMA_VERSION,
             )
             self.assertEqual(
                 connection.exec_driver_sql(
@@ -1553,7 +1571,7 @@ class DefaultSpaceMigrationTests(unittest.TestCase):
                 connection.exec_driver_sql(
                     "PRAGMA user_version"
                 ).scalar_one(),
-                4,
+                CURRENT_DATABASE_SCHEMA_VERSION,
             )
 
     def test_missing_and_malformed_space_indexes_are_handled(self) -> None:

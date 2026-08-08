@@ -33,6 +33,13 @@ SessionLocal = sessionmaker(
     autocommit=False,
 )
 
+# SQLite tables introduced by a versioned schema upgrade must not be
+# pre-created by Base.metadata.create_all(). Existing migration/recovery
+# state must be validated before a newer schema version mutates the database.
+SQLITE_DEFERRED_UPGRADE_TABLES = frozenset({
+    "work_dependencies",
+})
+
 
 @event.listens_for(Engine, "connect")
 def enable_sqlite_foreign_keys(
@@ -74,6 +81,10 @@ def prepare_database_schema(connection) -> None:
             table
             for table in Base.metadata.sorted_tables
             if table.name not in interrupted_tables
+            and (
+                connection.dialect.name != "sqlite"
+                or table.name not in SQLITE_DEFERRED_UPGRADE_TABLES
+            )
         ]
         Base.metadata.create_all(
             bind=connection,

@@ -15,8 +15,51 @@ from app.models.base import Base
 
 
 FOUNDATION_DATABASE_SCHEMA_VERSION = 3
-CURRENT_DATABASE_SCHEMA_VERSION = 4
+SPACE_SCOPE_DATABASE_SCHEMA_VERSION = 4
+CURRENT_DATABASE_SCHEMA_VERSION = 5
 SPACE_SCOPE_JOURNAL_TABLE = "__foreman_v4_space_scope_journal"
+
+UNIVERSAL_WORK_COLUMN_UPGRADES = (
+    (
+        "tasks",
+        "due_date",
+        "ALTER TABLE tasks ADD COLUMN due_date DATE",
+    ),
+    (
+        "tasks",
+        "responsible_member_id",
+        "ALTER TABLE tasks "
+        "ADD COLUMN responsible_member_id VARCHAR(36) "
+        "CONSTRAINT fk_tasks_responsible_member_id "
+        "REFERENCES members (id) ON DELETE SET NULL",
+    ),
+    (
+        "projects",
+        "responsible_member_id",
+        "ALTER TABLE projects "
+        "ADD COLUMN responsible_member_id VARCHAR(36) "
+        "CONSTRAINT fk_projects_responsible_member_id "
+        "REFERENCES members (id) ON DELETE SET NULL",
+    ),
+)
+
+VERSION_FOUR_EXCLUDED_COLUMNS = {
+    "projects": frozenset({"responsible_member_id"}),
+    "tasks": frozenset({"due_date", "responsible_member_id"}),
+}
+
+UNIVERSAL_WORK_CHECK_CONSTRAINTS = {
+    "ck_work_dependencies_dependent_type": (
+        "dependent_type IN ('task', 'project')"
+    ),
+    "ck_work_dependencies_prerequisite_type": (
+        "prerequisite_type IN ('task', 'project')"
+    ),
+    "ck_work_dependencies_not_self": (
+        "dependent_type != prerequisite_type "
+        "OR dependent_id != prerequisite_id"
+    ),
+}
 
 PROJECT_COLUMN_UPGRADES = {
     "type": (
@@ -787,6 +830,278 @@ def _table_has_final_structure(
     return actual_foreign_keys == expected_foreign_keys
 
 
+def _table_has_version_four_structure(
+    connection: Connection,
+    table_name: str,
+    physical_name: str | None = None,
+) -> bool:
+    actual_name = physical_name or table_name
+    database_inspector = inspect(connection)
+
+    if actual_name not in database_inspector.get_table_names():
+        return False
+
+    model_table = Base.metadata.tables[table_name]
+    excluded_columns = VERSION_FOUR_EXCLUDED_COLUMNS.get(
+        table_name,
+        frozenset(),
+    )
+    expected_columns = [
+        column
+        for column in model_table.columns
+        if column.name not in excluded_columns
+    ]
+    actual_columns = database_inspector.get_columns(actual_name)
+
+    if [column["name"] for column in actual_columns] != [
+        column.name for column in expected_columns
+    ]:
+        return False
+
+    for expected, actual in zip(expected_columns, actual_columns, strict=True):
+        expected_default = (
+            None
+            if expected.server_default is None
+            else _normalized_default(expected.server_default.arg)
+        )
+        actual_default = (
+            None
+            if actual.get("default") is None
+            else _normalized_default(actual["default"])
+        )
+
+        if (
+            str(actual["type"]).upper() != str(expected.type).upper()
+            or bool(actual["nullable"]) != bool(expected.nullable)
+            or actual_default != expected_default
+        ):
+            return False
+
+    actual_primary_key = tuple(
+        database_inspector.get_pk_constraint(actual_name).get(
+            "constrained_columns"
+        )
+        or []
+    )
+    expected_primary_key = tuple(
+        column.name for column in model_table.primary_key.columns
+    )
+
+    if actual_primary_key != expected_primary_key:
+        return False
+
+    expected_unique_constraints = {
+        constraint.name: tuple(
+            column.name for column in constraint.columns
+        )
+        for constraint in model_table.constraints
+        if isinstance(constraint, UniqueConstraint)
+        and not any(
+            column.name in excluded_columns
+            for column in constraint.columns
+        )
+    }
+    actual_unique_constraints = {
+        constraint.get("name"): tuple(constraint["column_names"])
+        for constraint in database_inspector.get_unique_constraints(
+            actual_name
+        )
+    }
+
+    if actual_unique_constraints != expected_unique_constraints:
+        return False
+
+    expected_foreign_keys = {
+        constraint.name: (
+            tuple(
+                element.parent.name
+                for element in constraint.elements
+            ),
+            constraint.referred_table.name,
+            tuple(
+                element.column.name
+                for element in constraint.elements
+            ),
+            str(constraint.ondelete or "").upper(),
+        )
+        for constraint in model_table.foreign_key_constraints
+        if not any(
+            element.parent.name in excluded_columns
+            for element in constraint.elements
+        )
+    }
+    actual_foreign_keys = {
+        foreign_key.get("name"): (
+            tuple(foreign_key["constrained_columns"]),
+            foreign_key["referred_table"],
+            tuple(foreign_key["referred_columns"]),
+            str(
+                (foreign_key.get("options") or {}).get("ondelete")
+                or ""
+            ).upper(),
+        )
+        for foreign_key in database_inspector.get_foreign_keys(
+            actual_name
+        )
+    }
+
+    return actual_foreign_keys == expected_foreign_keys
+
+
+def _table_has_version_four_compatible_structure(
+    connection: Connection,
+    table_name: str,
+    physical_name: str | None = None,
+) -> bool:
+    actual_name = physical_name or table_name
+    database_inspector = inspect(connection)
+
+    if actual_name not in database_inspector.get_table_names():
+        return False
+
+    model_table = Base.metadata.tables[table_name]
+    allowed_additions = VERSION_FOUR_EXCLUDED_COLUMNS.get(
+        table_name,
+        frozenset(),
+    )
+    actual_columns = database_inspector.get_columns(actual_name)
+    actual_column_names = [
+        column["name"] for column in actual_columns
+    ]
+
+    expected_base_columns = [
+        column
+        for column in model_table.columns
+        if column.name not in allowed_additions
+    ]
+    expected_base_names = [
+        column.name for column in expected_base_columns
+    ]
+
+    # Historical v4 columns must retain their original physical order.
+    # Approved additive v5 columns may appear in ORM declaration order
+    # on a fresh/rebuilt table or at the end after SQLite ALTER TABLE.
+    actual_base_names = [
+        name
+        for name in actual_column_names
+        if name not in allowed_additions
+    ]
+
+    if actual_base_names != expected_base_names:
+        return False
+
+    expected_all_names = {
+        column.name for column in model_table.columns
+    }
+
+    if not set(actual_column_names).issubset(expected_all_names):
+        return False
+
+    expected_by_name = {
+        column.name: column
+        for column in model_table.columns
+    }
+
+    for actual in actual_columns:
+        expected = expected_by_name[actual["name"]]
+        expected_default = (
+            None
+            if expected.server_default is None
+            else _normalized_default(expected.server_default.arg)
+        )
+        actual_default = (
+            None
+            if actual.get("default") is None
+            else _normalized_default(actual["default"])
+        )
+
+        if (
+            str(actual["type"]).upper()
+            != str(expected.type).upper()
+            or bool(actual["nullable"]) != bool(expected.nullable)
+            or actual_default != expected_default
+        ):
+            return False
+
+    actual_primary_key = tuple(
+        database_inspector.get_pk_constraint(actual_name).get(
+            "constrained_columns"
+        )
+        or []
+    )
+    expected_primary_key = tuple(
+        column.name for column in model_table.primary_key.columns
+    )
+
+    if actual_primary_key != expected_primary_key:
+        return False
+
+    actual_column_set = set(actual_column_names)
+    expected_unique_constraints = {
+        constraint.name: tuple(
+            column.name for column in constraint.columns
+        )
+        for constraint in model_table.constraints
+        if isinstance(constraint, UniqueConstraint)
+        and all(
+            column.name in actual_column_set
+            for column in constraint.columns
+        )
+    }
+    actual_unique_constraints = {
+        constraint.get("name"): tuple(constraint["column_names"])
+        for constraint
+        in database_inspector.get_unique_constraints(actual_name)
+    }
+
+    if actual_unique_constraints != expected_unique_constraints:
+        return False
+
+    expected_foreign_keys = {
+        (
+            tuple(
+                element.parent.name
+                for element in constraint.elements
+            ),
+            constraint.referred_table.name,
+            tuple(
+                element.column.name
+                for element in constraint.elements
+            ),
+            str(constraint.ondelete or "").upper(),
+        )
+        for constraint in model_table.foreign_key_constraints
+        if all(
+            element.parent.name in actual_column_set
+            for element in constraint.elements
+        )
+    }
+
+    raw_foreign_keys = connection.exec_driver_sql(
+        "PRAGMA foreign_key_list("
+        f"{_quote_identifier(actual_name)})"
+    ).all()
+    grouped_foreign_keys: dict[int, list[object]] = {}
+
+    for row in raw_foreign_keys:
+        grouped_foreign_keys.setdefault(int(row[0]), []).append(row)
+
+    actual_foreign_keys = set()
+
+    for rows in grouped_foreign_keys.values():
+        ordered = sorted(rows, key=lambda row: int(row[1]))
+        actual_foreign_keys.add(
+            (
+                tuple(str(row[3]) for row in ordered),
+                str(ordered[0][2]),
+                tuple(str(row[4]) for row in ordered),
+                str(ordered[0][6] or "").upper(),
+            )
+        )
+
+    return actual_foreign_keys == expected_foreign_keys
+
+
 def _expected_indexes(table_name: str) -> dict[str, tuple[str, ...]]:
     return {
         index.name: tuple(column.name for column in index.columns)
@@ -859,6 +1174,28 @@ def _verify_scoped_indexes(
 
         if actual_columns != columns or unique:
             raise RuntimeError(f"{table_name} index {name} is malformed.")
+
+
+def _verify_version_four_compatible_indexes(
+    connection: Connection,
+    table_name: str,
+) -> None:
+    expected = _expected_indexes(table_name)
+    actual = _actual_indexes(connection, table_name)
+
+    unexpected = set(actual) - set(expected)
+
+    if unexpected:
+        names = ", ".join(sorted(unexpected))
+        raise RuntimeError(
+            f"{table_name} has unsupported indexes: {names}."
+        )
+
+    for name, (actual_columns, unique) in actual.items():
+        if actual_columns != expected[name] or unique:
+            raise RuntimeError(
+                f"{table_name} index {name} is malformed."
+            )
 
 
 def _unexpected_triggers(
@@ -949,10 +1286,15 @@ def _copy_into_shadow(
 
 
 def _legacy_column_names(table_name: str) -> tuple[str, ...]:
+    excluded_columns = VERSION_FOUR_EXCLUDED_COLUMNS.get(
+        table_name,
+        frozenset(),
+    )
     return tuple(
         column.name
         for column in Base.metadata.tables[table_name].columns
         if column.name != "space_id"
+        and column.name not in excluded_columns
     )
 
 
@@ -1032,7 +1374,7 @@ def _copy_evidence(
     upgrade: SpaceScopedTableUpgrade,
     replacement_name: str,
 ) -> SpaceScopedMigrationEvidence | None:
-    if not _table_has_final_structure(
+    if not _table_has_version_four_compatible_structure(
         connection,
         upgrade.table_name,
         replacement_name,
@@ -1254,7 +1596,7 @@ def _ready_matches_durable_evidence(
     ):
         return False
 
-    if not _table_has_final_structure(
+    if not _table_has_version_four_compatible_structure(
         connection,
         upgrade.table_name,
         upgrade.ready_name,
@@ -1354,7 +1696,10 @@ def _validate_existing_migration_journal(
         ready_exists = upgrade.ready_name in tables
         canonical_is_final = (
             canonical_exists
-            and _table_has_final_structure(connection, upgrade.table_name)
+            and _table_has_version_four_compatible_structure(
+                connection,
+                upgrade.table_name,
+            )
         )
 
         if evidence.phase == "ready":
@@ -1624,7 +1969,20 @@ def _migrate_space_scoped_table(
                 _legacy_column_names(upgrade.table_name)
             )
 
-            if actual_columns != expected_legacy_columns:
+            allowed_additive_columns = set(
+                VERSION_FOUR_EXCLUDED_COLUMNS.get(
+                    upgrade.table_name,
+                    frozenset(),
+                )
+            )
+            expected_transitional_columns = (
+                expected_legacy_columns | allowed_additive_columns
+            )
+
+            if actual_columns not in (
+                expected_legacy_columns,
+                expected_transitional_columns,
+            ):
                 raise RuntimeError(
                     f"{upgrade.table_name} has a malformed partial Space "
                     "schema."
@@ -1788,6 +2146,72 @@ def _verify_space_scoped_schema(connection: Connection) -> None:
             )
 
 
+def _verify_version_four_upgrade_source(
+    connection: Connection,
+) -> None:
+    _verify_project_schema(connection)
+    _verify_foundation_schema(connection)
+    _verify_default_space(connection)
+    tables = _table_names(connection)
+
+    for upgrade in SPACE_SCOPED_TABLE_UPGRADES:
+        _assert_no_migration_triggers(connection, upgrade)
+
+        if (
+            upgrade.shadow_name in tables
+            or upgrade.ready_name in tables
+        ):
+            raise RuntimeError(
+                f"{upgrade.table_name} has unfinished migration tables."
+            )
+
+        if not _table_has_version_four_compatible_structure(
+            connection,
+            upgrade.table_name,
+        ):
+            raise RuntimeError(
+                f"{upgrade.table_name} does not match a supported "
+                "version 4-to-5 upgrade structure."
+            )
+
+        _verify_version_four_compatible_indexes(
+            connection,
+            upgrade.table_name,
+        )
+
+    for provenance_table, target_table, target_column in (
+        ("inventory_migrations", "inventory_items", "inventory_item_id"),
+        ("project_migrations", "projects", "project_id"),
+        ("task_migrations", "tasks", "task_id"),
+    ):
+        mismatch = connection.execute(
+            text(
+                f"SELECT COUNT(*) FROM "
+                f"{_quote_identifier(provenance_table)} "
+                f"AS provenance JOIN "
+                f"{_quote_identifier(target_table)} "
+                f"AS target ON target.id = provenance.{target_column} "
+                "WHERE provenance.space_id != target.space_id"
+            )
+        ).scalar_one()
+
+        if mismatch:
+            raise RuntimeError(
+                f"{provenance_table} contains cross-Space "
+                "target mappings."
+            )
+
+    foreign_key_violations = list(
+        connection.exec_driver_sql("PRAGMA foreign_key_check")
+    )
+
+    if foreign_key_violations:
+        raise RuntimeError(
+            "The version 4 upgrade source contains "
+            "foreign-key violations."
+        )
+
+
 def _set_sqlite_foreign_keys(
     connection: Connection,
     *,
@@ -1883,6 +2307,141 @@ def _prepare_foundation_schema(
     return version
 
 
+def _ensure_universal_work_columns(
+    connection: Connection,
+) -> None:
+    for table_name, column_name, statement in UNIVERSAL_WORK_COLUMN_UPGRADES:
+        upgrade = SPACE_SCOPED_TABLE_UPGRADES_BY_NAME[table_name]
+
+        with connection.begin():
+            existing_tables = _table_names(connection)
+            physical_names = tuple(
+                name
+                for name in (
+                    table_name,
+                    upgrade.shadow_name,
+                    upgrade.ready_name,
+                )
+                if name in existing_tables
+            )
+
+            if not physical_names:
+                raise RuntimeError(
+                    f"{table_name} is missing during the version 5 upgrade."
+                )
+
+            for physical_name in physical_names:
+                columns = {
+                    column["name"]
+                    for column in inspect(connection).get_columns(
+                        physical_name
+                    )
+                }
+
+                if column_name in columns:
+                    continue
+
+                if physical_name == table_name:
+                    physical_statement = statement
+                else:
+                    physical_statement = statement.replace(
+                        f"ALTER TABLE {table_name} ",
+                        "ALTER TABLE "
+                        f"{_quote_identifier(physical_name)} ",
+                        1,
+                    )
+
+                connection.exec_driver_sql(physical_statement)
+
+
+def _table_has_universal_work_augmented_structure(
+    connection: Connection,
+    table_name: str,
+) -> bool:
+    database_inspector = inspect(connection)
+
+    if table_name not in database_inspector.get_table_names():
+        return False
+
+    actual_names = {
+        column["name"]
+        for column in database_inspector.get_columns(table_name)
+    }
+    expected_names = {
+        column.name
+        for column in Base.metadata.tables[table_name].columns
+    }
+
+    return (
+        actual_names == expected_names
+        and _table_has_version_four_compatible_structure(
+            connection,
+            table_name,
+        )
+    )
+
+
+def _ensure_universal_work_table(
+    connection: Connection,
+) -> None:
+    with connection.begin():
+        Base.metadata.tables["work_dependencies"].create(
+            bind=connection,
+            checkfirst=True,
+        )
+        _repair_scoped_indexes(connection, "work_dependencies")
+
+
+def _verify_universal_work_schema(
+    connection: Connection,
+) -> None:
+    for table_name in ("tasks", "projects"):
+        if not _table_has_universal_work_augmented_structure(
+            connection,
+            table_name,
+        ):
+            raise RuntimeError(
+                f"{table_name} does not match the version 5 schema."
+            )
+
+        _verify_scoped_indexes(connection, table_name)
+
+    if not _table_has_final_structure(
+        connection,
+        "work_dependencies",
+    ):
+        raise RuntimeError(
+            "work_dependencies does not match the version 5 schema."
+        )
+
+    _verify_scoped_indexes(connection, "work_dependencies")
+
+    actual_checks = {
+        constraint.get("name"): _canonical_sql(constraint["sqltext"])
+        for constraint in inspect(connection).get_check_constraints(
+            "work_dependencies"
+        )
+    }
+    expected_checks = {
+        name: _canonical_sql(expression)
+        for name, expression in UNIVERSAL_WORK_CHECK_CONSTRAINTS.items()
+    }
+
+    if actual_checks != expected_checks:
+        raise RuntimeError(
+            "work_dependencies check constraints are incomplete."
+        )
+
+    foreign_key_violations = list(
+        connection.exec_driver_sql("PRAGMA foreign_key_check")
+    )
+
+    if foreign_key_violations:
+        raise RuntimeError(
+            "The version 5 schema contains foreign-key violations."
+        )
+
+
 def apply_schema_upgrades(connection: Connection) -> None:
     if connection.dialect.name != "sqlite":
         return
@@ -1901,44 +2460,85 @@ def apply_schema_upgrades(connection: Connection) -> None:
 
     version = _prepare_foundation_schema(connection, version)
     _ensure_default_space(connection)
-    record_journal = version < CURRENT_DATABASE_SCHEMA_VERSION
+
+    record_journal = version < SPACE_SCOPE_DATABASE_SCHEMA_VERSION
 
     if record_journal:
+        # Current ORM metadata defines the v4 replacement tables. Install
+        # nullable v5 additions first so an in-progress v4 migration can
+        # build and resume against that current physical shape.
+        _ensure_universal_work_columns(connection)
         _ensure_migration_journal(connection)
 
-    try:
-        _set_sqlite_foreign_keys(connection, enabled=False)
+        try:
+            _set_sqlite_foreign_keys(connection, enabled=False)
 
-        for upgrade in SPACE_SCOPED_TABLE_UPGRADES:
-            _migrate_space_scoped_table(
-                connection,
-                upgrade,
-                record_journal=record_journal,
-            )
-    finally:
-        if connection.in_transaction():
-            connection.rollback()
+            for upgrade in SPACE_SCOPED_TABLE_UPGRADES:
+                _migrate_space_scoped_table(
+                    connection,
+                    upgrade,
+                    record_journal=True,
+                )
+        finally:
+            if connection.in_transaction():
+                connection.rollback()
 
-        _set_sqlite_foreign_keys(connection, enabled=True)
+            _set_sqlite_foreign_keys(connection, enabled=True)
 
-    with connection.begin():
-        _verify_version_four_database(connection)
+        with connection.begin():
+            _verify_version_four_database(connection)
 
-        if SPACE_SCOPE_JOURNAL_TABLE in _table_names(connection):
-            _validate_existing_migration_journal(connection)
+            if SPACE_SCOPE_JOURNAL_TABLE in _table_names(connection):
+                _validate_existing_migration_journal(connection)
 
-        if record_journal:
             _verify_completed_migration_journal(connection)
 
-    _drop_migration_journal(connection)
+        _drop_migration_journal(connection)
+
+        with connection.begin():
+            _verify_version_four_database(connection)
+
+            if SPACE_SCOPE_JOURNAL_TABLE in _table_names(connection):
+                raise RuntimeError(
+                    "The version 4 migration journal was not removed."
+                )
+
+            connection.exec_driver_sql(
+                "PRAGMA user_version = "
+                f"{SPACE_SCOPE_DATABASE_SCHEMA_VERSION}"
+            )
+            version = SPACE_SCOPE_DATABASE_SCHEMA_VERSION
+
+    else:
+        # A released schema-v4 database has already completed the destructive
+        # Space migration. Validate it without replaying that migration.
+        # This verifier also accepts approved partial v5 additions so a
+        # failed v4-to-v5 upgrade can resume safely.
+        with connection.begin():
+            _verify_version_four_upgrade_source(connection)
+
+        _drop_migration_journal(connection)
+
+        with connection.begin():
+            if SPACE_SCOPE_JOURNAL_TABLE in _table_names(connection):
+                raise RuntimeError(
+                    "The version 4 migration journal was not removed."
+                )
+
+    # Both paths converge here. These operations are additive/idempotent.
+    _ensure_universal_work_columns(connection)
 
     with connection.begin():
-        _verify_version_four_database(connection)
-
-        if SPACE_SCOPE_JOURNAL_TABLE in _table_names(connection):
-            raise RuntimeError(
-                "The version 4 migration journal was not removed."
+        for upgrade in SPACE_SCOPED_TABLE_UPGRADES:
+            _repair_scoped_indexes(
+                connection,
+                upgrade.table_name,
             )
+
+    _ensure_universal_work_table(connection)
+
+    with connection.begin():
+        _verify_universal_work_schema(connection)
 
         if version < CURRENT_DATABASE_SCHEMA_VERSION:
             connection.exec_driver_sql(

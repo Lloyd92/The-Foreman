@@ -220,6 +220,9 @@ PRE_V4_TABLE_DDL = {
     """,
 }
 
+
+PRE_V4_TABLE_NAMES = frozenset(PRE_V4_TABLE_DDL)
+
 PRE_V4_INDEX_DDL = {
     "inventory_items": (
         "CREATE INDEX ix_inventory_items_category "

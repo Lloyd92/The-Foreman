@@ -66,6 +66,7 @@ CURRENT_REQUIRED_DATABASE_TABLES = frozenset(
         "projects",
         "task_migrations",
         "tasks",
+        "work_dependencies",
         "spaces",
     }
 )
