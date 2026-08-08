@@ -155,7 +155,7 @@ the milestone with v0.8.0 release identity and documentation reconciliation.
 ## Approved Universal Foundation Sequence
 
 - [x] v0.8.0 — Universal Navigation & Spaces
-- [ ] v0.8.1 — Universal Work System
+- [x] v0.8.1 — Universal Work System
 - [ ] v0.8.2 — Tools, Inventory & Care
 - [ ] v0.8.3 — Calendar & Scheduling
 - [ ] v0.8.4 — Money
@@ -171,7 +171,7 @@ Modules provide authoritative facts → Calendar records commitments and
 availability → Capacity determines realistic eligibility → Priority ranks
 eligible Work → Morning Briefing presents explainable recommendations.
 
-## v0.8.1 Universal Work System — In Progress
+## Completed v0.8.1 — Universal Work System
 
 Architecture review completed before implementation.
 
@@ -191,7 +191,7 @@ Approved direction:
 - [x] Define a normalized Work read model as derived backend state rather than
       duplicate persistence authority.
 
-Planned implementation sequence:
+Completed implementation sequence:
 
 1. Documentation-only Universal Work architecture contract.
 2. Safe persistence and schema upgrade for new Work relationships.
@@ -201,6 +201,13 @@ Planned implementation sequence:
 6. Universal Work frontend convergence.
 7. Isolated browser compatibility acceptance.
 8. v0.8.1 release reconciliation.
+
+v0.8.1 was completed in eight reviewable commits. Commits 1 through 7
+established the Universal Work architecture, schema and persistence support,
+responsibility and Task due dates, factual dependencies, normalized Work read
+model, frontend convergence, and isolated compatibility acceptance. Commit 8
+closes the milestone with v0.8.1 release identity and documentation
+reconciliation.
 
 Commit 1 is documentation-only. It does not change the SQLite schema,
 application version, PWA cache identity, APIs, frontend runtime behavior,

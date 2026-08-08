@@ -14,6 +14,70 @@ No unreleased changes are recorded yet.
 
 ---
 
+# v0.8.1 — 2026-08-08
+
+## Added
+
+- Added optional same-Space Member responsibility to authoritative Work
+  records while preserving existing records with null responsibility.
+- Added nullable Task due dates as Work facts without creating Calendar
+  commitments or Capacity claims.
+- Added factual typed Work dependencies between Tasks and Tasks or Projects
+  without scheduling, ranking, or recommendation behavior.
+- Added the backend-authoritative normalized `GET /api/work` read model while
+  retaining native Task and Project mutation APIs.
+- Added the Universal Work frontend with Overview, Tasks, and Projects
+  surfaces beneath the permanent Work category.
+- Added isolated browser acceptance for Task due dates, Task-to-Project
+  relationships, Work dependencies, normalized Work presentation, and
+  persistence across reloads.
+
+## Changed
+
+- Advanced the internal SQLite schema from version 4 to version 5 while
+  preserving existing Task, Project, Space, migration-provenance, material,
+  backup, restore, and export compatibility.
+- Preserved native Task and Project lifecycle semantics rather than introducing
+  a generalized `work_items` persistence superclass.
+- Kept existing Project material requirements as the first concrete Work
+  requirement type instead of prematurely generalizing future requirements.
+- Updated application release identity to 0.8.1 and finalized the exact
+  42-resource PWA shell as `foreman-shell-v0.8.1-c1`.
+
+## Reliability
+
+- Enforced same-Space ownership for Work responsibility and relationships.
+- Kept Work dependencies factual and protected them from invalid self,
+  duplicate, cross-Space, and cyclic relationships.
+- Preserved Task compatibility when related Projects are deleted.
+- Preserved module disable/re-enable data retention and corrected Work-owned
+  child navigation contributions discovered during browser acceptance.
+- Kept Work API and frontend state backend-authoritative with no browser
+  persistence fallback.
+
+## Validation
+
+- Completed final full backend acceptance with 306 tests passing.
+- Completed final full frontend acceptance with 172 tests passing.
+- Completed isolated disposable Firefox acceptance with 42 tests passing.
+- Verified disposable acceptance cleanup left zero project containers,
+  networks, or images.
+- Verified clean disposable startup with empty Inventory, Projects, Tasks, and
+  Work dependency collections.
+- Preserved operational-fact schema version 1 and portable export format
+  version 1.
+
+## Documentation
+
+- Completed the eight-commit v0.8.1 Universal Work milestone.
+- Documented Work as a domain and integration boundary rather than a universal
+  persistence superclass.
+- Preserved Capacity for v0.9.0, Priority for v0.9.1, and Morning Briefing
+  recommendations for v0.9.2.
+- Set v0.8.2 Tools, Inventory & Care as the next approved milestone.
+
+---
+
 # v0.8.0 — 2026-08-07
 
 ## Added

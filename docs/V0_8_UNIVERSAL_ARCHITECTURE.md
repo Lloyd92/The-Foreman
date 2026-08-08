@@ -732,7 +732,7 @@ deferred until after v3.0.
 
 # 20. Green Build Requirements
 
-v0.8.0 work is not complete until it preserves a Green Build.
+v0.8.1 work is not complete until it preserves a Green Build.
 
 At minimum:
 
@@ -740,7 +740,7 @@ At minimum:
 - Existing frontend tests pass.
 - New focused tests pass.
 - Browser acceptance runs only against an isolated disposable deployment.
-- Clean Inventory, Project, and Task collections are verified where required.
+- Clean Inventory, Project, Task, and Work dependency collections are verified where required.
 - Disposable project containers, networks, and images are removed.
 - No persistent volume is deleted.
 - Existing-data migration is tested from supported prior states.
@@ -753,18 +753,20 @@ At minimum:
 
 # 21. Completion Boundary
 
-v0.8.0 — Universal Navigation & Spaces is complete.
+v0.8.1 — Universal Work System is complete.
 
-The milestone established the permanent navigation shell, universal Space
-foundation, backend-authoritative active-Space isolation, minimal People and
-Organization foundations, Members, local module registration, existing-data
-migration, and isolated browser acceptance while preserving the exclusions
-defined by this architecture.
+The milestone established Universal Work as a domain and integration boundary
+while preserving Tasks and Projects as distinct authorities. It added optional
+same-Space Member responsibility, Task due dates, factual Work dependencies,
+the backend-authoritative normalized Work read model, Work frontend
+convergence, and isolated compatibility acceptance without introducing
+Capacity, Priority, Calendar scheduling, or recommendation behavior.
 
 The approved next milestone is:
 
-**v0.8.1 — Universal Work System**
+**v0.8.2 — Tools, Inventory & Care**
 
 Later milestones must preserve the v0.8.0 Space, module, data-ownership,
-deployment, compatibility, and Green Build boundaries unless an explicit
+deployment, compatibility, and Green Build boundaries together with the
+v0.8.1 Universal Work ownership and lifecycle boundaries unless an explicit
 architecture change is reviewed and approved.

@@ -26,14 +26,14 @@ rather than replace it.
 
 **Current Version**
 
-v0.8.0 — Universal Navigation & Spaces
+v0.8.1 — Universal Work System
 
 Current focus:
 
-- Begin v0.8.1 Universal Work System
-- Converge Tasks and Projects beneath the permanent Work category
-- Preserve authoritative active-Space isolation and module boundaries
-- Preserve the v0.8.0 Green Build while extending universal Work
+- Begin v0.8.2 Tools, Inventory & Care
+- Establish the permanent Resources category
+- Preserve distinct authority for Tools, Inventory, and Care
+- Preserve the v0.8.1 Green Build while extending Resources
 
 ---
 
@@ -120,7 +120,7 @@ For additional information, see:
 
 ## Today
 
-Today is the default primary workspace within the permanent v0.8.0 shell.
+Today is the default primary workspace within the permanent navigation shell established in v0.8.0.
 It currently presents the factual operational content carried forward from
 the earlier Dashboard while complete universal Today aggregation remains
 scheduled for v0.8.6.
@@ -227,7 +227,7 @@ The implemented fact vocabulary is:
 Each fact has a stable identity, typed state, reason codes, evidence, and
 source-record references. Facts are computed on demand and are not persisted.
 The operational-fact schema version is 1 while the SQLite database schema
-is version 4. A deterministic fixed-ID default Space owns all current
+is version 5. A deterministic fixed-ID default Space owns all current
 Inventory, Project, Task, and browser-migration provenance records. Existing
 creation paths temporarily assign that Space explicitly. These internal
 ownership fields do not change the implemented operational-fact vocabulary or
@@ -241,8 +241,14 @@ operational fact authority.
 v0.8.0 adds authoritative active-Space APIs, persistent frontend Space
 selection, permanent navigation, universal People and Organization
 foundations, Space participation through Members, and local module
-registration. Capacity, Priority, next-action selection, Morning Briefing
-narration, and AI remain future capabilities.
+registration.
+
+v0.8.1 adds Universal Work while preserving Tasks and Projects as distinct
+authoritative records. It adds optional same-Space Member responsibility,
+Task due dates, factual Work dependencies, the backend-authoritative normalized
+Work read model, and the Work Overview, Tasks, and Projects frontend surfaces.
+Capacity, Priority, Calendar scheduling behavior, next-action selection,
+Morning Briefing narration, and AI remain future capabilities.
 
 ---
 
@@ -256,8 +262,8 @@ iPhone Home Screen installation. Trusted HTTPS installation, standalone
 launch, backend-authoritative startup, and safe-area behavior have been
 accepted on a physical iPhone.
 
-The current v0.8.0 service worker atomically precaches an exact 40-resource
-static shell as `foreman-shell-v0.8.0-c1`. It does not cache API responses,
+The current v0.8.1 service worker atomically precaches an exact 42-resource
+static shell as `foreman-shell-v0.8.1-c1`. It does not cache API responses,
 business records, migrations, or mutations and does not queue, replay, or
 synchronize writes. A cached shell can therefore remain available when
 HardHead is unavailable, but shell availability does not mean operational
@@ -315,9 +321,9 @@ and testing maturity, and backup and restore.
 
 Backup, export, restore, and verification are implemented in v0.7.4.
 Frontend hardening and the isolated browser-E2E foundation are implemented in
-v0.7.5. Universal Navigation & Spaces is implemented in v0.8.0. Next-action
-identification and Morning Briefing narration remain future capabilities.
-AI is not part of v0.8.0.
+v0.7.5. Universal Navigation & Spaces is implemented in v0.8.0. Universal
+Work is implemented in v0.8.1. Next-action identification and Morning
+Briefing narration remain future capabilities. AI is not part of v0.8.1.
 
 See `ROADMAP.md` for additional details.
 
@@ -368,8 +374,8 @@ current lifecycle, readiness, and stock classifications.
 
 The backend currently provides validated APIs for system status, Spaces,
 People, Organizations, Members, Organization-Space relationships, module
-state, Inventory, Projects, Project materials, Tasks, browser-data migration,
-and operational facts. Its service, repository, Pydantic schema, SQLAlchemy
+state, Inventory, Projects, Project materials, Tasks, Work dependencies,
+normalized Work, browser-data migration, and operational facts. Its service, repository, Pydantic schema, SQLAlchemy
 model, SQLite persistence, versioned schema-upgrade, and automated-test
 foundations are implemented. Capacity, Priority, the complete Morning
 Briefing, and scheduled backup automation remain target work.
