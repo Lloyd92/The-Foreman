@@ -70,7 +70,7 @@ def create_project(
             active_space,
             data,
         )
-    except ValueError as error:
+    except (LookupError, ValueError) as error:
         raise project_error(error) from error
 
 

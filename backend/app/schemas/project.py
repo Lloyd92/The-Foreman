@@ -3,7 +3,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field, StringConstraints, model_validator
 
-from app.schemas.common import ApiModel
+from app.schemas.common import ApiModel, StableId
 
 ProjectStatus = Literal[
     "planning",
@@ -96,6 +96,7 @@ class ProjectCreate(ApiModel):
     )
     start_date: date | None = None
     target_date: date | None = None
+    responsible_member_id: StableId | None = None
     estimated_cost: float = Field(
         default=0,
         ge=0,
@@ -136,6 +137,7 @@ class ProjectUpdate(ApiModel):
     )
     start_date: date | None = None
     target_date: date | None = None
+    responsible_member_id: StableId | None = None
     estimated_cost: float | None = Field(
         default=None,
         ge=0,
@@ -161,6 +163,7 @@ class ProjectRead(ApiModel):
     progress: float
     start_date: date | None
     target_date: date | None
+    responsible_member_id: str | None
     estimated_cost: float
     description: str
     notes: str

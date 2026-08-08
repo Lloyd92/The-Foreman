@@ -4,6 +4,7 @@ from app.models.space import Space
 from app.models.task import Task
 from app.repositories import tasks as task_repository
 from app.schemas.task import TaskCreate, TaskUpdate
+from app.services.members import require_member
 from app.services.projects import require_project
 
 
@@ -49,6 +50,21 @@ def validate_project_reference(
         raise ValueError("Tasks cannot be assigned to an archived project.")
 
 
+def validate_responsible_member_reference(
+    session: Session,
+    active_space: Space,
+    responsible_member_id: str | None,
+) -> None:
+    if responsible_member_id is None:
+        return
+
+    require_member(
+        session,
+        active_space,
+        responsible_member_id,
+    )
+
+
 def create_task(
     session: Session,
     active_space: Space,
@@ -58,6 +74,11 @@ def create_task(
         session,
         active_space,
         data.project_id,
+    )
+    validate_responsible_member_reference(
+        session,
+        active_space,
+        data.responsible_member_id,
     )
     task = Task(
         space_id=active_space.id,
@@ -89,6 +110,13 @@ def update_task(
             session,
             active_space,
             changes["project_id"],
+        )
+
+    if "responsible_member_id" in changes:
+        validate_responsible_member_reference(
+            session,
+            active_space,
+            changes["responsible_member_id"],
         )
 
     for field, value in changes.items():

@@ -9,6 +9,7 @@ from app.models.project_material_requirement import (
 )
 from app.repositories import inventory as inventory_repository
 from app.repositories import projects as project_repository
+from app.services.members import require_member
 from app.schemas.project import (
     ProjectCreate,
     ProjectMaterialCreate,
@@ -107,6 +108,7 @@ def serialize_projects(
             progress=project.progress,
             start_date=project.start_date,
             target_date=project.target_date,
+            responsible_member_id=project.responsible_member_id,
             estimated_cost=project.estimated_cost,
             description=project.description,
             notes=project.notes,
@@ -211,6 +213,13 @@ def build_project(
     active_space: Space,
     data: ProjectCreate,
 ) -> Project:
+    if data.responsible_member_id is not None:
+        require_member(
+            session,
+            active_space,
+            data.responsible_member_id,
+        )
+
     for material in data.materials:
         _require_inventory_item(
             session,
@@ -272,6 +281,16 @@ def update_project(
     )
     _require_editable(project)
     changes = data.model_dump(exclude_unset=True)
+
+    if (
+        "responsible_member_id" in changes
+        and changes["responsible_member_id"] is not None
+    ):
+        require_member(
+            session,
+            active_space,
+            changes["responsible_member_id"],
+        )
 
     for field, value in changes.items():
         setattr(project, field, value)

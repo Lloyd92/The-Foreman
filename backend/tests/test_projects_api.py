@@ -4,6 +4,8 @@ from sqlalchemy import select
 
 from app.core.database import SessionLocal
 from app.core.default_space import DEFAULT_SPACE_ID
+from app.models.member import Member
+from app.models.person import Person
 from app.models.project import Project
 from app.models.space import Space
 from app.schemas.project import ProjectUpdate
@@ -13,6 +15,95 @@ from test_support import ApiTestCase
 
 
 class ProjectApiTests(ApiTestCase):
+    def create_member_fixture(
+        self,
+        *,
+        space_id: str = DEFAULT_SPACE_ID,
+    ) -> str:
+        with SessionLocal() as session:
+            if space_id != DEFAULT_SPACE_ID:
+                session.add(
+                    Space(
+                        id=space_id,
+                        name=f"Space {space_id}",
+                    )
+                )
+                session.flush()
+
+            person = Person(
+                display_name=f"Person {space_id}",
+            )
+            session.add(person)
+            session.flush()
+
+            member = Member(
+                space_id=space_id,
+                person_id=person.id,
+                role="member",
+            )
+            session.add(member)
+            session.flush()
+            member_id = member.id
+            session.commit()
+
+        return member_id
+
+    async def test_project_responsibility_is_space_scoped(self) -> None:
+        responsible_member_id = self.create_member_fixture()
+        cross_space_member_id = self.create_member_fixture(
+            space_id="other-space",
+        )
+
+        created = await self.client.post(
+            "/api/projects",
+            json={
+                "name": "Responsible Project",
+                "responsibleMemberId": responsible_member_id,
+            },
+        )
+        self.assertEqual(created.status_code, 201)
+        project = created.json()
+        self.assertEqual(
+            project["responsibleMemberId"],
+            responsible_member_id,
+        )
+
+        rejected = await self.client.patch(
+            f"/api/projects/{project['id']}",
+            json={
+                "name": "Must not persist",
+                "responsibleMemberId": cross_space_member_id,
+            },
+        )
+        self.assertEqual(rejected.status_code, 404)
+
+        unchanged = (
+            await self.client.get(f"/api/projects/{project['id']}")
+        ).json()
+        self.assertEqual(unchanged["name"], "Responsible Project")
+        self.assertEqual(
+            unchanged["responsibleMemberId"],
+            responsible_member_id,
+        )
+
+        missing_create = await self.client.post(
+            "/api/projects",
+            json={
+                "name": "Missing responsibility",
+                "responsibleMemberId": "missing-member",
+            },
+        )
+        self.assertEqual(missing_create.status_code, 404)
+
+        cleared = await self.client.patch(
+            f"/api/projects/{project['id']}",
+            json={"responsibleMemberId": None},
+        )
+        self.assertEqual(cleared.status_code, 200)
+        self.assertIsNone(
+            cleared.json()["responsibleMemberId"]
+        )
+
     async def create_inventory(self, name: str) -> dict:
         response = await self.client.post(
             "/api/inventory",

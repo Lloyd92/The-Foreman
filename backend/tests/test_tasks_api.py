@@ -2,11 +2,106 @@ from sqlalchemy import select
 
 from app.core.database import SessionLocal
 from app.core.default_space import DEFAULT_SPACE_ID
+from app.models.member import Member
+from app.models.person import Person
+from app.models.space import Space
 from app.models.task import Task
 from test_support import ApiTestCase
 
 
 class TaskApiTests(ApiTestCase):
+    def create_member_fixture(
+        self,
+        *,
+        space_id: str = DEFAULT_SPACE_ID,
+    ) -> str:
+        with SessionLocal() as session:
+            if space_id != DEFAULT_SPACE_ID:
+                session.add(
+                    Space(
+                        id=space_id,
+                        name=f"Space {space_id}",
+                    )
+                )
+                session.flush()
+
+            person = Person(
+                display_name=f"Person {space_id}",
+            )
+            session.add(person)
+            session.flush()
+
+            member = Member(
+                space_id=space_id,
+                person_id=person.id,
+                role="member",
+            )
+            session.add(member)
+            session.flush()
+            member_id = member.id
+            session.commit()
+
+        return member_id
+
+    async def test_task_due_date_and_responsibility_are_space_scoped(
+        self,
+    ) -> None:
+        responsible_member_id = self.create_member_fixture()
+        cross_space_member_id = self.create_member_fixture(
+            space_id="other-space",
+        )
+
+        created = await self.client.post(
+            "/api/tasks",
+            json={
+                "title": "Scheduled work",
+                "dueDate": "2026-08-20",
+                "responsibleMemberId": responsible_member_id,
+            },
+        )
+        self.assertEqual(created.status_code, 201)
+        task = created.json()
+        self.assertEqual(task["dueDate"], "2026-08-20")
+        self.assertEqual(
+            task["responsibleMemberId"],
+            responsible_member_id,
+        )
+
+        rejected = await self.client.patch(
+            f"/api/tasks/{task['id']}",
+            json={
+                "title": "Must not persist",
+                "responsibleMemberId": cross_space_member_id,
+            },
+        )
+        self.assertEqual(rejected.status_code, 404)
+
+        unchanged = (
+            await self.client.get(f"/api/tasks/{task['id']}")
+        ).json()
+        self.assertEqual(unchanged["title"], "Scheduled work")
+        self.assertEqual(
+            unchanged["responsibleMemberId"],
+            responsible_member_id,
+        )
+
+        missing = await self.client.patch(
+            f"/api/tasks/{task['id']}",
+            json={"responsibleMemberId": "missing-member"},
+        )
+        self.assertEqual(missing.status_code, 404)
+
+        cleared = await self.client.patch(
+            f"/api/tasks/{task['id']}",
+            json={
+                "dueDate": None,
+                "responsibleMemberId": None,
+            },
+        )
+        self.assertEqual(cleared.status_code, 200)
+        self.assertIsNone(cleared.json()["dueDate"])
+        self.assertIsNone(cleared.json()["responsibleMemberId"])
+
     async def test_task_crud_completion_and_reopening(self) -> None:
         create_response = await self.client.post(
             "/api/tasks",
