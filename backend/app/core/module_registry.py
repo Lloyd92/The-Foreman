@@ -24,6 +24,17 @@ MODULE_DEFINITIONS: tuple[ModuleDefinition, ...] = (
         contribution_locations=("today", "resources"),
         default_enabled=True,
     ),
+    ModuleDefinition(
+        module_id="tools",
+        name="Tools",
+        description=(
+            "Owns durable equipment, condition, location, "
+            "factual availability, and maintenance history."
+        ),
+        dependencies=(),
+        contribution_locations=("resources",),
+        default_enabled=True,
+    ),
 )
 
 

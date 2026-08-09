@@ -435,7 +435,7 @@ class UniversalFoundationSchemaTests(unittest.TestCase):
                 definition.module_id
                 for definition in MODULE_DEFINITIONS
             ),
-            ("work", "inventory"),
+            ("work", "inventory", "tools"),
         )
 
         definitions = {
@@ -450,6 +450,10 @@ class UniversalFoundationSchemaTests(unittest.TestCase):
         self.assertEqual(
             definitions["inventory"].contribution_locations,
             ("today", "resources"),
+        )
+        self.assertEqual(
+            definitions["tools"].contribution_locations,
+            ("resources",),
         )
 
         for definition in MODULE_DEFINITIONS:
