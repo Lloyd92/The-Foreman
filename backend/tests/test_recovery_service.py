@@ -862,6 +862,23 @@ class BackupPackageTests(unittest.TestCase):
                 "INSERT INTO inventory_items (name) VALUES (?)",
                 [("Fastener",), ("Board",)],
             )
+            if user_version == CURRENT_DATABASE_SCHEMA_VERSION:
+                connection.executescript(
+                    """
+                    CREATE TABLE tools (
+                        id TEXT PRIMARY KEY
+                    );
+                    CREATE TABLE care_plans (
+                        id TEXT PRIMARY KEY
+                    );
+                    CREATE TABLE tool_maintenance_records (
+                        id TEXT PRIMARY KEY
+                    );
+                    CREATE TABLE work_tool_requirements (
+                        id TEXT PRIMARY KEY
+                    );
+                    """
+                )
             connection.execute(f"PRAGMA user_version = {user_version}")
             connection.commit()
         finally:
@@ -1860,6 +1877,10 @@ class RestoreCandidateStagingTests(unittest.TestCase):
         counts = staged.record_count_mapping()
         self.assertEqual(counts["projects"], 1)
         self.assertEqual(counts["tasks"], 1)
+        self.assertEqual(counts["tools"], 0)
+        self.assertEqual(counts["care_plans"], 0)
+        self.assertEqual(counts["tool_maintenance_records"], 0)
+        self.assertEqual(counts["work_tool_requirements"], 0)
 
         for table in set(counts) - {"projects", "tasks", "spaces"}:
             self.assertEqual(counts[table], 0)
@@ -2393,6 +2414,22 @@ class PreRestoreSafetyBackupTests(unittest.TestCase):
             connection.execute(
                 "INSERT INTO inventory_items (name) VALUES (?)",
                 ("Fastener",),
+            )
+            connection.executescript(
+                """
+                CREATE TABLE tools (
+                    id TEXT PRIMARY KEY
+                );
+                CREATE TABLE care_plans (
+                    id TEXT PRIMARY KEY
+                );
+                CREATE TABLE tool_maintenance_records (
+                    id TEXT PRIMARY KEY
+                );
+                CREATE TABLE work_tool_requirements (
+                    id TEXT PRIMARY KEY
+                );
+                """
             )
             connection.execute(
                 f"PRAGMA user_version = {CURRENT_DATABASE_SCHEMA_VERSION}"

@@ -29,6 +29,7 @@ from test_support import ApiTestCase
 BACKUP_FILENAME = "foreman-backup-20260731T220000Z.zip"
 BACKUP_BYTES = b"verified-backup-package"
 CURRENT_TABLES = [
+    "care_plans",
     "inventory_items",
     "inventory_migrations",
     "members",
@@ -42,7 +43,10 @@ CURRENT_TABLES = [
     "spaces",
     "task_migrations",
     "tasks",
+    "tool_maintenance_records",
+    "tools",
     "work_dependencies",
+    "work_tool_requirements",
 ]
 CURRENT_RECORD_COUNTS = {
     table_name: 1 if table_name == "projects" else 0

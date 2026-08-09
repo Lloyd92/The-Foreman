@@ -54,6 +54,7 @@ EXPECTED_BACKUP_MEMBERS = (
 )
 CURRENT_REQUIRED_DATABASE_TABLES = frozenset(
     {
+        "care_plans",
         "inventory_items",
         "inventory_migrations",
         "members",
@@ -66,7 +67,10 @@ CURRENT_REQUIRED_DATABASE_TABLES = frozenset(
         "projects",
         "task_migrations",
         "tasks",
+        "tool_maintenance_records",
+        "tools",
         "work_dependencies",
+        "work_tool_requirements",
         "spaces",
     }
 )

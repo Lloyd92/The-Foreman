@@ -1423,3 +1423,299 @@ class SchemaUpgradeTests(unittest.TestCase):
             "project_migrations",
             inspect(self.engine).get_table_names(),
         )
+
+
+    def test_version_five_database_adds_resource_schema(self) -> None:
+        self.create_version_four_database()
+        self.run_upgrade()
+
+        with self.engine.begin() as connection:
+            connection.exec_driver_sql("DROP TABLE care_plans")
+            connection.exec_driver_sql(
+                "DROP TABLE tool_maintenance_records"
+            )
+            connection.exec_driver_sql(
+                "DROP TABLE work_tool_requirements"
+            )
+            connection.exec_driver_sql("DROP TABLE tools")
+            connection.exec_driver_sql("PRAGMA user_version = 5")
+
+        with self.engine.connect() as connection:
+            self.assertEqual(
+                get_database_schema_version(connection),
+                5,
+            )
+
+        self.run_upgrade()
+
+        database_inspector = inspect(self.engine)
+        table_names = set(database_inspector.get_table_names())
+
+        self.assertTrue(
+            {
+                "tools",
+                "care_plans",
+                "tool_maintenance_records",
+                "work_tool_requirements",
+            }.issubset(table_names)
+        )
+
+        with self.engine.connect() as connection:
+            self.assertEqual(
+                get_database_schema_version(connection),
+                CURRENT_DATABASE_SCHEMA_VERSION,
+            )
+            self.assertEqual(
+                connection.exec_driver_sql(
+                    "PRAGMA foreign_key_check"
+                ).all(),
+                [],
+            )
+
+        with self.engine.connect() as connection:
+            before = {
+                row.name: row.sql
+                for row in connection.execute(
+                    text(
+                        """
+                        SELECT name, sql
+                        FROM sqlite_master
+                        WHERE type = 'table'
+                          AND name IN (
+                              'tools',
+                              'care_plans',
+                              'tool_maintenance_records',
+                              'work_tool_requirements'
+                          )
+                        ORDER BY name
+                        """
+                    )
+                )
+            }
+
+        self.run_upgrade()
+
+        with self.engine.connect() as connection:
+            after = {
+                row.name: row.sql
+                for row in connection.execute(
+                    text(
+                        """
+                        SELECT name, sql
+                        FROM sqlite_master
+                        WHERE type = 'table'
+                          AND name IN (
+                              'tools',
+                              'care_plans',
+                              'tool_maintenance_records',
+                              'work_tool_requirements'
+                          )
+                        ORDER BY name
+                        """
+                    )
+                )
+            }
+
+        self.assertEqual(after, before)
+
+    def test_resource_storage_contract(self) -> None:
+        self.create_version_four_database()
+        self.run_upgrade()
+
+        timestamp = datetime(
+            2026,
+            8,
+            8,
+            20,
+            0,
+            tzinfo=timezone.utc,
+        )
+
+        with self.engine.begin() as connection:
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO tools (
+                        id, space_id, name, category, condition,
+                        location, availability, notes,
+                        created_at, updated_at
+                    ) VALUES (
+                        'tool-1', :space_id, 'Cordless Drill',
+                        'Power Tool', 'good', 'Workshop',
+                        'available', '', :timestamp, :timestamp
+                    )
+                    """
+                ),
+                {
+                    "space_id": DEFAULT_SPACE_ID,
+                    "timestamp": timestamp,
+                },
+            )
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO care_plans (
+                        id, space_id, tool_id, name, care_type,
+                        description, frequency_value, frequency_unit,
+                        notes, created_at, updated_at
+                    ) VALUES (
+                        'care-1', :space_id, 'tool-1',
+                        'Inspect Drill', 'inspection', '',
+                        30, 'days', '', :timestamp, :timestamp
+                    )
+                    """
+                ),
+                {
+                    "space_id": DEFAULT_SPACE_ID,
+                    "timestamp": timestamp,
+                },
+            )
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO tool_maintenance_records (
+                        id, space_id, tool_id, maintenance_type,
+                        performed_at, notes, created_at
+                    ) VALUES (
+                        'maintenance-1', :space_id, 'tool-1',
+                        'service', :timestamp, '', :timestamp
+                    )
+                    """
+                ),
+                {
+                    "space_id": DEFAULT_SPACE_ID,
+                    "timestamp": timestamp,
+                },
+            )
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO work_tool_requirements (
+                        id, space_id, work_type, work_id,
+                        tool_id, note, created_at
+                    ) VALUES (
+                        'requirement-1', :space_id, 'task',
+                        'task-v4', 'tool-1', '', :timestamp
+                    )
+                    """
+                ),
+                {
+                    "space_id": DEFAULT_SPACE_ID,
+                    "timestamp": timestamp,
+                },
+            )
+
+        with self.assertRaises(IntegrityError):
+            with self.engine.begin() as connection:
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO care_plans (
+                            id, space_id, name, care_type,
+                            description, frequency_value,
+                            frequency_unit, notes,
+                            created_at, updated_at
+                        ) VALUES (
+                            'care-invalid', :space_id,
+                            'Invalid Care', 'inspection', '',
+                            30, NULL, '', :timestamp, :timestamp
+                        )
+                        """
+                    ),
+                    {
+                        "space_id": DEFAULT_SPACE_ID,
+                        "timestamp": timestamp,
+                    },
+                )
+
+        with self.assertRaises(IntegrityError):
+            with self.engine.begin() as connection:
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO work_tool_requirements (
+                            id, space_id, work_type, work_id,
+                            tool_id, note, created_at
+                        ) VALUES (
+                            'requirement-invalid', :space_id,
+                            'goal', 'goal-1', 'tool-1',
+                            '', :timestamp
+                        )
+                        """
+                    ),
+                    {
+                        "space_id": DEFAULT_SPACE_ID,
+                        "timestamp": timestamp,
+                    },
+                )
+
+        with self.assertRaises(IntegrityError):
+            with self.engine.begin() as connection:
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO work_tool_requirements (
+                            id, space_id, work_type, work_id,
+                            tool_id, note, created_at
+                        ) VALUES (
+                            'requirement-duplicate', :space_id,
+                            'task', 'task-v4', 'tool-1',
+                            '', :timestamp
+                        )
+                        """
+                    ),
+                    {
+                        "space_id": DEFAULT_SPACE_ID,
+                        "timestamp": timestamp,
+                    },
+                )
+
+        with self.assertRaises(IntegrityError):
+            with self.engine.begin() as connection:
+                connection.execute(
+                    text("DELETE FROM tools WHERE id = 'tool-1'")
+                )
+
+        with self.engine.begin() as connection:
+            connection.execute(
+                text(
+                    """
+                    DELETE FROM tool_maintenance_records
+                    WHERE id = 'maintenance-1'
+                    """
+                )
+            )
+            connection.execute(
+                text("DELETE FROM tools WHERE id = 'tool-1'")
+            )
+
+        with self.engine.connect() as connection:
+            self.assertIsNone(
+                connection.execute(
+                    text(
+                        """
+                        SELECT tool_id
+                        FROM care_plans
+                        WHERE id = 'care-1'
+                        """
+                    )
+                ).scalar_one()
+            )
+            self.assertEqual(
+                connection.execute(
+                    text(
+                        """
+                        SELECT tool_id
+                        FROM work_tool_requirements
+                        WHERE id = 'requirement-1'
+                        """
+                    )
+                ).scalar_one(),
+                "tool-1",
+            )
+            self.assertEqual(
+                connection.exec_driver_sql(
+                    "PRAGMA foreign_key_check"
+                ).all(),
+                [],
+            )

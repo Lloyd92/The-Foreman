@@ -16,8 +16,16 @@ from app.models.base import Base
 
 FOUNDATION_DATABASE_SCHEMA_VERSION = 3
 SPACE_SCOPE_DATABASE_SCHEMA_VERSION = 4
-CURRENT_DATABASE_SCHEMA_VERSION = 5
+UNIVERSAL_WORK_DATABASE_SCHEMA_VERSION = 5
+CURRENT_DATABASE_SCHEMA_VERSION = 6
 SPACE_SCOPE_JOURNAL_TABLE = "__foreman_v4_space_scope_journal"
+
+RESOURCE_TABLES = (
+    "tools",
+    "care_plans",
+    "tool_maintenance_records",
+    "work_tool_requirements",
+)
 
 UNIVERSAL_WORK_COLUMN_UPGRADES = (
     (
@@ -60,6 +68,23 @@ UNIVERSAL_WORK_CHECK_CONSTRAINTS = {
         "OR dependent_id != prerequisite_id"
     ),
 }
+
+RESOURCE_CHECK_CONSTRAINTS = {
+    "care_plans": {
+        "ck_care_plans_frequency_pair": (
+            "(frequency_value IS NULL AND frequency_unit IS NULL) "
+            "OR (frequency_value IS NOT NULL "
+            "AND frequency_value > 0 "
+            "AND frequency_unit IS NOT NULL)"
+        ),
+    },
+    "work_tool_requirements": {
+        "ck_work_tool_requirements_work_type": (
+            "work_type IN ('task', 'project')"
+        ),
+    },
+}
+
 
 PROJECT_COLUMN_UPGRADES = {
     "type": (
@@ -2442,6 +2467,62 @@ def _verify_universal_work_schema(
         )
 
 
+def _ensure_resource_tables(
+    connection: Connection,
+) -> None:
+    with connection.begin():
+        for table_name in RESOURCE_TABLES:
+            Base.metadata.tables[table_name].create(
+                bind=connection,
+                checkfirst=True,
+            )
+            _repair_scoped_indexes(connection, table_name)
+
+
+def _verify_resource_schema(
+    connection: Connection,
+) -> None:
+    database_inspector = inspect(connection)
+
+    for table_name in RESOURCE_TABLES:
+        if not _table_has_final_structure(
+            connection,
+            table_name,
+        ):
+            raise RuntimeError(
+                f"{table_name} does not match the version 6 schema."
+            )
+
+        _verify_scoped_indexes(connection, table_name)
+
+    for table_name, expected in RESOURCE_CHECK_CONSTRAINTS.items():
+        actual = {
+            constraint.get("name"): _canonical_sql(
+                constraint["sqltext"]
+            )
+            for constraint
+            in database_inspector.get_check_constraints(table_name)
+        }
+        expected_canonical = {
+            name: _canonical_sql(expression)
+            for name, expression in expected.items()
+        }
+
+        if actual != expected_canonical:
+            raise RuntimeError(
+                f"{table_name} check constraints are incomplete."
+            )
+
+    foreign_key_violations = list(
+        connection.exec_driver_sql("PRAGMA foreign_key_check")
+    )
+
+    if foreign_key_violations:
+        raise RuntimeError(
+            "The version 6 schema contains foreign-key violations."
+        )
+
+
 def apply_schema_upgrades(connection: Connection) -> None:
     if connection.dialect.name != "sqlite":
         return
@@ -2539,6 +2620,18 @@ def apply_schema_upgrades(connection: Connection) -> None:
 
     with connection.begin():
         _verify_universal_work_schema(connection)
+
+        if version < UNIVERSAL_WORK_DATABASE_SCHEMA_VERSION:
+            connection.exec_driver_sql(
+                "PRAGMA user_version = "
+                f"{UNIVERSAL_WORK_DATABASE_SCHEMA_VERSION}"
+            )
+            version = UNIVERSAL_WORK_DATABASE_SCHEMA_VERSION
+
+    _ensure_resource_tables(connection)
+
+    with connection.begin():
+        _verify_resource_schema(connection)
 
         if version < CURRENT_DATABASE_SCHEMA_VERSION:
             connection.exec_driver_sql(

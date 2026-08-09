@@ -17,7 +17,11 @@ from app.models.project_material_requirement import (
 from app.models.space import Space
 from app.models.task import Task
 from app.models.task_migration import TaskMigration
+from app.models.tool import Tool
+from app.models.care_plan import CarePlan
+from app.models.tool_maintenance_record import ToolMaintenanceRecord
 from app.models.work_dependency import WorkDependency
+from app.models.work_tool_requirement import WorkToolRequirement
 
 __all__ = [
     "InventoryItem",
@@ -33,5 +37,9 @@ __all__ = [
     "Space",
     "Task",
     "TaskMigration",
+    "Tool",
+    "CarePlan",
+    "ToolMaintenanceRecord",
     "WorkDependency",
+    "WorkToolRequirement",
 ]
