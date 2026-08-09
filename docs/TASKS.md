@@ -224,6 +224,42 @@ Explicitly deferred beyond v0.8.1:
 - generalized future-module requirement systems
 - Morning Briefing decision logic
 
+## Active v0.8.2 — Tools, Inventory & Care
+
+Architecture review:
+
+- [x] Preserve Resources as a category and integration boundary rather than a
+      universal Resource persistence model.
+- [x] Preserve Inventory as the consumable-stock authority.
+- [x] Define Tools as the durable-equipment authority.
+- [x] Define Care Plans as the upkeep-definition authority.
+- [x] Keep Calendar scheduling and recurrence ownership in v0.8.3.
+- [x] Keep Capacity, Priority, and recommendation behavior deferred.
+- [x] Preserve missing referenced-resource evidence instead of silently
+      deleting requirement relationships.
+- [x] Preserve the existing Mealworms workspace without inventing husbandry
+      architecture during v0.8.2.
+
+Planned implementation sequence:
+
+1. [x] Reconcile v0.8.2 architecture and current-state documentation.
+2. [ ] Add Tools/Care persistence with a safe SQLite schema-v6 upgrade and
+       recovery contract.
+3. [ ] Add backend-authoritative Tools CRUD, active-Space isolation, and module
+       registration.
+4. [ ] Add Care Plans and factual Tool maintenance history.
+5. [ ] Add concrete Work-to-Tool requirements for supported Tasks and Projects.
+6. [ ] Converge the Resources frontend around Tools, Inventory, and Care while
+       preserving Mealworms compatibility.
+7. [ ] Add factual Resources operational facts or overview data where justified
+       without implementing Capacity.
+8. [ ] Complete isolated disposable browser compatibility acceptance.
+9. [ ] Reconcile v0.8.2 release identity, documentation, and Green Build.
+
+Commit 1 is documentation-only. It does not change the SQLite schema,
+application version, PWA cache identity, APIs, frontend runtime behavior,
+migration behavior, Docker deployment, or live data.
+
 ## v0.8.0 Architecture Boundaries
 
 - Ordinary workflows use one clearly selected active Space.

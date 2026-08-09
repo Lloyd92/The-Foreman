@@ -505,29 +505,60 @@ Explicitly excluded:
 
 ## v0.8.2 — Tools, Inventory & Care
 
-Status: Planned
+Status: In Progress
 
 Purpose:
 
 Establish the permanent Resources category while preserving separate
 authorities for durable equipment, consumable stock, and upkeep.
 
+Architecture boundary:
+
+- Resources is a category and integration boundary, not a universal Resource
+  persistence superclass.
+- Tools owns durable equipment, condition, location, factual availability,
+  notes, and maintenance history.
+- Inventory remains the existing consumable-stock authority and preserves its
+  proven persistence, API, migration, and Project-material compatibility.
+- Existing Inventory records are not automatically reclassified as Tools.
+- Care Plans owns upkeep definitions and may exist independently or optionally
+  reference a Tool.
+- Care frequency metadata does not create Calendar recurrence or scheduled
+  occurrences.
+- Work owns concrete Tool requirement relationships for supported Tasks and
+  Projects.
+- Missing Tool references remain evidence rather than being silently deleted.
+- Tools and Care remain separate module authorities beneath Resources.
+- The existing Mealworms workspace remains compatibility surface and is not
+  silently converted into Care.
+
 Scope:
 
 - Tools as durable equipment
 - Inventory as consumable stock, quantities, thresholds, locations, and usage
-- Locations and availability
-- Tool condition and maintenance history
-- Care Plans for service, inspections, cleaning, property upkeep, and
-  future husbandry care definitions
-- Defined relationships to Work without cross-module ownership
+- Tool location, condition, and factual availability
+- Tool maintenance and service history
+- Care Plans for service, inspections, cleaning, property upkeep, maintenance,
+  and future husbandry care definitions
+- Concrete Work-to-Tool requirements without cross-module ownership
+- Active-Space authority and isolation
+- Backup and restore compatibility
+- Resources frontend convergence
+- Isolated browser compatibility acceptance
 
 Explicitly excluded:
 
+- Universal `resources` or `resource_items` persistence
+- Generalized future-module requirement systems
+- Automatic Inventory-to-Tool conversion
 - Purchasing workflows
+- Supplier-management expansion
+- Equipment rental
+- Calendar scheduling or scheduled Care occurrences
 - Capacity eligibility
 - Priority ranking
 - Automatic recommendations
+- Morning Briefing decision logic
 
 ## v0.8.3 — Calendar & Scheduling
 

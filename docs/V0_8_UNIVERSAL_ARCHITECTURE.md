@@ -357,19 +357,110 @@ definitions.
 
 # 8. Resources
 
+Resources is a permanent navigation category and integration boundary. It is
+not a universal persistence authority.
+
 Resources contains separate systems for:
 
 - Tools
 - Inventory
 - Care Plans
 
-Tools owns durable equipment, including future condition, location,
-availability, and maintenance history.
+No v0.8.2 implementation may introduce a universal `resources`,
+`resource_items`, or generalized polymorphic Resource persistence model merely
+to make future modules appear uniform.
 
-Inventory owns consumable stock, quantities, thresholds, locations, and usage.
+## 8.1 Tools
 
-Care Plans owns service, inspection, cleaning, property upkeep, maintenance,
-and future husbandry care definitions.
+Tools owns durable equipment.
+
+Tool authority includes:
+
+- identity
+- type or category
+- condition
+- location
+- factual availability
+- notes
+- maintenance and service history
+
+Tool maintenance history is factual completed history. It does not represent a
+Calendar commitment, scheduled occurrence, Capacity result, or recommendation.
+
+## 8.2 Inventory
+
+Inventory remains the authoritative consumable-stock system.
+
+Inventory owns:
+
+- quantities
+- units
+- minimum thresholds
+- locations
+- cost
+- supplier text
+- notes
+- usage and stock facts
+
+Existing Inventory persistence, APIs, browser-migration compatibility,
+Project material requirements, and missing-reference evidence must be
+preserved.
+
+Existing Inventory records must not be automatically converted into Tools.
+Historical user classification is evidence and must not be rewritten without
+an explicit reviewed migration decision.
+
+## 8.3 Care Plans
+
+Care Plans owns upkeep definitions for:
+
+- service
+- inspections
+- cleaning
+- property upkeep
+- maintenance
+- future husbandry care definitions
+
+A Care Plan may exist independently for general or property upkeep and may
+optionally reference a Tool.
+
+Care may record factual upkeep requirements or frequency metadata. It does not
+own Calendar recurrence, scheduled commitments, reminders, capacity-aware
+placement, or recommendation behavior. Actual scheduled occurrences belong to
+Calendar beginning in v0.8.3.
+
+Care must not introduce a generalized polymorphic care-target system merely to
+anticipate future modules.
+
+## 8.4 Work and Tool Requirements
+
+Work owns requirement relationships.
+
+v0.8.2 may introduce a concrete Work-to-Tool requirement relationship for
+Tasks and Projects. Tools remains authoritative for the referenced Tool and its
+factual state.
+
+Creation of a Work-to-Tool requirement must validate that both the Work record
+and Tool exist in the same active Space.
+
+Deleting a referenced Tool must not silently erase the Work requirement. The
+requirement remains as missing-reference evidence until the user removes or
+replaces it.
+
+Deleting the owning Task or Project removes that Work record's Tool
+requirements.
+
+A Tool requirement does not determine scheduling feasibility, Capacity,
+Priority, recommendations, or Morning Briefing behavior.
+
+## 8.5 Module and Compatibility Boundary
+
+Inventory, Tools, and Care remain separate module authorities beneath
+Resources. Tools and Care do not require one another to be enabled.
+
+The existing Mealworms workspace remains compatibility surface during v0.8.2.
+It must not be silently deleted, renamed to Care, converted into Care Plans, or
+used to invent broader husbandry architecture.
 
 These systems may relate to one another but must not collapse into one
 authority.
@@ -732,7 +823,7 @@ deferred until after v3.0.
 
 # 20. Green Build Requirements
 
-v0.8.1 work is not complete until it preserves a Green Build.
+Every v0.8 milestone must preserve a Green Build.
 
 At minimum:
 
@@ -740,7 +831,7 @@ At minimum:
 - Existing frontend tests pass.
 - New focused tests pass.
 - Browser acceptance runs only against an isolated disposable deployment.
-- Clean Inventory, Project, Task, and Work dependency collections are verified where required.
+- Clean authoritative collections are verified where required without using live household data.
 - Disposable project containers, networks, and images are removed.
 - No persistent volume is deleted.
 - Existing-data migration is tested from supported prior states.
@@ -762,9 +853,14 @@ the backend-authoritative normalized Work read model, Work frontend
 convergence, and isolated compatibility acceptance without introducing
 Capacity, Priority, Calendar scheduling, or recommendation behavior.
 
-The approved next milestone is:
+The active milestone is:
 
 **v0.8.2 — Tools, Inventory & Care**
+
+v0.8.2 treats Resources as a category and integration boundary while preserving
+separate Tools, Inventory, and Care authorities. It must not introduce
+Calendar scheduling, Capacity, Priority, recommendation behavior, generalized
+Resource persistence, or automatic Inventory-to-Tool migration.
 
 Later milestones must preserve the v0.8.0 Space, module, data-ownership,
 deployment, compatibility, and Green Build boundaries together with the

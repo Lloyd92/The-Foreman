@@ -30,10 +30,11 @@ v0.8.1 — Universal Work System
 
 Current focus:
 
-- Begin v0.8.2 Tools, Inventory & Care
-- Establish the permanent Resources category
-- Preserve distinct authority for Tools, Inventory, and Care
-- Preserve the v0.8.1 Green Build while extending Resources
+- Build v0.8.2 Tools, Inventory & Care
+- Treat Resources as a permanent category rather than a universal record type
+- Preserve distinct authority for Tools, Inventory, and Care Plans
+- Preserve Inventory compatibility and the v0.8.1 Green Build while extending
+  Resources
 
 ---
 
@@ -153,7 +154,7 @@ Features include:
 
 ## Inventory
 
-Track workshop resources.
+Track consumable stock and materials.
 
 Current capabilities:
 
@@ -199,7 +200,7 @@ Browser Project storage is intentionally retained as migration evidence and
 for compatibility and recovery; it is no longer the Projects page's runtime
 authority.
 
-Dashboard and Projects consume the same backend readiness facts. Missing
+Today and Projects consume the same backend readiness facts. Missing
 Inventory references remain visible with unknown availability rather than a
 fabricated zero. Deleting a Project clears related Task `projectId`
 references, and material requirements whose Inventory items were deleted
@@ -233,7 +234,7 @@ creation paths temporarily assign that Space explicitly. These internal
 ownership fields do not change the implemented operational-fact vocabulary or
 appear in current API responses.
 
-Dashboard, Projects, and Inventory consume these shared facts instead of
+Today, Projects, and Inventory consume these shared facts instead of
 independently reconstructing readiness or stock state from quantities.
 Browser-local records remain migration and recovery evidence, never
 operational fact authority.
@@ -368,7 +369,7 @@ Development Environment
 
 Tasks, Inventory, and Projects use backend SQLite persistence. Browser-local
 records remain available only to migration, compatibility, evidence, and
-recovery paths; they are not runtime fallback stores. Dashboard, Projects,
+recovery paths; they are not runtime fallback stores. Today, Projects,
 and Inventory use the backend operational-facts API as the authority for
 current lifecycle, readiness, and stock classifications.
 

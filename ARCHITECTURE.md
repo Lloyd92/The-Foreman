@@ -55,8 +55,9 @@ Backend:
 - Pydantic
 - SQLAlchemy
 - Uvicorn
-- Validated APIs for system status, Inventory, Projects, Tasks, browser-data
-  migration, and operational facts
+- Validated APIs for system status, Spaces, People, Organizations, Members,
+  module state, Inventory, Projects, Project materials, Tasks, Work
+  dependencies, normalized Work, browser-data migration, and operational facts
 
 Frontend:
 
@@ -75,8 +76,9 @@ Deployment:
 
 Persistence:
 
-- The backend persists Inventory, Projects, Tasks, and browser-migration
-  records in SQLite through SQLAlchemy.
+- The backend persists universal-foundation records, Inventory, Projects,
+  Tasks, Work dependencies, responsibility and due-date fields, and
+  browser-migration records in SQLite through SQLAlchemy.
 - The Inventory and Tasks frontends retain browser-local compatibility and
   include migration paths to backend persistence.
 - SQLite is the authoritative Project, Task, and Inventory store.
@@ -94,29 +96,38 @@ Persistence:
   selection are implemented and enforce selected-Space operational isolation.
 - Unified Operational Facts derive current lifecycle, material-readiness,
   Task-work, and Inventory-stock conclusions from one authoritative database
-  snapshot. Dashboard, Projects, and Inventory consume these facts rather than
+  snapshot. Today, Projects, and Inventory consume these facts rather than
   independently interpreting the same records.
 
 ## 2.2 Current Workspaces
 
-Dashboard:
+Today:
 
-- Provides the application shell.
-- Displays a greeting, date, system status, Tasks workspace, inventory alerts,
-  and module status summaries.
+- Is the default workspace in the permanent application shell.
+- Displays the factual daily surface carried forward from the earlier
+  Dashboard, including greeting, date, system status, operational summaries,
+  and module contributions.
 - Does not yet implement the complete capacity-aware Morning Briefing.
+
+Work:
+
+- Provides the Work Overview together with dedicated Tasks and Projects
+  surfaces.
+- Uses the backend-authoritative normalized Work read model for cross-type
+  Work presentation while preserving Task and Project mutation authority.
+- Supports factual Task/Project dependencies and same-Space Member
+  responsibility without making Capacity or scheduling claims.
 
 Tasks:
 
-- Supports task creation, priority selection, completion, deletion, and
-  backend persistence with migration of browser-local records.
-- Currently appears within the Dashboard; the dedicated Tasks page remains a
-  placeholder.
+- Supports task creation, priority selection, optional due dates, optional
+  same-Space Member responsibility, completion, deletion, dedicated Tasks-page
+  presentation, backend persistence, and migration of browser-local records.
 
 Inventory:
 
 - Supports creation, editing, deletion, search, filtering, sorting, low-stock
-  and out-of-stock display, dashboard alerts, backend persistence, and
+  and out-of-stock display, Today alerts, backend persistence, and
   migration of browser-local records.
 - Uses normalized backend `inventory.stock-level` facts as the classification
   authority.
@@ -254,16 +265,16 @@ commit successful mutations and roll back failed mutations; repositories
 remain responsible for database queries and record access. Application startup
 creates missing tables from SQLAlchemy metadata and applies versioned,
 idempotent SQLite schema upgrades. The current internal SQLite schema version
-is 4. Startup refuses a database whose schema version is newer than the
+is 5. Startup refuses a database whose schema version is newer than the
 application supports before table creation can mutate it, then verifies the
-required Project, universal-foundation, and default-Space ownership schemas
-before advancing the schema version.
+required Project, universal-foundation, Universal Work, and default-Space
+ownership schemas before advancing the schema version.
 
 The versioned `GET /api/operational-facts` endpoint derives normalized facts
 from backend Inventory, Projects, materials, and Tasks. One explicit
 transaction supplies the authoritative snapshot for each request. Facts are
 computed on demand; there is no persisted fact table and the SQLite schema
-version is 4. The operational-fact schema remains version 1. Internal
+version is 5. The operational-fact schema remains version 1. Internal
 operational records now carry required `space_id` ownership, but current API
 and operational-fact responses do not expose it.
 
@@ -320,8 +331,8 @@ use the Project API endpoints, then render the validated backend response as
 the visible source of truth. A shared Project runtime validates lists and
 merges or removes successful mutation results.
 
-Dashboard, Projects, and Inventory request normalized operational facts
-through the shared frontend operations API. Dashboard Project counts come from
+Today, Projects, and Inventory request normalized operational facts
+through the shared frontend operations API. Today Project counts come from
 the normalized summary. Project cards and material dialogs use
 `project.material-readiness` facts and evidence. Inventory status uses
 `inventory.stock-level` facts. Missing or malformed facts produce an
@@ -354,7 +365,7 @@ The manifest and installation assets define the PWA identity and installation
 boundary. Standalone display, Apple installation metadata, and dynamic
 safe-area insets support the installed iPhone experience.
 
-The service worker atomically precaches exactly 32 static-shell resources.
+The v0.8.1 service worker atomically precaches exactly 42 static-shell resources.
 Only exact allowlisted shell resources and navigation fallback are handled by
 that cache. APIs, migrations, mutations, non-GET requests, the worker itself,
 unknown static resources, and cross-origin requests remain network-owned.
