@@ -35,6 +35,17 @@ MODULE_DEFINITIONS: tuple[ModuleDefinition, ...] = (
         contribution_locations=("resources",),
         default_enabled=True,
     ),
+    ModuleDefinition(
+        module_id="care",
+        name="Care Plans",
+        description=(
+            "Owns service, inspection, cleaning, property upkeep, "
+            "maintenance, and future care definitions."
+        ),
+        dependencies=(),
+        contribution_locations=("resources",),
+        default_enabled=True,
+    ),
 )
 
 

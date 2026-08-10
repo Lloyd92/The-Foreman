@@ -18,7 +18,7 @@ class ModulesApiTests(ApiTestCase):
 
         self.assertEqual(
             [module["moduleId"] for module in modules],
-            ["work", "inventory", "tools"],
+            ["work", "inventory", "tools", "care"],
         )
         self.assertEqual(
             modules[0]["contributionLocations"],
@@ -30,6 +30,10 @@ class ModulesApiTests(ApiTestCase):
         )
         self.assertEqual(
             modules[2]["contributionLocations"],
+            ["resources"],
+        )
+        self.assertEqual(
+            modules[3]["contributionLocations"],
             ["resources"],
         )
 

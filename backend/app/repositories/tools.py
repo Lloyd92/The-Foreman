@@ -2,6 +2,9 @@ from sqlalchemy import asc, desc, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.tool import Tool
+from app.models.tool_maintenance_record import (
+    ToolMaintenanceRecord,
+)
 
 
 SORT_FIELDS = {
@@ -91,3 +94,55 @@ def delete_tool(
     tool: Tool,
 ) -> None:
     session.delete(tool)
+
+
+def list_maintenance_records(
+    session: Session,
+    space_id: str,
+    tool_id: str,
+) -> list[ToolMaintenanceRecord]:
+    statement = (
+        select(ToolMaintenanceRecord)
+        .where(
+            ToolMaintenanceRecord.space_id == space_id,
+            ToolMaintenanceRecord.tool_id == tool_id,
+        )
+        .order_by(
+            desc(ToolMaintenanceRecord.performed_at),
+            asc(ToolMaintenanceRecord.id),
+        )
+    )
+
+    return list(session.scalars(statement))
+
+
+def get_maintenance_record(
+    session: Session,
+    space_id: str,
+    tool_id: str,
+    record_id: str,
+) -> ToolMaintenanceRecord | None:
+    statement = select(ToolMaintenanceRecord).where(
+        ToolMaintenanceRecord.id == record_id,
+        ToolMaintenanceRecord.space_id == space_id,
+        ToolMaintenanceRecord.tool_id == tool_id,
+    )
+
+    return session.scalar(statement)
+
+
+def add_maintenance_record(
+    session: Session,
+    record: ToolMaintenanceRecord,
+) -> ToolMaintenanceRecord:
+    session.add(record)
+    session.flush()
+    session.refresh(record)
+    return record
+
+
+def delete_maintenance_record(
+    session: Session,
+    record: ToolMaintenanceRecord,
+) -> None:
+    session.delete(record)

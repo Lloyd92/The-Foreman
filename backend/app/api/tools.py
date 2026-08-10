@@ -1,6 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    Response,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from app.core.database import get_session
@@ -10,6 +17,11 @@ from app.schemas.tool import (
     ToolListQuery,
     ToolRead,
     ToolUpdate,
+)
+from app.schemas.tool_maintenance import (
+    ToolMaintenanceCreate,
+    ToolMaintenanceRead,
+    ToolMaintenanceUpdate,
 )
 from app.services import tools as tool_service
 
@@ -24,6 +36,18 @@ def tool_error(error: Exception) -> HTTPException:
             status_code=status.HTTP_404_NOT_FOUND,
             detail={
                 "code": "TOOL_NOT_FOUND",
+                "message": str(error),
+            },
+        )
+
+    if isinstance(
+        error,
+        tool_service.ToolMaintenanceNotFoundError,
+    ):
+        return HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "code": "TOOL_MAINTENANCE_NOT_FOUND",
                 "message": str(error),
             },
         )
@@ -73,6 +97,123 @@ def create_tool(
         active_space,
         data,
     )
+
+
+@router.get(
+    "/{tool_id}/maintenance",
+    response_model=list[ToolMaintenanceRead],
+)
+def list_maintenance_records(
+    tool_id: str,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> list[ToolMaintenanceRead]:
+    try:
+        return tool_service.list_maintenance_records(
+            session,
+            active_space,
+            tool_id,
+        )
+    except tool_service.ToolNotFoundError as error:
+        raise tool_error(error) from error
+
+
+@router.post(
+    "/{tool_id}/maintenance",
+    response_model=ToolMaintenanceRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_maintenance_record(
+    tool_id: str,
+    data: ToolMaintenanceCreate,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> ToolMaintenanceRead:
+    try:
+        return tool_service.create_maintenance_record(
+            session,
+            active_space,
+            tool_id,
+            data,
+        )
+    except tool_service.ToolNotFoundError as error:
+        raise tool_error(error) from error
+
+
+@router.get(
+    "/{tool_id}/maintenance/{record_id}",
+    response_model=ToolMaintenanceRead,
+)
+def read_maintenance_record(
+    tool_id: str,
+    record_id: str,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> ToolMaintenanceRead:
+    try:
+        return tool_service.require_maintenance_record(
+            session,
+            active_space,
+            tool_id,
+            record_id,
+        )
+    except (
+        tool_service.ToolNotFoundError,
+        tool_service.ToolMaintenanceNotFoundError,
+    ) as error:
+        raise tool_error(error) from error
+
+
+@router.patch(
+    "/{tool_id}/maintenance/{record_id}",
+    response_model=ToolMaintenanceRead,
+)
+def update_maintenance_record(
+    tool_id: str,
+    record_id: str,
+    data: ToolMaintenanceUpdate,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> ToolMaintenanceRead:
+    try:
+        return tool_service.update_maintenance_record(
+            session,
+            active_space,
+            tool_id,
+            record_id,
+            data,
+        )
+    except (
+        tool_service.ToolNotFoundError,
+        tool_service.ToolMaintenanceNotFoundError,
+    ) as error:
+        raise tool_error(error) from error
+
+
+@router.delete(
+    "/{tool_id}/maintenance/{record_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_maintenance_record(
+    tool_id: str,
+    record_id: str,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> Response:
+    try:
+        tool_service.delete_maintenance_record(
+            session,
+            active_space,
+            tool_id,
+            record_id,
+        )
+    except (
+        tool_service.ToolNotFoundError,
+        tool_service.ToolMaintenanceNotFoundError,
+    ) as error:
+        raise tool_error(error) from error
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/{tool_id}", response_model=ToolRead)
