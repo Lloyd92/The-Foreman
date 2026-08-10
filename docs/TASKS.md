@@ -243,11 +243,11 @@ Architecture review:
 Planned implementation sequence:
 
 1. [x] Reconcile v0.8.2 architecture and current-state documentation.
-2. [ ] Add Tools/Care persistence with a safe SQLite schema-v6 upgrade and
+2. [x] Add Tools/Care persistence with a safe SQLite schema-v6 upgrade and
        recovery contract.
-3. [ ] Add backend-authoritative Tools CRUD, active-Space isolation, and module
+3. [x] Add backend-authoritative Tools CRUD, active-Space isolation, and module
        registration.
-4. [ ] Add Care Plans and factual Tool maintenance history.
+4. [x] Add Care Plans and factual Tool maintenance history.
 5. [ ] Add concrete Work-to-Tool requirements for supported Tasks and Projects.
 6. [ ] Converge the Resources frontend around Tools, Inventory, and Care while
        preserving Mealworms compatibility.
