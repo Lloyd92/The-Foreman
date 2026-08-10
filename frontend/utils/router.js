@@ -10,10 +10,11 @@ const ROUTE_ALIASES = Object.freeze({
 const PARENT_NAV_ROUTES = Object.freeze({
     tasks: "work",
     projects: "work",
+    tools: "resources",
     inventory: "resources",
+    care: "resources",
     mealworms: "resources",
-    budget: "money",
-    recovery: "settings"
+    budget: "money"
 });
 let routerInitialized = false;
 

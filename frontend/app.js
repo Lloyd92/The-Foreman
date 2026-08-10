@@ -10,6 +10,8 @@ import {
     initializeInventoryPage,
     migrateLegacyInventory
 } from "./pages/inventory.js";
+import { initializeToolsPage } from "./pages/tools.js";
+import { initializeCarePage } from "./pages/care.js";
 import { initializeProjectsPage } from "./pages/projects.js";
 import { initializeRecoveryPage } from "./pages/recovery.js";
 import { initializeModuleSettings } from "./pages/settings.js";
@@ -39,6 +41,8 @@ async function initializeOperationalApplication() {
 
     const workEnabled = isModuleEnabled("work");
     const inventoryEnabled = isModuleEnabled("inventory");
+    const toolsEnabled = isModuleEnabled("tools");
+    const careEnabled = isModuleEnabled("care");
 
     // Inventory migration may still be required as continuity plumbing
     // for legacy Project material references even when its UI is disabled.
@@ -77,6 +81,20 @@ async function initializeOperationalApplication() {
             initializeInventoryPage(
                 Promise.resolve(inventoryMigrationResult)
             )
+        );
+    }
+
+    if (toolsEnabled) {
+        initializers.push(
+            initializeToolsPage()
+        );
+    }
+
+    if (careEnabled) {
+        initializers.push(
+            initializeCarePage({
+                toolsEnabled
+            })
         );
     }
 

@@ -1,4 +1,4 @@
-const SHELL_CACHE_NAME = "foreman-shell-v0.8.1-c1";
+const SHELL_CACHE_NAME = "foreman-shell-v0.8.1-c2";
 const FOREMAN_CACHE_PREFIX = "foreman-shell-";
 
 // This exact, atomic set keeps one frontend release coherent. Runtime fetches
@@ -9,13 +9,16 @@ const SHELL_ASSETS = Object.freeze([
     "/styles.css",
     "/app.js",
     "/pages/dashboard.js",
+    "/pages/care.js",
     "/pages/inventory.js",
     "/pages/projects.js",
     "/pages/recovery.js",
     "/pages/settings.js",
     "/pages/tasks.js",
+    "/pages/tools.js",
     "/pages/work.js",
     "/utils/api.js",
+    "/utils/careApi.js",
     "/utils/connectionState.js",
     "/utils/spaceApi.js",
     "/utils/spaceContext.js",
@@ -38,6 +41,7 @@ const SHELL_ASSETS = Object.freeze([
     "/utils/router.js",
     "/utils/storage.js",
     "/utils/tasksApi.js",
+    "/utils/toolsApi.js",
     "/utils/workApi.js",
     "/manifest.webmanifest",
     "/assets/icons/favicon.ico",

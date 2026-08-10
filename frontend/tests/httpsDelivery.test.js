@@ -394,7 +394,7 @@ test("release version and shell cache are finalized", async () => {
     assert.match(backendSource, /APPLICATION_VERSION = "0\.8\.1"/);
     assert.match(
         workerSource,
-        /SHELL_CACHE_NAME = "foreman-shell-v0\.8\.1-c1"/
+        /SHELL_CACHE_NAME = "foreman-shell-v0\.8\.1-c2"/
     );
 });
 
@@ -744,10 +744,16 @@ assertScopeIncludes(normalized.universal, [
     "A dependency does not determine Capacity, feasibility, scheduling, Priority, recommendations, or Morning Briefing behavior."
 ], `${documentPaths.universal} Work boundary`);
 
-const roadmapResourcesSection = extractBetween(
+    const roadmapResourcesSection = extractBetween(
         normalized.roadmap,
         "## v0.8.2 — Tools, Inventory & Care",
         "## v0.8.3 — Calendar & Scheduling",
+        documentPaths.roadmap
+    );
+    const roadmapInventoryScope = extractBetween(
+        roadmapResourcesSection,
+        "Scope:",
+        "Explicitly excluded:",
         documentPaths.roadmap
     );
     const inventoryScopes = {
@@ -757,12 +763,7 @@ const roadmapResourcesSection = extractBetween(
             "Purchasing and supplier-management workflows remain deferred",
             documentPaths.readme
         ),
-        roadmap: extractBetween(
-            normalized.roadmap,
-            "## v0.8.2 — Tools, Inventory & Care",
-            "- Locations and availability",
-            documentPaths.roadmap
-        ),
+        roadmap: roadmapInventoryScope,
         universal: extractTableRow(
             documents.universal,
             "Inventory",

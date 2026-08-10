@@ -197,6 +197,13 @@
                 aria-label="Application utilities"
             >
                 <a
+                    href="#recovery"
+                    data-route="recovery"
+                >
+                    Backup &amp; Recovery
+                </a>
+
+                <a
                     href="#settings"
                     data-route="settings"
                 >
@@ -568,17 +575,92 @@
                     <h2>Resources</h2>
 
                     <p>
-                        Open an existing workspace to review tracked
-                        resources.
+                        Open the separate systems that track durable
+                        equipment, consumable stock, and upkeep definitions.
                     </p>
 
                     <nav
-                        class="secondary-navigation"
+                        class="secondary-navigation resource-section-navigation"
                         aria-label="Resource sections"
                     >
-                        <a href="#inventory" data-module-contribution="inventory">Inventory</a>
+                        <a href="#resources">Overview</a>
+                        <a
+                            href="#tools"
+                            data-module-contribution="tools"
+                        >Tools</a>
+                        <a
+                            href="#inventory"
+                            data-module-contribution="inventory"
+                        >Inventory</a>
+                        <a
+                            href="#care"
+                            data-module-contribution="care"
+                        >Care</a>
                         <a href="#mealworms">Mealworms</a>
                     </nav>
+                </section>
+
+                <section
+                    class="resource-overview-grid"
+                    aria-label="Resource workspaces"
+                >
+                    <article
+                        class="resource-overview-card"
+                        data-module-contribution="tools"
+                    >
+                        <p class="section-eyebrow">
+                            Durable Equipment
+                        </p>
+                        <h3>Tools</h3>
+                        <p>
+                            Track equipment identity, condition, location,
+                            availability, notes, and factual maintenance
+                            history.
+                        </p>
+                        <a href="#tools">Open Tools</a>
+                    </article>
+
+                    <article
+                        class="resource-overview-card"
+                        data-module-contribution="inventory"
+                    >
+                        <p class="section-eyebrow">
+                            Consumable Stock
+                        </p>
+                        <h3>Inventory</h3>
+                        <p>
+                            Track materials and supplies, quantities,
+                            thresholds, locations, costs, and stock records.
+                        </p>
+                        <a href="#inventory">Open Inventory</a>
+                    </article>
+
+                    <article
+                        class="resource-overview-card"
+                        data-module-contribution="care"
+                    >
+                        <p class="section-eyebrow">
+                            Upkeep Definitions
+                        </p>
+                        <h3>Care</h3>
+                        <p>
+                            Record service, inspections, cleaning, property
+                            upkeep, maintenance, and frequency metadata.
+                        </p>
+                        <a href="#care">Open Care</a>
+                    </article>
+
+                    <article class="resource-overview-card">
+                        <p class="section-eyebrow">
+                            Compatibility Workspace
+                        </p>
+                        <h3>Mealworms</h3>
+                        <p>
+                            Continue using the existing Mealworm workspace
+                            independently from Care Plans.
+                        </p>
+                        <a href="#mealworms">Open Mealworms</a>
+                    </article>
                 </section>
             </main>
 
@@ -820,6 +902,804 @@
                 </section>
             </main>
 
+            <!-- Tools page -->
+            <main
+                class="content page-view"
+                data-page="tools"
+                hidden
+            >
+                <section class="resource-page">
+                    <header class="page-heading">
+                        <p class="section-eyebrow">
+                            Durable Equipment
+                        </p>
+
+                        <h2>Tools</h2>
+
+                        <p>
+                            Track durable equipment, factual condition,
+                            location, availability, and maintenance history.
+                        </p>
+
+                    <nav
+                        class="secondary-navigation resource-section-navigation"
+                        aria-label="Resource sections"
+                    >
+                        <a href="#resources">Overview</a>
+                        <a
+                            href="#tools"
+                            data-module-contribution="tools"
+                        >Tools</a>
+                        <a
+                            href="#inventory"
+                            data-module-contribution="inventory"
+                        >Inventory</a>
+                        <a
+                            href="#care"
+                            data-module-contribution="care"
+                        >Care</a>
+                        <a href="#mealworms">Mealworms</a>
+                    </nav>
+                    </header>
+
+                    <section
+                        class="resource-workspace"
+                        id="tools-workspace"
+                    >
+                        <div class="resource-workspace-heading">
+                            <div>
+                                <h3>Tool Records</h3>
+                                <p>
+                                    Record durable equipment facts without
+                                    deriving readiness or recommendations.
+                                </p>
+                            </div>
+
+                            <button
+                                id="add-tool"
+                                class="primary-button"
+                                type="button"
+                            >
+                                + Add Tool
+                            </button>
+                        </div>
+
+                        <p
+                            id="tools-page-message"
+                            class="resource-page-message"
+                            role="status"
+                            aria-live="polite"
+                        ></p>
+
+                        <div
+                            class="resource-toolbar"
+                            aria-label="Tool filters"
+                        >
+                            <input
+                                id="tools-search"
+                                type="search"
+                                placeholder="Search Tools"
+                                aria-label="Search Tools"
+                            >
+
+                            <select
+                                id="tools-category-filter"
+                                aria-label="Filter Tools by category"
+                            >
+                                <option value="all">All Categories</option>
+                            </select>
+
+                            <select
+                                id="tools-condition-filter"
+                                aria-label="Filter Tools by condition"
+                            >
+                                <option value="all">All Conditions</option>
+                            </select>
+
+                            <select
+                                id="tools-availability-filter"
+                                aria-label="Filter Tools by availability"
+                            >
+                                <option value="all">All Availability</option>
+                            </select>
+
+                            <select
+                                id="tools-sort"
+                                aria-label="Sort Tools"
+                            >
+                                <option value="name-asc">
+                                    Name A–Z
+                                </option>
+                                <option value="name-desc">
+                                    Name Z–A
+                                </option>
+                                <option value="category-asc">
+                                    Category
+                                </option>
+                                <option value="location-asc">
+                                    Location
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="resource-table-wrapper">
+                            <table class="resource-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Tool</th>
+                                        <th scope="col">Category</th>
+                                        <th scope="col">Condition</th>
+                                        <th scope="col">Location</th>
+                                        <th scope="col">Availability</th>
+                                        <th scope="col">Maintenance</th>
+                                        <th scope="col">Actions</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody id="tools-table-body"></tbody>
+                            </table>
+
+                            <div
+                                id="tools-empty-state"
+                                class="resource-empty-state"
+                                hidden
+                            >
+                                <div
+                                    class="empty-state-icon"
+                                    aria-hidden="true"
+                                >
+                                    ⚒
+                                </div>
+
+                                <h3>No Tools yet</h3>
+
+                                <p>
+                                    Add durable equipment to begin recording
+                                    condition, location, availability, and
+                                    maintenance history.
+                                </p>
+
+                                <button
+                                    id="empty-state-add-tool"
+                                    class="secondary-button"
+                                    type="button"
+                                >
+                                    Add First Tool
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <div
+                        id="tool-dialog-backdrop"
+                        class="dialog-backdrop"
+                        hidden
+                    >
+                        <section
+                            class="inventory-dialog resource-dialog"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="tool-dialog-title"
+                        >
+                            <header class="dialog-header">
+                                <div>
+                                    <p class="section-eyebrow">
+                                        Durable Equipment
+                                    </p>
+
+                                    <h2 id="tool-dialog-title">
+                                        Add Tool
+                                    </h2>
+                                </div>
+
+                                <button
+                                    id="close-tool-dialog"
+                                    class="icon-button"
+                                    type="button"
+                                    aria-label="Close Tool editor"
+                                >
+                                    ×
+                                </button>
+                            </header>
+
+                            <form
+                                id="tool-form"
+                                class="inventory-form resource-form"
+                            >
+                                <div class="form-field form-field-wide">
+                                    <label for="tool-name">
+                                        Name
+                                    </label>
+
+                                    <input
+                                        id="tool-name"
+                                        name="name"
+                                        type="text"
+                                        maxlength="120"
+                                        required
+                                    >
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="tool-category">
+                                        Category
+                                    </label>
+
+                                    <input
+                                        id="tool-category"
+                                        name="category"
+                                        type="text"
+                                        maxlength="80"
+                                        required
+                                    >
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="tool-condition">
+                                        Condition
+                                    </label>
+
+                                    <input
+                                        id="tool-condition"
+                                        name="condition"
+                                        type="text"
+                                        maxlength="30"
+                                        required
+                                    >
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="tool-location">
+                                        Location
+                                    </label>
+
+                                    <input
+                                        id="tool-location"
+                                        name="location"
+                                        type="text"
+                                        maxlength="100"
+                                        required
+                                    >
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="tool-availability">
+                                        Availability
+                                    </label>
+
+                                    <input
+                                        id="tool-availability"
+                                        name="availability"
+                                        type="text"
+                                        maxlength="30"
+                                        required
+                                    >
+                                </div>
+
+                                <div class="form-field form-field-wide">
+                                    <label for="tool-notes">
+                                        Notes
+                                    </label>
+
+                                    <textarea
+                                        id="tool-notes"
+                                        name="notes"
+                                        rows="4"
+                                        maxlength="500"
+                                    ></textarea>
+                                </div>
+
+                                <p
+                                    id="tool-form-error"
+                                    class="form-error"
+                                    role="alert"
+                                ></p>
+
+                                <div class="dialog-actions">
+                                    <button
+                                        id="cancel-tool"
+                                        class="secondary-button"
+                                        type="button"
+                                    >
+                                        Cancel
+                                    </button>
+
+                                    <button
+                                        id="save-tool"
+                                        class="primary-button"
+                                        type="submit"
+                                    >
+                                        Save Tool
+                                    </button>
+                                </div>
+                            </form>
+                        </section>
+                    </div>
+
+                    <div
+                        id="maintenance-dialog-backdrop"
+                        class="dialog-backdrop"
+                        hidden
+                    >
+                        <section
+                            class="inventory-dialog resource-dialog resource-dialog-wide"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="maintenance-dialog-title"
+                        >
+                            <header class="dialog-header">
+                                <div>
+                                    <p class="section-eyebrow">
+                                        Factual History
+                                    </p>
+
+                                    <h2 id="maintenance-dialog-title">
+                                        Tool Maintenance
+                                    </h2>
+                                </div>
+
+                                <button
+                                    id="close-maintenance-dialog"
+                                    class="icon-button"
+                                    type="button"
+                                    aria-label="Close maintenance history"
+                                >
+                                    ×
+                                </button>
+                            </header>
+
+                            <div class="resource-dialog-content">
+                                <p
+                                    id="maintenance-message"
+                                    class="resource-page-message"
+                                    role="status"
+                                    aria-live="polite"
+                                ></p>
+
+                                <section
+                                    aria-labelledby="maintenance-history-heading"
+                                >
+                                    <h3 id="maintenance-history-heading">
+                                        Maintenance History
+                                    </h3>
+
+                                    <div
+                                        id="maintenance-list"
+                                        class="maintenance-list"
+                                    ></div>
+
+                                    <p
+                                        id="maintenance-empty-state"
+                                        class="resource-inline-note"
+                                        hidden
+                                    >
+                                        No maintenance history is recorded for
+                                        this Tool.
+                                    </p>
+                                </section>
+
+                                <section
+                                    class="maintenance-editor"
+                                    aria-labelledby="maintenance-editor-heading"
+                                >
+                                    <h3 id="maintenance-editor-heading">
+                                        Add Maintenance Record
+                                    </h3>
+
+                                    <form
+                                        id="maintenance-form"
+                                        class="inventory-form resource-form"
+                                    >
+                                        <div class="form-field">
+                                            <label for="maintenance-type">
+                                                Maintenance Type
+                                            </label>
+
+                                            <input
+                                                id="maintenance-type"
+                                                name="maintenanceType"
+                                                type="text"
+                                                maxlength="30"
+                                                required
+                                            >
+                                        </div>
+
+                                        <div class="form-field">
+                                            <label for="maintenance-performed-at">
+                                                Performed At
+                                            </label>
+
+                                            <input
+                                                id="maintenance-performed-at"
+                                                name="performedAt"
+                                                type="datetime-local"
+                                                step="60"
+                                                required
+                                            >
+                                        </div>
+
+                                        <div class="form-field form-field-wide">
+                                            <label for="maintenance-notes">
+                                                Notes
+                                            </label>
+
+                                            <textarea
+                                                id="maintenance-notes"
+                                                name="notes"
+                                                rows="3"
+                                                maxlength="2000"
+                                            ></textarea>
+                                        </div>
+
+                                        <p
+                                            id="maintenance-form-error"
+                                            class="form-error"
+                                            role="alert"
+                                        ></p>
+
+                                        <div class="dialog-actions">
+                                            <button
+                                                id="cancel-maintenance-edit"
+                                                class="secondary-button"
+                                                type="button"
+                                                hidden
+                                            >
+                                                Cancel Edit
+                                            </button>
+
+                                            <button
+                                                id="save-maintenance"
+                                                class="primary-button"
+                                                type="submit"
+                                            >
+                                                Add Record
+                                            </button>
+                                        </div>
+                                    </form>
+                                </section>
+
+                                <div class="dialog-actions resource-dialog-footer">
+                                    <button
+                                        id="done-maintenance"
+                                        class="secondary-button"
+                                        type="button"
+                                    >
+                                        Done
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </section>
+            </main>
+
+            <!-- Care page -->
+            <main
+                class="content page-view"
+                data-page="care"
+                hidden
+            >
+                <section class="resource-page">
+                    <header class="page-heading">
+                        <p class="section-eyebrow">
+                            Upkeep Definitions
+                        </p>
+
+                        <h2>Care Plans</h2>
+
+                        <p>
+                            Record service, inspection, cleaning, property
+                            upkeep, and maintenance definitions without
+                            creating Calendar commitments.
+                        </p>
+
+                    <nav
+                        class="secondary-navigation resource-section-navigation"
+                        aria-label="Resource sections"
+                    >
+                        <a href="#resources">Overview</a>
+                        <a
+                            href="#tools"
+                            data-module-contribution="tools"
+                        >Tools</a>
+                        <a
+                            href="#inventory"
+                            data-module-contribution="inventory"
+                        >Inventory</a>
+                        <a
+                            href="#care"
+                            data-module-contribution="care"
+                        >Care</a>
+                        <a href="#mealworms">Mealworms</a>
+                    </nav>
+                    </header>
+
+                    <section
+                        class="resource-workspace"
+                        id="care-workspace"
+                    >
+                        <div class="resource-workspace-heading">
+                            <div>
+                                <h3>Care Plans</h3>
+
+                                <p>
+                                    Define upkeep facts and optional frequency
+                                    metadata without creating Calendar
+                                    occurrences.
+                                </p>
+                            </div>
+
+                            <button
+                                id="add-care-plan"
+                                class="primary-button"
+                                type="button"
+                            >
+                                + Add Care Plan
+                            </button>
+                        </div>
+
+                        <p
+                            id="care-page-message"
+                            class="resource-page-message"
+                            role="status"
+                            aria-live="polite"
+                        ></p>
+
+                        <div
+                            class="resource-toolbar resource-toolbar-care"
+                            aria-label="Care Plan filters"
+                        >
+                            <input
+                                id="care-search"
+                                type="search"
+                                placeholder="Search Care Plans"
+                                aria-label="Search Care Plans"
+                            >
+
+                            <select
+                                id="care-type-filter"
+                                aria-label="Filter Care Plans by type"
+                            >
+                                <option value="all">All Care Types</option>
+                            </select>
+
+                            <select
+                                id="care-sort"
+                                aria-label="Sort Care Plans"
+                            >
+                                <option value="name-asc">
+                                    Name A–Z
+                                </option>
+                                <option value="name-desc">
+                                    Name Z–A
+                                </option>
+                                <option value="type-asc">
+                                    Care Type
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="resource-table-wrapper">
+                            <table class="resource-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Care Plan</th>
+                                        <th scope="col">Type</th>
+                                        <th scope="col">Tool</th>
+                                        <th scope="col">
+                                            Frequency Metadata
+                                        </th>
+                                        <th scope="col">Actions</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody id="care-table-body"></tbody>
+                            </table>
+
+                            <div
+                                id="care-empty-state"
+                                class="resource-empty-state"
+                                hidden
+                            >
+                                <div
+                                    class="empty-state-icon"
+                                    aria-hidden="true"
+                                >
+                                    ✓
+                                </div>
+
+                                <h3>No Care Plans yet</h3>
+
+                                <p>
+                                    Add an upkeep definition for service,
+                                    inspection, cleaning, maintenance, or
+                                    another care activity.
+                                </p>
+
+                                <button
+                                    id="empty-state-add-care-plan"
+                                    class="secondary-button"
+                                    type="button"
+                                >
+                                    Add First Care Plan
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <div
+                        id="care-dialog-backdrop"
+                        class="dialog-backdrop"
+                        hidden
+                    >
+                        <section
+                            class="inventory-dialog resource-dialog"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="care-dialog-title"
+                        >
+                            <header class="dialog-header">
+                                <div>
+                                    <p class="section-eyebrow">
+                                        Upkeep Definition
+                                    </p>
+
+                                    <h2 id="care-dialog-title">
+                                        Add Care Plan
+                                    </h2>
+                                </div>
+
+                                <button
+                                    id="close-care-dialog"
+                                    class="icon-button"
+                                    type="button"
+                                    aria-label="Close Care Plan editor"
+                                >
+                                    ×
+                                </button>
+                            </header>
+
+                            <form
+                                id="care-form"
+                                class="inventory-form resource-form"
+                            >
+                                <div class="form-field form-field-wide">
+                                    <label for="care-name">
+                                        Name
+                                    </label>
+
+                                    <input
+                                        id="care-name"
+                                        name="name"
+                                        type="text"
+                                        maxlength="120"
+                                        required
+                                    >
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="care-type">
+                                        Care Type
+                                    </label>
+
+                                    <input
+                                        id="care-type"
+                                        name="careType"
+                                        type="text"
+                                        maxlength="30"
+                                        required
+                                    >
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="care-tool">
+                                        Optional Tool
+                                    </label>
+
+                                    <select
+                                        id="care-tool"
+                                        name="toolId"
+                                    >
+                                        <option value="">
+                                            No linked Tool
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <p
+                                    id="care-tool-help"
+                                    class="resource-inline-note form-field-wide"
+                                ></p>
+
+                                <div class="form-field form-field-wide">
+                                    <label for="care-description">
+                                        Description
+                                    </label>
+
+                                    <textarea
+                                        id="care-description"
+                                        name="description"
+                                        rows="3"
+                                        maxlength="2000"
+                                    ></textarea>
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="care-frequency-value">
+                                        Frequency Value
+                                    </label>
+
+                                    <input
+                                        id="care-frequency-value"
+                                        name="frequencyValue"
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                    >
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="care-frequency-unit">
+                                        Frequency Unit
+                                    </label>
+
+                                    <input
+                                        id="care-frequency-unit"
+                                        name="frequencyUnit"
+                                        type="text"
+                                        maxlength="30"
+                                        placeholder="days, weeks, months..."
+                                    >
+                                </div>
+
+                                <p class="resource-inline-note form-field-wide">
+                                    Frequency is descriptive metadata only.
+                                    It does not create Calendar events or
+                                    scheduled occurrences.
+                                </p>
+
+                                <div class="form-field form-field-wide">
+                                    <label for="care-notes">
+                                        Notes
+                                    </label>
+
+                                    <textarea
+                                        id="care-notes"
+                                        name="notes"
+                                        rows="4"
+                                        maxlength="2000"
+                                    ></textarea>
+                                </div>
+
+                                <p
+                                    id="care-form-error"
+                                    class="form-error"
+                                    role="alert"
+                                ></p>
+
+                                <div class="dialog-actions">
+                                    <button
+                                        id="cancel-care-plan"
+                                        class="secondary-button"
+                                        type="button"
+                                    >
+                                        Cancel
+                                    </button>
+
+                                    <button
+                                        id="save-care-plan"
+                                        class="primary-button"
+                                        type="submit"
+                                    >
+                                        Save Care Plan
+                                    </button>
+                                </div>
+                            </form>
+                        </section>
+                    </div>
+                </section>
+            </main>
+
             <!-- Inventory page -->
             <main
                 class="content page-view"
@@ -828,18 +1708,39 @@
             >
                 <section class="inventory-page">
 
+                    <nav
+                        class="secondary-navigation resource-section-navigation"
+                        aria-label="Resource sections"
+                    >
+                        <a href="#resources">Overview</a>
+                        <a
+                            href="#tools"
+                            data-module-contribution="tools"
+                        >Tools</a>
+                        <a
+                            href="#inventory"
+                            data-module-contribution="inventory"
+                        >Inventory</a>
+                        <a
+                            href="#care"
+                            data-module-contribution="care"
+                        >Care</a>
+                        <a href="#mealworms">Mealworms</a>
+                    </nav>
+
                     <!-- Inventory heading -->
                     <header class="inventory-header">
                         <div>
                             <p class="section-eyebrow">
-                                Workshop Resources
+                                Consumable Stock
                             </p>
 
                             <h2>Inventory</h2>
 
                             <p class="inventory-description">
-                                Track materials, supplies, tools, quantities,
-                                and purchasing needs across HardHead Works.
+                                Track materials and supplies, quantities,
+                                minimum thresholds, locations, costs, and
+                                stock records.
                             </p>
                         </div>
 
@@ -1040,9 +1941,8 @@
                                 </h3>
 
                                 <p>
-                                    Add your first material, tool, supply, or
-                                    consumable to begin tracking workshop
-                                    inventory.
+                                    Add your first material, supply, or
+                                    consumable to begin tracking Inventory.
                                 </p>
 
                                 <button
@@ -1171,7 +2071,7 @@
                                         </option>
 
                                         <option value="Tools">
-                                            Tools
+                                            Tools (legacy classification)
                                         </option>
 
                                         <option value="Safety">
@@ -1931,6 +2831,26 @@
                         Rack, tub, colony, feeding, harvest, and production
                         management will live here.
                     </p>
+
+                    <nav
+                        class="secondary-navigation resource-section-navigation"
+                        aria-label="Resource sections"
+                    >
+                        <a href="#resources">Overview</a>
+                        <a
+                            href="#tools"
+                            data-module-contribution="tools"
+                        >Tools</a>
+                        <a
+                            href="#inventory"
+                            data-module-contribution="inventory"
+                        >Inventory</a>
+                        <a
+                            href="#care"
+                            data-module-contribution="care"
+                        >Care</a>
+                        <a href="#mealworms">Mealworms</a>
+                    </nav>
                 </section>
             </main>
 

@@ -166,12 +166,22 @@ test("application startup gates operations behind PWA and health initialization"
     assert.match(app, /migrateProjectsAfterInventory\(/);
     assert.match(app, /migrateLegacyTasks\(/);
     assert.match(app, /initializeInventoryPage\(/);
+    assert.match(app, /initializeToolsPage\(/);
+    assert.match(app, /initializeCarePage\(/);
     assert.match(app, /initializeWorkPage\(/);
     assert.match(app, /initializeTasksPage\(/);
     assert.match(app, /initializeProjectsPage\(/);
     assert.match(
         app,
         /if \(inventoryEnabled\) \{[\s\S]*initializeInventoryPage\(/
+    );
+    assert.match(
+        app,
+        /if \(toolsEnabled\) \{[\s\S]*initializeToolsPage\(/
+    );
+    assert.match(
+        app,
+        /if \(careEnabled\) \{[\s\S]*initializeCarePage\(/
     );
     assert.match(
         app,

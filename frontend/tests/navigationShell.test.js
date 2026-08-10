@@ -57,8 +57,10 @@ test("primary navigation contains only the permanent categories in order", () =>
     for (const legacyLabel of [
         "Dashboard",
         "Tasks",
-        "Inventory",
         "Projects",
+        "Tools",
+        "Inventory",
+        "Care",
         "Mealworms",
         "Budget"
     ]) {
@@ -66,10 +68,10 @@ test("primary navigation contains only the permanent categories in order", () =>
     }
 });
 
-test("Settings and Account are separate utility navigation entries", () => {
+test("safety and administrative actions use lower utility navigation", () => {
     assert.deepEqual(
         getLinkLabels(getNavigationMarkup("utility-nav")),
-        ["Settings", "Account"]
+        ["Backup & Recovery", "Settings", "Account"]
     );
 });
 
@@ -88,7 +90,9 @@ test("permanent and secondary route pages exist exactly once", () => {
         "account",
         "tasks",
         "projects",
+        "tools",
         "inventory",
+        "care",
         "mealworms",
         "budget",
         "recovery"
@@ -111,7 +115,13 @@ test("permanent and secondary route pages exist exactly once", () => {
 test("category pages link to their preserved secondary workspaces", () => {
     const expectedLinks = {
         work: ["work", "tasks", "projects"],
-        resources: ["inventory", "mealworms"],
+        resources: [
+            "resources",
+            "tools",
+            "inventory",
+            "care",
+            "mealworms"
+        ],
         money: ["budget"],
         settings: ["recovery"]
     };
@@ -167,7 +177,9 @@ test("shell wording is neutral while preserving The Foreman identity", () => {
 
 function setTestModuleRegistry({
     workEnabled = true,
-    inventoryEnabled = true
+    inventoryEnabled = true,
+    toolsEnabled = true,
+    careEnabled = true
 } = {}) {
     setModuleRegistry([
         {
@@ -194,6 +206,32 @@ function setTestModuleRegistry({
             dataRetentionBehavior: "retain",
             defaultEnabled: true,
             enabled: inventoryEnabled,
+            health: "ready"
+        },
+        {
+            moduleId: "tools",
+            name: "Tools",
+            description: "Tools module",
+            dependencies: [],
+            contributionLocations: ["resources"],
+            safeEnableRule: "dependencies-satisfied",
+            safeDisableRule: "no-enabled-dependents",
+            dataRetentionBehavior: "retain",
+            defaultEnabled: true,
+            enabled: toolsEnabled,
+            health: "ready"
+        },
+        {
+            moduleId: "care",
+            name: "Care Plans",
+            description: "Care Plans module",
+            dependencies: [],
+            contributionLocations: ["resources"],
+            safeEnableRule: "dependencies-satisfied",
+            safeDisableRule: "no-enabled-dependents",
+            dataRetentionBehavior: "retain",
+            defaultEnabled: true,
+            enabled: careEnabled,
             health: "ready"
         }
     ]);
@@ -243,7 +281,9 @@ test("router defaults and canonicalizes while preserving secondary routes", asyn
         "account",
         "tasks",
         "projects",
+        "tools",
         "inventory",
+        "care",
         "mealworms",
         "budget",
         "recovery"
@@ -255,6 +295,7 @@ test("router defaults and canonicalizes while preserving secondary routes", asyn
         "resources",
         "money",
         "library",
+        "recovery",
         "settings",
         "account"
     ];
@@ -340,7 +381,7 @@ test("router defaults and canonicalizes while preserving secondary routes", asyn
         location.hash = "#recovery";
         listeners.get("hashchange")();
         assert.equal(location.hash, "#recovery");
-        assertRoute("recovery", "settings");
+        assertRoute("recovery", "recovery");
 
         assert.deepEqual(replacementUrls, [
             "/index.html?source=test#today",
@@ -362,7 +403,9 @@ test("disabled module routes return to their permanent category", async () => {
         "settings",
         "tasks",
         "projects",
+        "tools",
         "inventory",
+        "care",
         "mealworms",
         "budget",
         "recovery"
@@ -372,6 +415,7 @@ test("disabled module routes return to their permanent category", async () => {
         "work",
         "resources",
         "money",
+        "recovery",
         "settings"
     ];
     const pages = pageRoutes.map(route => createElement("page", route));
@@ -427,7 +471,9 @@ test("disabled module routes return to their permanent category", async () => {
     try {
         setTestModuleRegistry({
             workEnabled: false,
-            inventoryEnabled: false
+            inventoryEnabled: false,
+            toolsEnabled: false,
+            careEnabled: false
         });
 
         const router = await import(
@@ -443,7 +489,17 @@ test("disabled module routes return to their permanent category", async () => {
         assert.equal(location.hash, "#work");
         assertRoute("work", "work");
 
+        location.hash = "#tools";
+        listeners.get("hashchange")();
+        assert.equal(location.hash, "#resources");
+        assertRoute("resources", "resources");
+
         location.hash = "#inventory";
+        listeners.get("hashchange")();
+        assert.equal(location.hash, "#resources");
+        assertRoute("resources", "resources");
+
+        location.hash = "#care";
         listeners.get("hashchange")();
         assert.equal(location.hash, "#resources");
         assertRoute("resources", "resources");
@@ -461,11 +517,13 @@ test("disabled module routes return to their permanent category", async () => {
         location.hash = "#recovery";
         listeners.get("hashchange")();
         assert.equal(location.hash, "#recovery");
-        assertRoute("recovery", "settings");
+        assertRoute("recovery", "recovery");
 
         assert.deepEqual(replacementUrls, [
             "/index.html?source=modules#work",
             "/index.html?source=modules#work",
+            "/index.html?source=modules#resources",
+            "/index.html?source=modules#resources",
             "/index.html?source=modules#resources"
         ]);
     } finally {

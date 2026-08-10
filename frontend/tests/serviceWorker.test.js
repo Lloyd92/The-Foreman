@@ -18,13 +18,16 @@ const expectedShellAssets = [
     "/styles.css",
     "/app.js",
     "/pages/dashboard.js",
+    "/pages/care.js",
     "/pages/inventory.js",
     "/pages/projects.js",
     "/pages/recovery.js",
     "/pages/settings.js",
     "/pages/tasks.js",
+    "/pages/tools.js",
     "/pages/work.js",
     "/utils/api.js",
+    "/utils/careApi.js",
     "/utils/connectionState.js",
     "/utils/spaceApi.js",
     "/utils/spaceContext.js",
@@ -47,6 +50,7 @@ const expectedShellAssets = [
     "/utils/router.js",
     "/utils/storage.js",
     "/utils/tasksApi.js",
+    "/utils/toolsApi.js",
     "/utils/workApi.js",
     "/manifest.webmanifest",
     "/assets/icons/favicon.ico",
@@ -158,7 +162,7 @@ test("install atomically precaches the exact versioned shell", async () => {
 
     await install.waitPromise;
 
-    assert.equal(expectedShellAssets.length, 42);
+    assert.equal(expectedShellAssets.length, 46);
     assert.equal(
         expectedShellAssets.includes("/utils/operationsApi.js"),
         true
@@ -178,7 +182,7 @@ test("install atomically precaches the exact versioned shell", async () => {
     assert.equal(expectedShellAssets.includes("/index.html"), true);
     assert.deepEqual(
         harness.calls.cacheOpens,
-        ["foreman-shell-v0.8.1-c1"]
+        ["foreman-shell-v0.8.1-c2"]
     );
     assert.deepEqual(
         harness.calls.addAll,
@@ -338,7 +342,7 @@ test("v0.7.5 c1 shell updates to the current v0.8.1 release shell", async () => 
     assert.doesNotMatch(indexSource, /data-route="dashboard"/);
     assert.deepEqual(
         harness.calls.cacheOpens,
-        ["foreman-shell-v0.8.1-c1"]
+        ["foreman-shell-v0.8.1-c2"]
     );
     assert.equal(
         harness.calls.addAll[0].includes("/pages/recovery.js"),
@@ -409,7 +413,7 @@ test("exact shell assets are served only from the current cache", async () => {
     assert.equal(await fetchEvent.responsePromise, cachedResponse);
     assert.deepEqual(
         harness.calls.cacheOpens,
-        ["foreman-shell-v0.8.1-c1"]
+        ["foreman-shell-v0.8.1-c2"]
     );
     assert.deepEqual(harness.calls.cacheMatches, ["/app.js"]);
     assert.deepEqual(harness.calls.fetches, []);

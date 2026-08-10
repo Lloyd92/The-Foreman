@@ -197,6 +197,48 @@ test("module-owned routes follow effective enablement", () => {
 });
 
 
+test("Tools and Care remain independent Resources module routes", () => {
+    try {
+        setModuleRegistry([
+            moduleRecord({
+                moduleId: "work",
+                name: "Work",
+                contributionLocations: ["today", "work"]
+            }),
+            moduleRecord({
+                moduleId: "inventory",
+                name: "Inventory",
+                contributionLocations: ["today", "resources"]
+            }),
+            moduleRecord({
+                moduleId: "tools",
+                name: "Tools",
+                enabled: false,
+                contributionLocations: ["resources"]
+            }),
+            moduleRecord({
+                moduleId: "care",
+                name: "Care Plans",
+                enabled: true,
+                contributionLocations: ["resources"]
+            })
+        ]);
+
+        assert.equal(isModuleRouteAvailable("tools"), false);
+        assert.equal(isModuleRouteAvailable("inventory"), true);
+        assert.equal(isModuleRouteAvailable("care"), true);
+
+        /*
+         * Mealworms remains a compatibility route rather than
+         * becoming owned by the Care module.
+         */
+        assert.equal(isModuleRouteAvailable("mealworms"), true);
+    } finally {
+        clearModuleContext();
+    }
+});
+
+
 test("module API remains installation-wide and generic", async () => {
     const source = await readFile(
         new URL("../utils/modulesApi.js", import.meta.url),

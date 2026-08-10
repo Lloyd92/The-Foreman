@@ -1856,6 +1856,332 @@ footer {
     }
 }
 
+/* Resources convergence */
+
+.resource-page {
+    display: grid;
+    gap: 22px;
+}
+
+.resource-section-navigation {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.resource-overview-grid {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.resource-overview-card,
+.resource-workspace-placeholder {
+    min-width: 0;
+    padding: 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.resource-overview-card h3,
+.resource-workspace-placeholder h3 {
+    margin: 7px 0 9px;
+}
+
+.resource-overview-card p,
+.resource-workspace-placeholder p {
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.resource-overview-card a {
+    display: inline-block;
+    margin-top: 5px;
+    color: var(--orange);
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.resource-overview-card a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 850px) {
+    .resource-section-navigation,
+    .resource-overview-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /*
+     * Safety/admin actions stay visually below and separate from
+     * the six primary destinations on compact layouts.
+     */
+    .utility-nav {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 520px) {
+    .resource-section-navigation,
+    .resource-overview-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* Resources CRUD */
+
+.resource-workspace {
+    display: grid;
+    gap: 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.resource-workspace-heading {
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    border-bottom: 1px solid var(--border);
+}
+
+.resource-workspace-heading h3 {
+    margin: 0 0 7px;
+}
+
+.resource-workspace-heading p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.resource-page-message {
+    min-height: 20px;
+    margin: 0;
+    padding: 0 20px;
+    color: var(--muted);
+}
+
+.resource-page-message.error {
+    color: #ff8a80;
+}
+
+.resource-toolbar {
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns:
+        minmax(190px, 1fr)
+        repeat(4, minmax(140px, 190px));
+    gap: 10px;
+}
+
+.resource-toolbar-care {
+    grid-template-columns:
+        minmax(220px, 1fr)
+        minmax(170px, 220px)
+        minmax(170px, 220px);
+}
+
+.resource-toolbar input,
+.resource-toolbar select {
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 11px;
+    color: var(--text);
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font: inherit;
+}
+
+.resource-toolbar input:focus,
+.resource-toolbar select:focus {
+    outline: 2px solid var(--orange);
+    outline-offset: 1px;
+}
+
+.resource-table-wrapper {
+    overflow-x: auto;
+}
+
+.resource-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.resource-table th,
+.resource-table td {
+    padding: 14px 16px;
+    text-align: left;
+    vertical-align: top;
+    border-top: 1px solid var(--border);
+}
+
+.resource-table th {
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.resource-record-name,
+.resource-record-note {
+    display: block;
+}
+
+.resource-record-note {
+    margin-top: 4px;
+    max-width: 360px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.resource-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.resource-delete-button:hover {
+    color: #ff8a80;
+    border-color: #ff6767;
+}
+
+.resource-empty-state {
+    min-height: 280px;
+    padding: 40px 24px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    text-align: center;
+}
+
+.resource-empty-state h3 {
+    margin: 13px 0 7px;
+}
+
+.resource-empty-state p {
+    max-width: 520px;
+    margin: 0 0 20px;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.resource-dialog {
+    width: min(720px, 100%);
+}
+
+.resource-dialog-wide {
+    width: min(900px, 100%);
+}
+
+.resource-dialog-content {
+    padding: 22px;
+    display: grid;
+    gap: 24px;
+}
+
+.resource-form {
+    width: 100%;
+}
+
+.resource-inline-note {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.maintenance-editor {
+    display: grid;
+    gap: 12px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+.maintenance-list {
+    display: grid;
+    gap: 10px;
+}
+
+.maintenance-record {
+    padding: 14px;
+    display: grid;
+    gap: 8px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+}
+
+.maintenance-record-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.maintenance-record-header strong,
+.maintenance-record-header span {
+    display: block;
+}
+
+.maintenance-record-header span,
+.maintenance-record p {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.resource-dialog-footer {
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+@media (max-width: 1050px) {
+    .resource-toolbar {
+        grid-template-columns:
+            minmax(200px, 1fr)
+            repeat(2, minmax(150px, 1fr));
+    }
+
+    .resource-toolbar-care {
+        grid-template-columns:
+            minmax(200px, 1fr)
+            minmax(150px, 1fr);
+    }
+}
+
+@media (max-width: 650px) {
+    .resource-workspace-heading,
+    .maintenance-record-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .resource-toolbar,
+    .resource-toolbar-care {
+        grid-template-columns: 1fr;
+    }
+
+    .resource-form {
+        grid-template-columns: 1fr;
+    }
+
+    .resource-form .form-field-wide,
+    .resource-form .form-error,
+    .resource-form .dialog-actions,
+    .resource-form .resource-inline-note {
+        grid-column: auto;
+    }
+}
+
+
 /* Universal Work */
 .work-page,
 .tasks-page,

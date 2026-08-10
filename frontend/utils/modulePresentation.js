@@ -4,7 +4,9 @@ import { isModuleEnabled } from "./moduleContext.js";
 export const MODULE_ROUTE_OWNERS = Object.freeze({
     tasks: "work",
     projects: "work",
-    inventory: "inventory"
+    tools: "tools",
+    inventory: "inventory",
+    care: "care"
 });
 
 
