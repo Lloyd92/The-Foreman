@@ -249,7 +249,7 @@ Planned implementation sequence:
        registration.
 4. [x] Add Care Plans and factual Tool maintenance history.
 5. [x] Add concrete Work-to-Tool requirements for supported Tasks and Projects.
-6. [ ] Converge the Resources frontend around Tools, Inventory, and Care while
+6. [x] Converge the Resources frontend around Tools, Inventory, and Care while
        preserving Mealworms compatibility.
 7. [ ] Add factual Resources operational facts or overview data where justified
        without implementing Capacity.
