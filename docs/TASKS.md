@@ -248,7 +248,7 @@ Planned implementation sequence:
 3. [x] Add backend-authoritative Tools CRUD, active-Space isolation, and module
        registration.
 4. [x] Add Care Plans and factual Tool maintenance history.
-5. [ ] Add concrete Work-to-Tool requirements for supported Tasks and Projects.
+5. [x] Add concrete Work-to-Tool requirements for supported Tasks and Projects.
 6. [ ] Converge the Resources frontend around Tools, Inventory, and Care while
        preserving Mealworms compatibility.
 7. [ ] Add factual Resources operational facts or overview data where justified
