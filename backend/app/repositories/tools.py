@@ -146,3 +146,25 @@ def delete_maintenance_record(
     record: ToolMaintenanceRecord,
 ) -> None:
     session.delete(record)
+
+
+def tool_names_by_ids(
+    session: Session,
+    space_id: str,
+    tool_ids: set[str],
+) -> dict[str, str]:
+    if not tool_ids:
+        return {}
+
+    statement = select(
+        Tool.id,
+        Tool.name,
+    ).where(
+        Tool.space_id == space_id,
+        Tool.id.in_(tool_ids),
+    )
+
+    return {
+        tool_id: name
+        for tool_id, name in session.execute(statement)
+    }

@@ -9,6 +9,9 @@ from app.models.project_material_requirement import (
 )
 from app.repositories import inventory as inventory_repository
 from app.repositories import projects as project_repository
+from app.repositories import (
+    work_tool_requirements as tool_requirement_repository,
+)
 from app.services.members import require_member
 from app.schemas.project import (
     ProjectCreate,
@@ -448,6 +451,12 @@ def delete_project(
     )
 
     try:
+        tool_requirement_repository.delete_requirements_for_work(
+            session,
+            active_space.id,
+            work_type="project",
+            work_id=project.id,
+        )
         project_repository.delete_project(session, project)
         session.commit()
     except Exception:

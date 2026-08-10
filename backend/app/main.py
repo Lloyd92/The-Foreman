@@ -25,6 +25,9 @@ from app.api.tasks import router as tasks_router
 from app.api.tools import router as tools_router
 from app.api.work import router as work_router
 from app.api.work_dependencies import router as work_dependencies_router
+from app.api.work_tool_requirements import (
+    router as work_tool_requirements_router,
+)
 from app.core.config import APPLICATION_VERSION
 from app.core.database import initialize_database
 from app.core.maintenance import DatabaseMaintenanceActive
@@ -84,5 +87,6 @@ app.include_router(care_plans_router)
 app.include_router(tools_router)
 app.include_router(work_router)
 app.include_router(work_dependencies_router)
+app.include_router(work_tool_requirements_router)
 app.include_router(operations_router)
 app.include_router(recovery_router)

@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from app.models.space import Space
 from app.models.task import Task
 from app.repositories import tasks as task_repository
+from app.repositories import (
+    work_tool_requirements as tool_requirement_repository,
+)
 from app.schemas.task import TaskCreate, TaskUpdate
 from app.services.members import require_member
 from app.services.projects import require_project
@@ -160,6 +163,12 @@ def delete_task(
     task = require_task(session, active_space, task_id)
 
     try:
+        tool_requirement_repository.delete_requirements_for_work(
+            session,
+            active_space.id,
+            work_type="task",
+            work_id=task.id,
+        )
         session.delete(task)
         session.commit()
     except Exception:

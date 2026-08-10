@@ -3,6 +3,9 @@ from typing import Literal
 
 from app.schemas.common import ApiModel
 from app.schemas.work_dependency import WorkDependencyRead
+from app.schemas.work_tool_requirement import (
+    WorkToolRequirementRead,
+)
 
 WorkRecordType = Literal["task", "project"]
 WorkLifecycleState = Literal[
@@ -40,3 +43,4 @@ class WorkItemRead(ApiModel):
 class WorkRead(ApiModel):
     items: list[WorkItemRead]
     dependencies: list[WorkDependencyRead]
+    tool_requirements: list[WorkToolRequirementRead]

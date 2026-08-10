@@ -8,6 +8,9 @@ from app.repositories import tasks as task_repository
 from app.repositories import work_dependencies as dependency_repository
 from app.schemas.work import WorkItemRead, WorkRead
 from app.schemas.work_dependency import WorkDependencyRead
+from app.services import (
+    work_tool_requirements as tool_requirement_service,
+)
 
 
 def _project_item(project: Project) -> WorkItemRead:
@@ -81,6 +84,12 @@ def get_work(
         session,
         active_space.id,
     )
+    tool_requirements = (
+        tool_requirement_service.list_work_tool_requirements(
+            session,
+            active_space,
+        )
+    )
 
     items = [
         *(_project_item(project) for project in projects),
@@ -93,4 +102,5 @@ def get_work(
             WorkDependencyRead.model_validate(dependency)
             for dependency in dependencies
         ],
+        tool_requirements=tool_requirements,
     )
