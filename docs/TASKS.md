@@ -253,7 +253,7 @@ Planned implementation sequence:
        preserving Mealworms compatibility.
 7. [x] Add factual Resources operational facts or overview data where justified
        without implementing Capacity.
-8. [ ] Complete isolated disposable browser compatibility acceptance.
+8. [x] Complete isolated disposable browser compatibility acceptance.
 9. [ ] Reconcile v0.8.2 release identity, documentation, and Green Build.
 
 Commit 1 is documentation-only. It does not change the SQLite schema,
