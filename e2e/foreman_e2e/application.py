@@ -21,6 +21,8 @@ SECONDARY_ROUTE_HEADINGS = {
     "tasks": "Tasks",
     "inventory": "Inventory",
     "projects": "Projects",
+    "tools": "Tools",
+    "care": "Care Plans",
     "mealworms": "Mealworm Production",
     "budget": "Budget",
     "recovery": "Backup & Recovery",
@@ -34,10 +36,11 @@ ROUTE_HEADINGS = {
 PARENT_NAV_ROUTES = {
     "tasks": "work",
     "projects": "work",
+    "tools": "resources",
     "inventory": "resources",
+    "care": "resources",
     "mealworms": "resources",
     "budget": "money",
-    "recovery": "settings",
 }
 
 

@@ -2,8 +2,8 @@
 
 The browser harness runs Firefox through geckodriver against a disposable
 Docker Compose deployment. It was established in v0.7.5, extended in v0.8.0 for
-Universal Navigation & Spaces, and now validates v0.8.1 Universal Work
-compatibility.
+Universal Navigation & Spaces and v0.8.1 Universal Work, and now validates
+v0.8.2 Tools, Inventory & Care compatibility.
 
 It does not use the household deployment, the persistent `foreman-data`
 volume, Caddy state, certificates, private keys, or the live port at
@@ -36,8 +36,8 @@ The runner:
    elevated container access.
 5. Builds and starts only disposable backend and frontend services.
 6. Waits for `/api/health`.
-7. Verifies that Inventory, Projects, Tasks, and Work dependencies
-   begin empty.
+7. Verifies that Inventory, Projects, Tasks, Work dependencies, Tools,
+   Care Plans, and Work-to-Tool requirements begin empty.
 8. Starts Firefox with a fresh WebDriver session.
 9. Runs the E2E test suite.
 10. Explicitly removes the disposable containers, network, and locally built
@@ -57,6 +57,10 @@ The suite validates:
 - hard-reload persistence of active-Space selection;
 - backend-enforced isolation of operational records between Spaces;
 - Work and Inventory module disable/re-enable behavior through Settings;
+- Resources Overview factual Tool, Inventory, and Care counts;
+- backend-authoritative Tool CRUD and factual maintenance history;
+- backend-authoritative Care Plan CRUD with optional Tool relationships;
+- independent Care operation while the Tools module is disabled;
 - removal and restoration of module navigation contributions;
 - canonicalization of disabled module deep links to their parent category;
 - retained module data after re-enablement.

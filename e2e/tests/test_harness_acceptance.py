@@ -34,7 +34,7 @@ class FakeResponse:
 
 
 class CleanCollectionTests(unittest.TestCase):
-    def test_accepts_four_empty_collections(self):
+    def test_accepts_seven_empty_collections(self):
         calls = []
 
         def opener(request, timeout):
@@ -53,9 +53,12 @@ class CleanCollectionTests(unittest.TestCase):
                 "/api/projects": 0,
                 "/api/tasks": 0,
                 "/api/work-dependencies": 0,
+                "/api/tools": 0,
+                "/api/care-plans": 0,
+                "/api/work-tool-requirements": 0,
             },
         )
-        self.assertEqual(len(calls), 4)
+        self.assertEqual(len(calls), 7)
         self.assertTrue(
             all(url.startswith("http://127.0.0.1:38123/api/")
                 for url, _timeout in calls)

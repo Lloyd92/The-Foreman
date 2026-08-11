@@ -22,6 +22,9 @@ COLLECTION_ENDPOINTS = (
     "/api/projects",
     "/api/tasks",
     "/api/work-dependencies",
+    "/api/tools",
+    "/api/care-plans",
+    "/api/work-tool-requirements",
 )
 
 
@@ -168,7 +171,8 @@ def main() -> None:
         print(
             "Clean deployment verified: "
             "Inventory=0; Projects=0; Tasks=0; "
-            "WorkDependencies=0."
+            "WorkDependencies=0; Tools=0; CarePlans=0; "
+            "WorkToolRequirements=0."
         )
         return
 
