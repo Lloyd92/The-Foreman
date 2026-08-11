@@ -311,6 +311,21 @@ function renderToolRows(items) {
 }
 
 
+function notifyToolsUpdated(status = "complete") {
+    document.dispatchEvent(
+        new CustomEvent(
+            "tools:updated",
+            {
+                detail: {
+                    status,
+                    tools: [...tools]
+                }
+            }
+        )
+    );
+}
+
+
 function renderTools() {
     updateToolFilters();
     renderToolRows(sortedTools(filteredTools()));
@@ -414,6 +429,7 @@ async function handleToolSubmit(event) {
 
         closeToolDialog();
         renderTools();
+        notifyToolsUpdated();
 
         setToolsMessage(
             wasEditing ? "Tool updated." : "Tool added."
@@ -446,6 +462,7 @@ async function removeTool(toolId) {
         await deleteTool(tool.id);
         tools = tools.filter(current => current.id !== tool.id);
         renderTools();
+        notifyToolsUpdated();
         setToolsMessage("Tool deleted.");
     } catch (error) {
         console.error("Unable to delete Tool:", error);
@@ -804,6 +821,7 @@ async function initializeToolPersistence() {
     try {
         tools = await listTools();
         renderTools();
+        notifyToolsUpdated();
         setToolsMessage("");
 
         return {
@@ -816,6 +834,7 @@ async function initializeToolPersistence() {
             "Tools are unavailable from the backend.",
             true
         );
+        notifyToolsUpdated("unavailable");
 
         return {
             status: "unavailable",

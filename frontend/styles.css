@@ -1894,6 +1894,41 @@ footer {
     line-height: 1.5;
 }
 
+.resource-overview-facts {
+    margin: 16px 0 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.resource-overview-facts div {
+    min-width: 120px;
+    padding: 10px 12px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+}
+
+.resource-overview-facts dt {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.resource-overview-facts dd {
+    margin: 4px 0 0;
+    font-size: 19px;
+    font-weight: bold;
+}
+
+.resource-overview-facts dd[data-state="loading"],
+.resource-overview-facts dd[data-state="unavailable"],
+.resource-overview-facts dd[data-state="disabled"] {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+
 .resource-overview-card a {
     display: inline-block;
     margin-top: 5px;

@@ -406,7 +406,15 @@ function sortedInventory(items) {
 
 function notifyInventoryUpdated(items) {
     document.dispatchEvent(
-        new CustomEvent("inventory:updated", { detail: { items } })
+        new CustomEvent(
+            "inventory:updated",
+            {
+                detail: {
+                    items: [...items],
+                    operationalFacts: inventoryOperationalFacts
+                }
+            }
+        )
     );
 }
 
@@ -510,7 +518,8 @@ async function initializePersistence(inventoryMigration) {
         return {
             status: "complete",
             migration,
-            items: inventoryItems
+            items: inventoryItems,
+            operationalFacts: inventoryOperationalFacts
         };
     } catch (error) {
         console.error("Inventory backend unavailable:", error);
@@ -546,7 +555,8 @@ export function initializeInventoryPage(
     if (inventoryInitialized) {
         return Promise.resolve({
             status: "already-initialized",
-            items: inventoryItems
+            items: inventoryItems,
+            operationalFacts: inventoryOperationalFacts
         });
     }
     inventoryInitialized = true;

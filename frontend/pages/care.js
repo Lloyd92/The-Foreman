@@ -330,6 +330,21 @@ function renderCareRows(items) {
 }
 
 
+function notifyCareUpdated(status = "complete") {
+    document.dispatchEvent(
+        new CustomEvent(
+            "care:updated",
+            {
+                detail: {
+                    status,
+                    carePlans: [...carePlans]
+                }
+            }
+        )
+    );
+}
+
+
 function renderCarePlans() {
     updateCareTypeFilter();
     renderCareRows(
@@ -518,6 +533,7 @@ async function handleCareSubmit(event) {
 
         closeCareDialog();
         renderCarePlans();
+        notifyCareUpdated();
 
         setCareMessage(
             wasEditing
@@ -557,6 +573,7 @@ async function removeCarePlan(carePlanId) {
             current => current.id !== carePlan.id
         );
         renderCarePlans();
+        notifyCareUpdated();
         setCareMessage("Care Plan deleted.");
     } catch (error) {
         console.error("Unable to delete Care Plan:", error);
@@ -601,6 +618,7 @@ async function initializeCarePersistence({
             "Care Plans are unavailable from the backend.",
             true
         );
+        notifyCareUpdated("unavailable");
 
         return {
             status: "unavailable",
@@ -626,6 +644,7 @@ async function initializeCarePersistence({
     }
 
     renderCarePlans();
+    notifyCareUpdated();
 
     if (toolLookupState === "unavailable") {
         setCareMessage(

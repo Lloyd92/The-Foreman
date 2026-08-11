@@ -168,6 +168,7 @@ test("application startup gates operations behind PWA and health initialization"
     assert.match(app, /initializeInventoryPage\(/);
     assert.match(app, /initializeToolsPage\(/);
     assert.match(app, /initializeCarePage\(/);
+    assert.match(app, /initializeResourcesPage\(/);
     assert.match(app, /initializeWorkPage\(/);
     assert.match(app, /initializeTasksPage\(/);
     assert.match(app, /initializeProjectsPage\(/);

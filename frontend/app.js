@@ -14,6 +14,7 @@ import { initializeToolsPage } from "./pages/tools.js";
 import { initializeCarePage } from "./pages/care.js";
 import { initializeProjectsPage } from "./pages/projects.js";
 import { initializeRecoveryPage } from "./pages/recovery.js";
+import { initializeResourcesPage } from "./pages/resources.js";
 import { initializeModuleSettings } from "./pages/settings.js";
 import {
     migrateProjectsAfterInventory
@@ -76,27 +77,39 @@ async function initializeOperationalApplication() {
         initializeSystemStatus()
     ];
 
+    let inventoryInitialization = null;
+    let toolsInitialization = null;
+    let careInitialization = null;
+
     if (inventoryEnabled) {
-        initializers.push(
-            initializeInventoryPage(
-                Promise.resolve(inventoryMigrationResult)
-            )
+        inventoryInitialization = initializeInventoryPage(
+            Promise.resolve(inventoryMigrationResult)
         );
+        initializers.push(inventoryInitialization);
     }
 
     if (toolsEnabled) {
-        initializers.push(
-            initializeToolsPage()
-        );
+        toolsInitialization = initializeToolsPage();
+        initializers.push(toolsInitialization);
     }
 
     if (careEnabled) {
-        initializers.push(
-            initializeCarePage({
-                toolsEnabled
-            })
-        );
+        careInitialization = initializeCarePage({
+            toolsEnabled
+        });
+        initializers.push(careInitialization);
     }
+
+    initializers.push(
+        initializeResourcesPage({
+            toolsEnabled,
+            inventoryEnabled,
+            careEnabled,
+            toolsInitialization,
+            inventoryInitialization,
+            careInitialization
+        })
+    );
 
     if (workEnabled) {
         initializers.push(
