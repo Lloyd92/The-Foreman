@@ -389,16 +389,16 @@ test("release version and shell cache are finalized", async () => {
 
     assert.match(
         indexSource,
-        /id="footer-version">\s*0\.8\.1\s*<\/span>/
+        /id="footer-version">\s*0\.8\.2\s*<\/span>/
     );
-    assert.match(backendSource, /APPLICATION_VERSION = "0\.8\.1"/);
+    assert.match(backendSource, /APPLICATION_VERSION = "0\.8\.2"/);
     assert.match(
         workerSource,
-        /SHELL_CACHE_NAME = "foreman-shell-v0\.8\.1-c3"/
+        /SHELL_CACHE_NAME = "foreman-shell-v0\.8\.2-c1"/
     );
 });
 
-test("release documentation preserves history and v0.8.1 continuity", async () => {
+test("release documentation preserves history and v0.8.2 continuity", async () => {
     const [
         readme,
         architecture,
@@ -417,17 +417,25 @@ test("release documentation preserves history and v0.8.1 continuity", async () =
 
     assert.match(
         changelog,
+        /# v0\.8\.2 — 2026-08-10/
+    );
+    assert.match(
+        changelog,
+        /# v0\.8\.1 — 2026-08-08/
+    );
+    assert.match(
+        changelog,
         /# v0\.8\.0 — 2026-08-07/
     );
     assert.match(
         readme,
-        /v0\.8\.1 — Universal Work System/
+        /v0\.8\.2 — Tools, Inventory & Care/
     );
     assert.match(
         readme,
         /external working\s+memory and continuity system/
     );
-    assert.match(readme, /AI is not part of v0\.8\.1/);
+    assert.match(readme, /AI is not part of v0\.8\.2/);
     assert.match(architecture, /continuity system/i);
     assert.match(
         architecture,

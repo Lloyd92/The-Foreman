@@ -2,7 +2,7 @@ import os
 
 APPLICATION_NAME = "The Foreman"
 COMPANY_NAME = "HardHead Works"
-APPLICATION_VERSION = "0.8.1"
+APPLICATION_VERSION = "0.8.2"
 
 DATABASE_URL = os.getenv(
     "FOREMAN_DATABASE_URL",

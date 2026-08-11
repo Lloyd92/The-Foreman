@@ -14,6 +14,79 @@ No unreleased changes are recorded yet.
 
 ---
 
+# v0.8.2 — 2026-08-10
+
+## Added
+
+- Added backend-authoritative Tools for durable equipment with active-Space
+  ownership, condition, location, factual availability, notes, and CRUD APIs.
+- Added factual Tool maintenance and service history without creating Calendar
+  commitments, scheduled occurrences, Capacity results, or recommendations.
+- Added backend-authoritative Care Plans for service, inspections, cleaning,
+  property upkeep, maintenance, and future care definitions, including
+  optional same-Space Tool relationships.
+- Added concrete Work-to-Tool requirements for supported Tasks and Projects
+  while keeping Work authoritative for the relationship and Tools
+  authoritative for the referenced equipment.
+- Added the Resources frontend with Overview, Tools, Inventory, Care, and
+  preserved Mealworms compatibility.
+- Added factual Resources Overview counts for Tools, Inventory, low/out stock,
+  Care Plans, and Care Plans linked to Tools without expanding operational-fact
+  schema version 1.
+- Added isolated Firefox acceptance for Tool CRUD, maintenance history, Care
+  Plans, factual Resources Overview data, module independence, and retained
+  module data.
+
+## Changed
+
+- Advanced the internal SQLite schema from version 5 to version 6 with additive
+  Tools, Care Plans, Tool maintenance, and Work-to-Tool requirement
+  persistence and recovery support.
+- Preserved Inventory as consumable-stock authority and retained historical
+  Inventory records classified as Tools as legacy classification evidence
+  rather than automatically migrating them.
+- Registered Tools and Care as separate local modules beneath Resources with
+  no dependency between them.
+- Updated application release identity to 0.8.2 and finalized the exact
+  47-resource PWA shell as `foreman-shell-v0.8.2-c1`.
+
+## Reliability
+
+- Enforced active-Space isolation for Tools, Care Plans, maintenance history,
+  and Work-to-Tool relationships.
+- Preserved missing Tool references as Work requirement evidence instead of
+  silently deleting those relationships.
+- Kept Tool deletion protected while factual maintenance history exists.
+- Kept Care usable when Tools is disabled and preserved module-owned records
+  across disable and re-enable.
+- Preserved existing Inventory APIs, browser migration, Project material
+  requirements, backup/restore behavior, operational-fact schema version 1,
+  and portable export format version 1.
+- Did not introduce universal Resource persistence, generalized future-module
+  requirements, Calendar scheduling, Capacity, Priority, recommendations, or
+  Morning Briefing decision logic.
+
+## Validation
+
+- Completed final full backend acceptance with 328 tests passing.
+- Completed final full frontend acceptance with 187 tests passing.
+- Completed isolated disposable Firefox acceptance with 44 tests passing.
+- Verified clean disposable startup with empty Inventory, Projects, Tasks,
+  Work dependencies, Tools, Care Plans, and Work-to-Tool requirements.
+- Verified disposable browser acceptance cleanup left zero project containers,
+  networks, or images.
+
+## Documentation
+
+- Completed the v0.8.2 Tools, Inventory & Care milestone.
+- Documented Resources as a category and integration boundary rather than a
+  universal persistence authority.
+- Preserved Calendar scheduling for v0.8.3, Capacity for v0.9.0, Priority for
+  v0.9.1, and Morning Briefing recommendations for v0.9.2.
+- Set v0.8.3 Calendar & Scheduling as the next approved milestone.
+
+---
+
 # v0.8.1 — 2026-08-08
 
 ## Added

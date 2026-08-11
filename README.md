@@ -26,15 +26,14 @@ rather than replace it.
 
 **Current Version**
 
-v0.8.1 — Universal Work System
+v0.8.2 — Tools, Inventory & Care
 
 Current focus:
 
-- Build v0.8.2 Tools, Inventory & Care
-- Treat Resources as a permanent category rather than a universal record type
-- Preserve distinct authority for Tools, Inventory, and Care Plans
-- Preserve Inventory compatibility and the v0.8.1 Green Build while extending
-  Resources
+- Build v0.8.3 Calendar & Scheduling
+- Keep Calendar authoritative for commitments, recurrence, and availability
+- Do not claim optional Work is feasible before Capacity exists
+- Preserve the v0.8.2 Resources ownership boundaries and Green Build
 
 ---
 
@@ -152,6 +151,45 @@ Features include:
 
 ---
 
+## Resources
+
+Resources is the permanent category and integration boundary for operational
+things needed to perform and maintain work. It does not introduce a universal
+Resource persistence type.
+
+The implemented Resources children are:
+
+- Overview
+- Tools
+- Inventory
+- Care
+- Mealworms compatibility
+
+The Resources Overview presents factual module state only. It does not derive
+Capacity, feasibility, Priority, recommendations, or scheduling decisions.
+
+---
+
+## Tools
+
+Tools owns durable equipment.
+
+Current capabilities include:
+
+- Backend-authoritative SQLite persistence
+- Active-Space isolation
+- Add, edit, and delete workflows
+- Durable-equipment category, condition, location, factual availability, and
+  notes
+- Factual completed maintenance and service history
+- Protection against deleting a Tool while maintenance history still exists
+- Concrete Work-to-Tool relationships owned by Work
+
+Tool condition and availability remain factual user-entered state. They are not
+interpreted as Capacity or scheduling conclusions.
+
+---
+
 ## Inventory
 
 Track consumable stock and materials.
@@ -180,6 +218,25 @@ Planned Inventory capabilities:
 Purchasing and supplier-management workflows remain deferred specialized
 concerns. They may reference Inventory through stable IDs and relationships
 without becoming Inventory authority.
+
+---
+
+## Care Plans
+
+Care Plans owns upkeep definitions.
+
+Current capabilities include:
+
+- Backend-authoritative SQLite persistence
+- Active-Space isolation
+- Add, edit, and delete workflows
+- Service, inspection, cleaning, property-upkeep, and maintenance definitions
+- Optional same-Space Tool relationships
+- Optional frequency metadata
+
+Care Plans remain usable when Tools is disabled. Frequency metadata does not
+create Calendar recurrence, scheduled occurrences, Capacity claims, or
+recommendations.
 
 ---
 
@@ -227,12 +284,12 @@ The implemented fact vocabulary is:
 
 Each fact has a stable identity, typed state, reason codes, evidence, and
 source-record references. Facts are computed on demand and are not persisted.
-The operational-fact schema version is 1 while the SQLite database schema
-is version 5. A deterministic fixed-ID default Space owns all current
-Inventory, Project, Task, and browser-migration provenance records. Existing
-creation paths temporarily assign that Space explicitly. These internal
-ownership fields do not change the implemented operational-fact vocabulary or
-appear in current API responses.
+The operational-fact schema version remains 1 while the SQLite database
+schema is version 6. Operational records are authoritatively scoped to the
+selected active Space. The deterministic fixed-ID default Space remains the
+migration and compatibility home for records created before Space support.
+These ownership details do not expand the implemented operational-fact
+vocabulary.
 
 Today, Projects, and Inventory consume these shared facts instead of
 independently reconstructing readiness or stock state from quantities.
@@ -248,8 +305,13 @@ v0.8.1 adds Universal Work while preserving Tasks and Projects as distinct
 authoritative records. It adds optional same-Space Member responsibility,
 Task due dates, factual Work dependencies, the backend-authoritative normalized
 Work read model, and the Work Overview, Tasks, and Projects frontend surfaces.
-Capacity, Priority, Calendar scheduling behavior, next-action selection,
-Morning Briefing narration, and AI remain future capabilities.
+
+v0.8.2 adds separate Tools and Care authorities beneath Resources, SQLite
+schema version 6, factual Tool maintenance history, concrete Work-to-Tool
+requirements, and the Resources Overview, Tools, Inventory, and Care frontend
+surfaces. Operational-fact schema version 1 remains unchanged. Capacity,
+Priority, Calendar scheduling behavior, next-action selection, Morning
+Briefing narration, and AI remain future capabilities.
 
 ---
 
@@ -263,18 +325,18 @@ iPhone Home Screen installation. Trusted HTTPS installation, standalone
 launch, backend-authoritative startup, and safe-area behavior have been
 accepted on a physical iPhone.
 
-The current v0.8.1 service worker atomically precaches an exact 42-resource
-static shell as `foreman-shell-v0.8.1-c1`. It does not cache API responses,
+The current v0.8.2 service worker atomically precaches an exact 47-resource
+static shell as `foreman-shell-v0.8.2-c1`. It does not cache API responses,
 business records, migrations, or mutations and does not queue, replay, or
 synchronize writes. A cached shell can therefore remain available when
 HardHead is unavailable, but shell availability does not mean operational
 data is available.
 
 `/api/health` is the authoritative operational gate. Normal Projects, Tasks,
-and Inventory behavior starts only when HardHead reports both the application
-healthy and its database online. Retained browser records are migration
-inputs, compatibility evidence, and recovery material only; they are not a
-runtime fallback authority. API, migration, and mutation traffic remains
+Inventory, Tools, and Care behavior starts only when HardHead reports both the
+application healthy and its database online. Retained browser records are
+migration inputs, compatibility evidence, and recovery material only; they are
+not a runtime fallback authority. API, migration, and mutation traffic remains
 network- and backend-owned.
 
 Service-worker updates remain waiting until the user explicitly applies them.
@@ -311,7 +373,6 @@ Future modules include:
 - Mealworm Production
 - Customer Management
 - Purchasing
-- Maintenance
 - Reporting
 - Artificial Intelligence
 - Automation
@@ -323,8 +384,9 @@ and testing maturity, and backup and restore.
 Backup, export, restore, and verification are implemented in v0.7.4.
 Frontend hardening and the isolated browser-E2E foundation are implemented in
 v0.7.5. Universal Navigation & Spaces is implemented in v0.8.0. Universal
-Work is implemented in v0.8.1. Next-action identification and Morning
-Briefing narration remain future capabilities. AI is not part of v0.8.1.
+Work is implemented in v0.8.1. Tools, Inventory & Care is implemented in
+v0.8.2. Next-action identification and Morning Briefing narration remain
+future capabilities. AI is not part of v0.8.2.
 
 See `ROADMAP.md` for additional details.
 
@@ -367,16 +429,20 @@ Development Environment
 
 - Linux (Xubuntu)
 
-Tasks, Inventory, and Projects use backend SQLite persistence. Browser-local
-records remain available only to migration, compatibility, evidence, and
-recovery paths; they are not runtime fallback stores. Today, Projects,
-and Inventory use the backend operational-facts API as the authority for
-current lifecycle, readiness, and stock classifications.
+Tasks, Projects, Inventory, Tools, and Care Plans use backend SQLite
+persistence. Tool maintenance history and Work-to-Tool requirements are also
+persisted backend-authoritatively. Browser-local records remain available only
+to migration, compatibility, evidence, and recovery paths; they are not
+runtime fallback stores. Today, Projects, and Inventory use the backend
+operational-facts API as the authority for current lifecycle, readiness, and
+stock classifications.
 
 The backend currently provides validated APIs for system status, Spaces,
 People, Organizations, Members, Organization-Space relationships, module
 state, Inventory, Projects, Project materials, Tasks, Work dependencies,
-normalized Work, browser-data migration, and operational facts. Its service, repository, Pydantic schema, SQLAlchemy
+normalized Work, Tools, Tool maintenance, Care Plans, Work-to-Tool
+requirements, browser-data migration, and operational facts. Its service,
+repository, Pydantic schema, SQLAlchemy
 model, SQLite persistence, versioned schema-upgrade, and automated-test
 foundations are implemented. Capacity, Priority, the complete Morning
 Briefing, and scheduled backup automation remain target work.

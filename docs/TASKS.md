@@ -156,7 +156,7 @@ the milestone with v0.8.0 release identity and documentation reconciliation.
 
 - [x] v0.8.0 — Universal Navigation & Spaces
 - [x] v0.8.1 — Universal Work System
-- [ ] v0.8.2 — Tools, Inventory & Care
+- [x] v0.8.2 — Tools, Inventory & Care
 - [ ] v0.8.3 — Calendar & Scheduling
 - [ ] v0.8.4 — Money
 - [ ] v0.8.5 — Library, Records & Search
@@ -224,7 +224,7 @@ Explicitly deferred beyond v0.8.1:
 - generalized future-module requirement systems
 - Morning Briefing decision logic
 
-## Active v0.8.2 — Tools, Inventory & Care
+## Completed v0.8.2 — Tools, Inventory & Care
 
 Architecture review:
 
@@ -240,7 +240,7 @@ Architecture review:
 - [x] Preserve the existing Mealworms workspace without inventing husbandry
       architecture during v0.8.2.
 
-Planned implementation sequence:
+Completed implementation sequence:
 
 1. [x] Reconcile v0.8.2 architecture and current-state documentation.
 2. [x] Add Tools/Care persistence with a safe SQLite schema-v6 upgrade and
@@ -254,7 +254,15 @@ Planned implementation sequence:
 7. [x] Add factual Resources operational facts or overview data where justified
        without implementing Capacity.
 8. [x] Complete isolated disposable browser compatibility acceptance.
-9. [ ] Reconcile v0.8.2 release identity, documentation, and Green Build.
+9. [x] Reconcile v0.8.2 release identity, documentation, and Green Build.
+
+v0.8.2 completes the Resources milestone with separate Tools, Inventory, and
+Care authorities; factual Tool maintenance history; concrete Work-to-Tool
+requirements; Resources frontend convergence; and isolated browser acceptance.
+Final release validation passes 328 backend tests, 187 frontend tests, and 44
+disposable Firefox tests while preserving operational-fact schema version 1,
+portable export format version 1, active-Space isolation, and the deferred
+Calendar/Capacity/Priority boundaries.
 
 Commit 1 is documentation-only. It does not change the SQLite schema,
 application version, PWA cache identity, APIs, frontend runtime behavior,

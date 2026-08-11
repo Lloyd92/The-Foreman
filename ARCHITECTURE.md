@@ -57,7 +57,8 @@ Backend:
 - Uvicorn
 - Validated APIs for system status, Spaces, People, Organizations, Members,
   module state, Inventory, Projects, Project materials, Tasks, Work
-  dependencies, normalized Work, browser-data migration, and operational facts
+  dependencies, normalized Work, Tools, Tool maintenance, Care Plans,
+  Work-to-Tool requirements, browser-data migration, and operational facts
 
 Frontend:
 
@@ -87,6 +88,11 @@ Persistence:
   the Projects workspace's runtime authority.
 - Project material requirements persist in SQLite and link to Inventory by
   item ID.
+- SQLite schema version 6 adds active-Space Tools, Care Plans, factual Tool
+  maintenance records, and concrete Work-to-Tool requirement relationships.
+- Tools remains authoritative for durable equipment; Care Plans remains
+  authoritative for upkeep definitions; Work owns Tool requirement
+  relationships.
 - The universal foundation schema persists Spaces, People, Organizations,
   Organization-Space relationships, Members, and mutable local module state.
 - A deterministic fixed-ID default Space exists. Version 4 migration assigns
@@ -117,6 +123,31 @@ Work:
   Work presentation while preserving Task and Project mutation authority.
 - Supports factual Task/Project dependencies and same-Space Member
   responsibility without making Capacity or scheduling claims.
+- Owns concrete same-Space Tool requirement relationships for supported Tasks
+  and Projects without deriving readiness or Capacity.
+
+Resources:
+
+- Is the permanent category and integration boundary for Tools, Inventory,
+  Care, and the preserved Mealworms compatibility workspace.
+- Provides factual Overview counts without introducing a universal Resource
+  persistence authority or decision-engine behavior.
+
+Tools:
+
+- Provides backend-authoritative durable-equipment CRUD with condition,
+  location, factual availability, notes, and active-Space isolation.
+- Records factual completed maintenance and service history.
+- Does not interpret condition or availability as Capacity, scheduling,
+  Priority, or recommendation state.
+
+Care Plans:
+
+- Provides backend-authoritative upkeep definitions with optional same-Space
+  Tool relationships.
+- Supports optional frequency metadata without creating Calendar recurrence or
+  scheduled occurrences.
+- Remains independently usable when the Tools module is disabled.
 
 Tasks:
 
@@ -365,7 +396,7 @@ The manifest and installation assets define the PWA identity and installation
 boundary. Standalone display, Apple installation metadata, and dynamic
 safe-area insets support the installed iPhone experience.
 
-The v0.8.1 service worker atomically precaches exactly 42 static-shell resources.
+The v0.8.2 service worker atomically precaches exactly 47 static-shell resources.
 Only exact allowlisted shell resources and navigation fallback are handled by
 that cache. APIs, migrations, mutations, non-GET requests, the worker itself,
 unknown static resources, and cross-origin requests remain network-owned.
@@ -382,7 +413,9 @@ reports both a healthy application and an online database. A cached shell may
 remain visible during backend loss, but that does not make operational data
 available. Projects, Tasks, and Inventory browser records remain
 migration/evidence/compatibility inputs only and never become normal runtime
-fallback authority.
+fallback authority. Tools, Care Plans, maintenance history, and Work-to-Tool
+requirements are backend-authoritative and have no browser persistence
+fallback.
 
 The frontend is bound to tower loopback at `127.0.0.1:3000`. Caddy binds ports
 80 and 443 only to the configured private-LAN IP, currently

@@ -844,25 +844,26 @@ At minimum:
 
 # 21. Completion Boundary
 
-v0.8.1 — Universal Work System is complete.
+v0.8.2 — Tools, Inventory & Care is complete.
 
-The milestone established Universal Work as a domain and integration boundary
-while preserving Tasks and Projects as distinct authorities. It added optional
-same-Space Member responsibility, Task due dates, factual Work dependencies,
-the backend-authoritative normalized Work read model, Work frontend
-convergence, and isolated compatibility acceptance without introducing
-Capacity, Priority, Calendar scheduling, or recommendation behavior.
+The milestone established Resources as a category and integration boundary
+while preserving Tools, Inventory, and Care Plans as separate authorities. It
+added durable-equipment persistence, factual Tool maintenance history, Care
+Plans, concrete Work-to-Tool requirements, Resources frontend convergence,
+factual Overview data, and isolated compatibility acceptance without
+introducing Calendar scheduling, Capacity, Priority, recommendation behavior,
+generalized Resource persistence, or automatic Inventory-to-Tool migration.
 
 The active milestone is:
 
-**v0.8.2 — Tools, Inventory & Care**
+**v0.8.3 — Calendar & Scheduling**
 
-v0.8.2 treats Resources as a category and integration boundary while preserving
-separate Tools, Inventory, and Care authorities. It must not introduce
-Calendar scheduling, Capacity, Priority, recommendation behavior, generalized
-Resource persistence, or automatic Inventory-to-Tool migration.
+v0.8.3 owns commitments, events, routines, recurrence, and availability. It
+must not claim that optional Work is feasible, automatically place optional
+Work, rank Work, or recommend actions before Capacity and Priority exist.
 
 Later milestones must preserve the v0.8.0 Space, module, data-ownership,
-deployment, compatibility, and Green Build boundaries together with the
-v0.8.1 Universal Work ownership and lifecycle boundaries unless an explicit
+deployment, compatibility, and Green Build boundaries; the v0.8.1 Universal
+Work ownership and lifecycle boundaries; and the v0.8.2 Resources, Tool,
+Inventory, Care, and requirement-ownership boundaries unless an explicit
 architecture change is reviewed and approved.
