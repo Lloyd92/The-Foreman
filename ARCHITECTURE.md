@@ -149,6 +149,20 @@ Care Plans:
   scheduled occurrences.
 - Remains independently usable when the Tools module is disabled.
 
+Calendar:
+
+- Is already a permanent primary navigation destination but remains a
+  placeholder in the released v0.8.2 runtime.
+- v0.8.3 architecture assigns backend-authoritative selected-Space ownership
+  for commitments, events, routines, recurrence, and explicitly recorded
+  availability.
+- The selected Space owns a configured IANA timezone. Recurring records preserve
+  local wall-clock meaning across timezone-offset and daylight-saving changes.
+- Calendar may associate a record with one optional same-Space Member without
+  creating generalized attendee, invitation, or authentication semantics.
+- Calendar recordkeeping does not infer free time, determine Work feasibility,
+  place optional Work, rank Work, or recommend actions.
+
 Tasks:
 
 - Supports task creation, priority selection, optional due dates, optional
@@ -497,7 +511,33 @@ Calendar may record fixed commitments, events, routines, recurrence, and
 availability before the Capacity Engine exists. This does not claim that
 optional Work is achievable.
 
-Capacity must be evaluated before The Foreman:
+Within v0.8.3, availability is explicitly recorded rather than inferred, and
+Calendar dates and times are timezone-aware.
+
+v0.8.3 uses a configured IANA timezone for each selected Space. Fixed timed
+records are interpreted deterministically against that timezone, while
+recurring records preserve their local wall-clock meaning across daylight-
+saving and timezone-offset changes.
+
+Initial recurrence remains deliberately narrow: deterministic daily and weekly
+patterns, bounded intervals, optional weekday selection, and explicit
+occurrence exclusions. Recurring occurrences are derived for bounded query
+ranges rather than indefinitely materialized as another persistence authority.
+
+Calendar may optionally associate a record with one same-Space Member. Work may
+reference Calendar entries or recurring series through Work-owned relationship
+records without taking ownership of Calendar definitions. Missing referenced
+Calendar records remain observable relationship evidence.
+
+An explicit Calendar availability record is a user-provided fact. Calendar does
+not derive free time, subtract commitments, calculate usable hours, or claim
+that optional Work fits.
+
+Capacity evaluation must precede automatic placement of optional Work,
+feasibility claims, prioritization, recommendations, and capacity-aware
+scheduling decisions.
+
+Specifically, Capacity must be evaluated before The Foreman:
 
 - Places optional Work into available time
 - Declares optional Work feasible

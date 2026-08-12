@@ -268,6 +268,58 @@ Commit 1 is documentation-only. It does not change the SQLite schema,
 application version, PWA cache identity, APIs, frontend runtime behavior,
 migration behavior, Docker deployment, or live data.
 
+## v0.8.3 — Calendar & Scheduling
+
+Architecture review:
+
+- [x] Preserve Calendar as the authority for commitments, events, routines,
+      recurrence, and explicitly recorded availability.
+- [x] Keep Calendar recordkeeping separate from Capacity feasibility and
+      capacity-aware scheduling decisions.
+- [x] Require backend-authoritative active-Space isolation for Calendar data.
+- [x] Use a configured IANA timezone and deterministic timezone-aware
+      date/time behavior.
+- [x] Preserve local wall-clock meaning for recurring routines across timezone
+      offset and daylight-saving changes.
+- [x] Keep initial recurrence deliberately narrow and deterministic rather than
+      introducing a generalized scheduling-rule engine.
+- [x] Derive bounded recurring occurrences instead of indefinitely
+      materializing occurrence rows.
+- [x] Allow optional same-Space Member association without introducing a
+      generalized attendee or invitation system.
+- [x] Keep Work authoritative for Work-to-Calendar relationships while
+      Calendar remains authoritative for referenced Calendar records.
+- [x] Preserve missing referenced-Calendar evidence rather than silently
+      deleting relationship history.
+- [x] Keep operational-fact schema version 1 and portable export format version
+      1 unchanged throughout v0.8.3.
+- [x] Require additive schema-v7 migration and backup/restore compatibility
+      before household deployment.
+- [x] Keep Capacity, Priority, recommendations, and automatic optional-Work
+      placement deferred.
+
+Planned implementation sequence:
+
+1. [x] Reconcile v0.8.3 architecture and current-state documentation.
+2. [ ] Add Calendar persistence with a safe SQLite schema-v7 upgrade and
+       recovery contract.
+3. [ ] Add Calendar settings, fixed commitments/events/availability, active-
+       Space isolation, and optional same-Space Member association.
+4. [ ] Add deterministic recurring Calendar series, exclusions, timezone/DST
+       behavior, and bounded occurrence expansion.
+5. [ ] Add concrete Work-to-Calendar relationships with retained missing-target
+       evidence and Work-owned lifecycle behavior.
+6. [ ] Replace the Calendar placeholder with the selected-Space Calendar
+       frontend and fixed-record workflows.
+7. [ ] Converge recurring routines, Member filtering, and Calendar module
+       behavior without introducing Capacity.
+8. [ ] Complete isolated disposable browser compatibility acceptance.
+9. [ ] Reconcile v0.8.3 release identity, documentation, and Green Build.
+
+Commit 1 remains documentation-only. It does not change SQLite schema version 6,
+application version 0.8.2, PWA cache identity, APIs, frontend runtime behavior,
+migration behavior, Docker deployment, or live household data.
+
 ## v0.8.0 Architecture Boundaries
 
 - Ordinary workflows use one clearly selected active Space.

@@ -584,14 +584,44 @@ The Morning Briefing remains the heart of The Foreman.
 
 Calendar recordkeeping and capacity-aware scheduling are different concerns.
 
-Calendar may record:
+Calendar is authoritative for:
 
 - Fixed commitments
 - Events
-- Routines
-- Availability
-- Recurrence rules
-- Timezone-aware dates and times
+- Explicit availability
+- Routines and recurring schedule records
+- Recurrence definitions and occurrence exclusions
+- Timezone-aware Calendar dates and times
+
+Ordinary Calendar records belong to one active Space. A Calendar record may
+optionally reference one same-Space Member as its primary associated Member.
+This does not create attendee, invitation, RSVP, account, or authentication
+semantics.
+
+The selected Space has a configured IANA timezone. Fixed timed records are
+interpreted deterministically against that timezone. Recurring records preserve
+their local wall-clock meaning across timezone-offset and daylight-saving
+changes.
+
+Initial v0.8.3 recurrence is intentionally constrained to deterministic daily
+and weekly patterns, bounded intervals, optional weekday selection, and explicit
+occurrence exclusions. The milestone must not introduce natural-language
+recurrence parsing, arbitrary generalized rule engines, cron semantics, or
+automatic schedule optimization merely to anticipate later needs.
+
+Recurring occurrences are derived for bounded requested ranges. The derived
+occurrence read model does not become a second persistence authority and does
+not require indefinite materialization of occurrence rows.
+
+Work may reference Calendar entries or recurring series through stable
+relationships. Work owns those relationship records; Calendar continues to own
+the referenced Calendar definitions. Deleting the owning Work removes its
+relationship. A missing referenced Calendar record remains observable as
+relationship evidence rather than being silently erased.
+
+An availability record means only that the user explicitly recorded that time
+as available. Calendar does not infer free time, subtract commitments, compute
+usable hours, or claim optional Work fits.
 
 This recordkeeping does not claim that optional Work is achievable.
 
@@ -603,9 +633,14 @@ Capacity must be evaluated before The Foreman:
 - Recommends Work
 - Presents capacity-aware scheduling decisions
 
+Operational-fact schema version 1 and portable export format version 1 remain
+unchanged throughout v0.8.3.
+Backup and restore must preserve Calendar's authoritative SQLite records and
+support the additive schema-v6 to schema-v7 transition safely.
+
 This preserves the constitutional rule that Capacity takes precedence over
-scheduling while allowing Calendar to record reality before the Capacity
-Engine exists.
+capacity-aware scheduling while allowing Calendar to record reality before the
+Capacity Engine exists.
 
 ---
 

@@ -562,30 +562,70 @@ Explicitly excluded:
 
 ## v0.8.3 — Calendar & Scheduling
 
-Status: Planned
+Status: In Progress — architecture reconciled
 
 Purpose:
 
 Record commitments, availability, and schedule information without claiming
 that optional Work is feasible.
 
-Scope:
+Architecture contract:
 
-- Events and fixed commitments
-- Availability windows
+- Calendar is authoritative for commitments, events, routines, recurrence, and
+  explicitly recorded availability.
+- Calendar recordkeeping is separate from capacity-aware scheduling.
+- Ordinary Calendar operations are scoped authoritatively to the selected
+  active Space.
+- A nullable same-Space Member may identify the primary Member associated with
+  a Calendar record without creating a generalized attendee system.
+- Calendar uses a configured IANA timezone and deterministic timezone-aware
+  date, time, and recurrence handling.
+- Fixed Calendar records distinguish commitments, events, and availability.
+- All-day records use calendar dates rather than fabricated midnight UTC
+  timestamps.
+- Recurring records preserve local wall-clock meaning across timezone offset
+  and daylight-saving changes.
+- Initial recurrence remains deliberately narrow: deterministic daily and
+  weekly routines, bounded intervals, optional weekday selection, and explicit
+  occurrence exclusions.
+- Recurring occurrences are derived for a bounded requested range rather than
+  materialized indefinitely as duplicate persistent records.
+- Work owns Work-to-Calendar relationships while Calendar owns the referenced
+  Calendar records.
+- Deleting owning Work removes its Work-to-Calendar relationships. Deleting a
+  referenced Calendar record preserves relationship evidence rather than
+  silently erasing historical context.
+- Portable export format version 1 and operational-fact schema version 1 remain
+  unchanged throughout v0.8.3.
+- Backup and restore must recognize the additive Calendar schema and safely
+  upgrade supported schema-v6 databases without mutating existing records.
+
+Planned implementation scope:
+
+- Selected-Space Calendar settings and configured IANA timezone
+- Fixed events, commitments, and availability windows
+- Optional all-day Calendar records
 - Routines and recurring schedule records
+- Deterministic recurrence expansion and occurrence exclusions
 - Work-to-Calendar relationships
-- Configured IANA timezone
-- Selected-Space Calendar views
-- Deterministic date, time, and recurrence handling
+- Selected-Space Calendar frontend
+- Backend-authoritative Calendar CRUD and occurrence APIs
+- Additive SQLite schema-v7 migration and recovery compatibility
+- Isolated disposable browser acceptance
 
 Explicitly excluded:
 
 - Capacity eligibility
 - Automatic placement of optional Work
 - Claims that optional Work fits available time
+- Free-time or usable-hours inference
 - Priority ranking
 - Recommendation logic
+- Morning Briefing decision logic
+- Notifications
+- External calendar synchronization
+- Invitation, RSVP, or generalized attendee workflows
+- Generalized scheduling optimization or resource booking
 
 ## v0.8.4 — Money
 

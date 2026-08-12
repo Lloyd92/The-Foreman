@@ -30,10 +30,18 @@ v0.8.2 — Tools, Inventory & Care
 
 Current focus:
 
-- Build v0.8.3 Calendar & Scheduling
-- Keep Calendar authoritative for commitments, recurrence, and availability
-- Do not claim optional Work is feasible before Capacity exists
-- Preserve the v0.8.2 Resources ownership boundaries and Green Build
+- Build v0.8.3 Calendar & Scheduling from the released v0.8.2 Green Build
+- Keep Calendar authoritative for commitments, events, routines, recurrence,
+  and explicitly recorded availability
+- Use backend-authoritative selected-Space Calendar data and a configured IANA
+  timezone
+- Preserve deterministic local wall-clock recurrence behavior across timezone
+  offset and daylight-saving changes
+- Keep Work-to-Calendar relationships separate from Calendar record ownership
+- Do not infer free time or claim optional Work is feasible before Capacity
+  exists
+- Preserve operational-fact schema version 1, portable export format version 1,
+  the v0.8.2 Resources ownership boundaries, and the Green Build
 
 ---
 
