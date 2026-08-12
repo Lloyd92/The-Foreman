@@ -25,6 +25,7 @@ from app.api.task_migrations import router as task_migrations_router
 from app.api.tasks import router as tasks_router
 from app.api.tools import router as tools_router
 from app.api.work import router as work_router
+from app.api.work_calendar_relationships import router as work_calendar_relationships_router
 from app.api.work_dependencies import router as work_dependencies_router
 from app.api.work_tool_requirements import (
     router as work_tool_requirements_router,
@@ -88,6 +89,7 @@ app.include_router(care_plans_router)
 app.include_router(calendar_router)
 app.include_router(tools_router)
 app.include_router(work_router)
+app.include_router(work_calendar_relationships_router)
 app.include_router(work_dependencies_router)
 app.include_router(work_tool_requirements_router)
 app.include_router(operations_router)
