@@ -147,3 +147,202 @@ class CalendarApiTests(ApiTestCase):
         )
 
         self.assertEqual(response.status_code, 404)
+
+    async def test_weekly_series_crud(self) -> None:
+        await self.configure_timezone()
+
+        created = await self.client.post(
+            "/api/calendar/series",
+            json={
+                "kind": "commitment",
+                "title": "Work shift",
+                "frequency": "weekly",
+                "intervalValue": 1,
+                "weekdays": ["monday", "tuesday", "wednesday"],
+                "anchorDate": "2026-08-10",
+                "localStartTime": "06:00",
+                "durationMinutes": 510,
+            },
+        )
+        self.assertEqual(created.status_code, 201)
+
+        series = created.json()
+        self.assertEqual(series["frequency"], "weekly")
+        self.assertEqual(
+            series["weekdays"],
+            ["monday", "tuesday", "wednesday"],
+        )
+        self.assertEqual(series["timezoneName"], "America/New_York")
+
+        read = await self.client.get(
+            f"/api/calendar/series/{series['id']}"
+        )
+        self.assertEqual(read.status_code, 200)
+
+        listed = await self.client.get("/api/calendar/series")
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(len(listed.json()), 1)
+
+        deleted = await self.client.delete(
+            f"/api/calendar/series/{series['id']}"
+        )
+        self.assertEqual(deleted.status_code, 204)
+
+    async def test_series_exclusion_create_and_delete(self) -> None:
+        await self.configure_timezone()
+
+        created = await self.client.post(
+            "/api/calendar/series",
+            json={
+                "kind": "commitment",
+                "title": "Work shift",
+                "frequency": "weekly",
+                "weekdays": ["wednesday"],
+                "anchorDate": "2026-08-12",
+                "localStartTime": "06:00",
+                "durationMinutes": 510,
+            },
+        )
+        self.assertEqual(created.status_code, 201)
+        series_id = created.json()["id"]
+
+        excluded = await self.client.post(
+            f"/api/calendar/series/{series_id}/exclusions",
+            json={"excludedDate": "2026-08-19"},
+        )
+        self.assertEqual(excluded.status_code, 201)
+        self.assertEqual(
+            excluded.json()["excludedDate"],
+            "2026-08-19",
+        )
+
+        deleted = await self.client.delete(
+            f"/api/calendar/series/{series_id}/exclusions/2026-08-19"
+        )
+        self.assertEqual(deleted.status_code, 204)
+
+    async def test_series_update(self) -> None:
+        await self.configure_timezone()
+
+        created = await self.client.post(
+            "/api/calendar/series",
+            json={
+                "kind": "commitment",
+                "title": "Old shift",
+                "frequency": "weekly",
+                "weekdays": ["monday"],
+                "anchorDate": "2026-08-10",
+                "localStartTime": "06:00",
+                "durationMinutes": 480,
+            },
+        )
+        self.assertEqual(created.status_code, 201)
+        series_id = created.json()["id"]
+
+        updated = await self.client.patch(
+            f"/api/calendar/series/{series_id}",
+            json={
+                "title": "Updated shift",
+                "weekdays": ["monday", "wednesday"],
+                "durationMinutes": 510,
+            },
+        )
+
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual(updated.json()["title"], "Updated shift")
+        self.assertEqual(
+            updated.json()["weekdays"],
+            ["monday", "wednesday"],
+        )
+        self.assertEqual(updated.json()["durationMinutes"], 510)
+
+    async def test_occurrences_expand_series_and_apply_exclusion(self) -> None:
+        await self.configure_timezone()
+
+        series = (
+            await self.client.post(
+                "/api/calendar/series",
+                json={
+                    "kind": "commitment",
+                    "title": "Morning shift",
+                    "frequency": "weekly",
+                    "weekdays": ["monday"],
+                    "anchorDate": "2026-08-10",
+                    "localStartTime": "06:00",
+                    "durationMinutes": 60,
+                },
+            )
+        ).json()
+
+        await self.client.post(
+            f"/api/calendar/series/{series['id']}/exclusions",
+            json={"excludedDate": "2026-08-17"},
+        )
+
+        response = await self.client.get(
+            "/api/calendar/occurrences",
+            params={
+                "start_date": "2026-08-10",
+                "end_date": "2026-08-25",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        occurrences = [
+            item
+            for item in response.json()
+            if item["sourceType"] == "series"
+        ]
+
+        self.assertEqual(len(occurrences), 2)
+        self.assertEqual(
+            [item["startAt"] for item in occurrences],
+            [
+                "2026-08-10T10:00:00Z",
+                "2026-08-24T10:00:00Z",
+            ],
+        )
+
+    async def test_series_preserves_timezone_snapshot(self) -> None:
+        await self.configure_timezone("America/New_York")
+
+        series = (
+            await self.client.post(
+                "/api/calendar/series",
+                json={
+                    "kind": "commitment",
+                    "title": "Morning routine",
+                    "frequency": "daily",
+                    "anchorDate": "2026-08-10",
+                    "localStartTime": "06:00",
+                    "durationMinutes": 60,
+                },
+            )
+        ).json()
+
+        await self.configure_timezone("America/Chicago")
+
+        response = await self.client.get(
+            "/api/calendar/occurrences",
+            params={
+                "start_date": "2026-08-10",
+                "end_date": "2026-08-11",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        occurrence = response.json()[0]
+
+        self.assertEqual(
+            occurrence["sourceId"],
+            series["id"],
+        )
+        self.assertEqual(
+            occurrence["timezoneName"],
+            "America/New_York",
+        )
+        self.assertEqual(
+            occurrence["startAt"],
+            "2026-08-10T10:00:00Z",
+        )

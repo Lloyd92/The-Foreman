@@ -70,3 +70,101 @@ def add_settings(
     session.flush()
     session.refresh(settings)
     return settings
+
+
+from app.models.calendar_series import CalendarSeries
+from app.models.calendar_series_exclusion import CalendarSeriesExclusion
+
+
+def list_series(
+    session: Session,
+    space_id: str,
+) -> list[CalendarSeries]:
+    return list(
+        session.scalars(
+            select(CalendarSeries)
+            .where(CalendarSeries.space_id == space_id)
+            .order_by(
+                asc(CalendarSeries.anchor_date),
+                asc(CalendarSeries.local_start_time),
+                asc(CalendarSeries.id),
+            )
+        )
+    )
+
+
+def get_series(
+    session: Session,
+    space_id: str,
+    series_id: str,
+) -> CalendarSeries | None:
+    return session.scalar(
+        select(CalendarSeries).where(
+            CalendarSeries.id == series_id,
+            CalendarSeries.space_id == space_id,
+        )
+    )
+
+
+def add_series(
+    session: Session,
+    series: CalendarSeries,
+) -> CalendarSeries:
+    session.add(series)
+    session.flush()
+    session.refresh(series)
+    return series
+
+
+def delete_series(
+    session: Session,
+    series: CalendarSeries,
+) -> None:
+    session.delete(series)
+
+
+def list_exclusions(
+    session: Session,
+    space_id: str,
+    series_id: str,
+) -> list[CalendarSeriesExclusion]:
+    return list(
+        session.scalars(
+            select(CalendarSeriesExclusion).where(
+                CalendarSeriesExclusion.space_id == space_id,
+                CalendarSeriesExclusion.series_id == series_id,
+            )
+        )
+    )
+
+
+def add_exclusion(
+    session: Session,
+    exclusion: CalendarSeriesExclusion,
+) -> CalendarSeriesExclusion:
+    session.add(exclusion)
+    session.flush()
+    session.refresh(exclusion)
+    return exclusion
+
+
+def get_exclusion_by_date(
+    session: Session,
+    space_id: str,
+    series_id: str,
+    excluded_date,
+) -> CalendarSeriesExclusion | None:
+    return session.scalar(
+        select(CalendarSeriesExclusion).where(
+            CalendarSeriesExclusion.space_id == space_id,
+            CalendarSeriesExclusion.series_id == series_id,
+            CalendarSeriesExclusion.excluded_date == excluded_date,
+        )
+    )
+
+
+def delete_exclusion(
+    session: Session,
+    exclusion: CalendarSeriesExclusion,
+) -> None:
+    session.delete(exclusion)

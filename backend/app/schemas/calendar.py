@@ -82,12 +82,104 @@ class CalendarEntryRead(ApiModel):
     kind: str
     title: str
     all_day: bool
-    start_at: datetime | None
-    end_at: datetime | None
-    start_date: date | None
-    end_date: date | None
+    start_at: datetime | None = None
+    end_at: datetime | None = None
+    start_date: date | None = None
+    end_date: date | None = None
     timezone_name: str
     location: str
     notes: str
     created_at: datetime
     updated_at: datetime
+
+
+WeekdayName = Literal[
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+]
+
+
+class CalendarSeriesCreate(ApiModel):
+    member_id: str | None = None
+    kind: Literal["commitment", "event", "availability"]
+    title: CalendarTitle
+    frequency: Literal["daily", "weekly"]
+    interval_value: int = Field(default=1, ge=1)
+    weekdays: list[WeekdayName] = Field(default_factory=list)
+    anchor_date: date
+    end_date: date | None = None
+    local_start_time: str
+    duration_minutes: int = Field(gt=0)
+    location: str = Field(default="", max_length=200)
+    notes: str = Field(default="", max_length=1000)
+
+
+class CalendarSeriesUpdate(ApiModel):
+    member_id: str | None = None
+    kind: Literal["commitment", "event", "availability"] | None = None
+    title: CalendarTitle | None = None
+    frequency: Literal["daily", "weekly"] | None = None
+    interval_value: int | None = Field(default=None, ge=1)
+    weekdays: list[WeekdayName] | None = None
+    anchor_date: date | None = None
+    end_date: date | None = None
+    local_start_time: str | None = None
+    duration_minutes: int | None = Field(default=None, gt=0)
+    location: str | None = Field(default=None, max_length=200)
+    notes: str | None = Field(default=None, max_length=1000)
+
+    @model_validator(mode="after")
+    def require_change(self):
+        if not self.model_fields_set:
+            raise ValueError("Provide at least one Calendar series field.")
+        return self
+
+
+class CalendarSeriesRead(ApiModel):
+    id: str
+    member_id: str | None
+    kind: str
+    title: str
+    frequency: str
+    interval_value: int
+    weekdays: list[WeekdayName]
+    anchor_date: date
+    end_date: date | None
+    local_start_time: str
+    duration_minutes: int
+    timezone_name: str
+    location: str
+    notes: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class CalendarSeriesExclusionCreate(ApiModel):
+    excluded_date: date
+
+
+class CalendarSeriesExclusionRead(ApiModel):
+    id: str
+    excluded_date: date
+    created_at: datetime
+
+
+class CalendarOccurrenceRead(ApiModel):
+    key: str
+    source_type: Literal["entry", "series"]
+    source_id: str
+    member_id: str | None
+    kind: str
+    title: str
+    start_at: datetime | None = None
+    end_at: datetime | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    timezone_name: str
+    location: str
+    notes: str
