@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
+from app.api.calendar import router as calendar_router
 from app.api.care_plans import router as care_plans_router
 from app.api.data_export import router as data_export_router
 from app.api.inventory import router as inventory_router
@@ -84,6 +85,7 @@ app.include_router(project_migrations_router)
 app.include_router(tasks_router)
 app.include_router(task_migrations_router)
 app.include_router(care_plans_router)
+app.include_router(calendar_router)
 app.include_router(tools_router)
 app.include_router(work_router)
 app.include_router(work_dependencies_router)
