@@ -54,6 +54,10 @@ EXPECTED_BACKUP_MEMBERS = (
 )
 CURRENT_REQUIRED_DATABASE_TABLES = frozenset(
     {
+        "calendar_entries",
+        "calendar_series",
+        "calendar_series_exclusions",
+        "calendar_settings",
         "care_plans",
         "inventory_items",
         "inventory_migrations",
@@ -69,6 +73,7 @@ CURRENT_REQUIRED_DATABASE_TABLES = frozenset(
         "tasks",
         "tool_maintenance_records",
         "tools",
+        "work_calendar_relationships",
         "work_dependencies",
         "work_tool_requirements",
         "spaces",

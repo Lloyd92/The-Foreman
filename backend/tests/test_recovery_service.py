@@ -785,6 +785,25 @@ class SqliteSnapshotTests(unittest.TestCase):
         self.assertFalse(self.destination_path.exists())
 
 
+CURRENT_CALENDAR_TABLE_SCHEMA = """
+CREATE TABLE calendar_entries (
+    id TEXT PRIMARY KEY
+);
+CREATE TABLE calendar_series (
+    id TEXT PRIMARY KEY
+);
+CREATE TABLE calendar_series_exclusions (
+    id TEXT PRIMARY KEY
+);
+CREATE TABLE calendar_settings (
+    space_id TEXT PRIMARY KEY
+);
+CREATE TABLE work_calendar_relationships (
+    id TEXT PRIMARY KEY
+);
+"""
+
+
 class BackupPackageTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary_directory = tempfile.TemporaryDirectory()
@@ -879,7 +898,14 @@ class BackupPackageTests(unittest.TestCase):
                     );
                     """
                 )
-            connection.execute(f"PRAGMA user_version = {user_version}")
+            if user_version >= CURRENT_DATABASE_SCHEMA_VERSION:
+                connection.executescript(
+                    CURRENT_CALENDAR_TABLE_SCHEMA
+                )
+
+            connection.execute(
+                f"PRAGMA user_version = {user_version}"
+            )
             connection.commit()
         finally:
             connection.close()
@@ -2430,6 +2456,9 @@ class PreRestoreSafetyBackupTests(unittest.TestCase):
                     id TEXT PRIMARY KEY
                 );
                 """
+            )
+            connection.executescript(
+                CURRENT_CALENDAR_TABLE_SCHEMA
             )
             connection.execute(
                 f"PRAGMA user_version = {CURRENT_DATABASE_SCHEMA_VERSION}"

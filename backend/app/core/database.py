@@ -37,9 +37,14 @@ SessionLocal = sessionmaker(
 # pre-created by Base.metadata.create_all(). Existing migration/recovery
 # state must be validated before a newer schema version mutates the database.
 SQLITE_DEFERRED_UPGRADE_TABLES = frozenset({
+    "calendar_entries",
+    "calendar_series",
+    "calendar_series_exclusions",
+    "calendar_settings",
     "care_plans",
     "tool_maintenance_records",
     "tools",
+    "work_calendar_relationships",
     "work_dependencies",
     "work_tool_requirements",
 })

@@ -17,7 +17,9 @@ from app.models.base import Base
 FOUNDATION_DATABASE_SCHEMA_VERSION = 3
 SPACE_SCOPE_DATABASE_SCHEMA_VERSION = 4
 UNIVERSAL_WORK_DATABASE_SCHEMA_VERSION = 5
-CURRENT_DATABASE_SCHEMA_VERSION = 6
+RESOURCE_DATABASE_SCHEMA_VERSION = 6
+CALENDAR_DATABASE_SCHEMA_VERSION = 7
+CURRENT_DATABASE_SCHEMA_VERSION = CALENDAR_DATABASE_SCHEMA_VERSION
 SPACE_SCOPE_JOURNAL_TABLE = "__foreman_v4_space_scope_journal"
 
 RESOURCE_TABLES = (
@@ -25,6 +27,14 @@ RESOURCE_TABLES = (
     "care_plans",
     "tool_maintenance_records",
     "work_tool_requirements",
+)
+
+CALENDAR_TABLES = (
+    "calendar_settings",
+    "calendar_entries",
+    "calendar_series",
+    "calendar_series_exclusions",
+    "work_calendar_relationships",
 )
 
 UNIVERSAL_WORK_COLUMN_UPGRADES = (
@@ -85,6 +95,80 @@ RESOURCE_CHECK_CONSTRAINTS = {
     },
 }
 
+
+
+CALENDAR_CHECK_CONSTRAINTS = {
+    "calendar_settings": {
+        "ck_calendar_settings_timezone_not_blank": (
+            "length(trim(timezone_name)) > 0"
+        ),
+    },
+    "calendar_entries": {
+        "ck_calendar_entries_kind": (
+            "kind IN ('commitment', 'event', 'availability')"
+        ),
+        "ck_calendar_entries_title_not_blank": (
+            "length(trim(title)) > 0"
+        ),
+        "ck_calendar_entries_timezone_not_blank": (
+            "length(trim(timezone_name)) > 0"
+        ),
+        "ck_calendar_entries_time_shape": (
+            "(all_day = 1 "
+            "AND start_date IS NOT NULL "
+            "AND end_date IS NOT NULL "
+            "AND end_date > start_date "
+            "AND start_at IS NULL "
+            "AND end_at IS NULL) "
+            "OR (all_day = 0 "
+            "AND start_date IS NULL "
+            "AND end_date IS NULL "
+            "AND start_at IS NOT NULL "
+            "AND end_at IS NOT NULL "
+            "AND end_at > start_at)"
+        ),
+    },
+    "calendar_series": {
+        "ck_calendar_series_kind": (
+            "kind IN ('commitment', 'event', 'availability')"
+        ),
+        "ck_calendar_series_title_not_blank": (
+            "length(trim(title)) > 0"
+        ),
+        "ck_calendar_series_timezone_not_blank": (
+            "length(trim(timezone_name)) > 0"
+        ),
+        "ck_calendar_series_frequency": (
+            "frequency IN ('daily', 'weekly')"
+        ),
+        "ck_calendar_series_interval_positive": (
+            "interval_value > 0"
+        ),
+        "ck_calendar_series_duration_positive": (
+            "duration_minutes > 0"
+        ),
+        "ck_calendar_series_weekday_mask_range": (
+            "weekday_mask >= 0 AND weekday_mask <= 127"
+        ),
+        "ck_calendar_series_weekday_shape": (
+            "(frequency = 'daily' AND weekday_mask = 0) "
+            "OR (frequency = 'weekly' "
+            "AND weekday_mask >= 1 "
+            "AND weekday_mask <= 127)"
+        ),
+        "ck_calendar_series_end_date": (
+            "end_date IS NULL OR end_date >= anchor_date"
+        ),
+    },
+    "work_calendar_relationships": {
+        "ck_work_calendar_relationships_work_type": (
+            "work_type IN ('task', 'project')"
+        ),
+        "ck_work_calendar_relationships_calendar_type": (
+            "calendar_type IN ('entry', 'series')"
+        ),
+    },
+}
 
 PROJECT_COLUMN_UPGRADES = {
     "type": (
@@ -2523,6 +2607,62 @@ def _verify_resource_schema(
         )
 
 
+def _ensure_calendar_tables(
+    connection: Connection,
+) -> None:
+    with connection.begin():
+        for table_name in CALENDAR_TABLES:
+            Base.metadata.tables[table_name].create(
+                bind=connection,
+                checkfirst=True,
+            )
+            _repair_scoped_indexes(connection, table_name)
+
+
+def _verify_calendar_schema(
+    connection: Connection,
+) -> None:
+    database_inspector = inspect(connection)
+
+    for table_name in CALENDAR_TABLES:
+        if not _table_has_final_structure(
+            connection,
+            table_name,
+        ):
+            raise RuntimeError(
+                f"{table_name} does not match the version 7 schema."
+            )
+
+        _verify_scoped_indexes(connection, table_name)
+
+    for table_name, expected in CALENDAR_CHECK_CONSTRAINTS.items():
+        actual = {
+            constraint.get("name"): _canonical_sql(
+                constraint["sqltext"]
+            )
+            for constraint
+            in database_inspector.get_check_constraints(table_name)
+        }
+        expected_canonical = {
+            name: _canonical_sql(expression)
+            for name, expression in expected.items()
+        }
+
+        if actual != expected_canonical:
+            raise RuntimeError(
+                f"{table_name} check constraints are incomplete."
+            )
+
+    foreign_key_violations = list(
+        connection.exec_driver_sql("PRAGMA foreign_key_check")
+    )
+
+    if foreign_key_violations:
+        raise RuntimeError(
+            "The version 7 schema contains foreign-key violations."
+        )
+
+
 def apply_schema_upgrades(connection: Connection) -> None:
     if connection.dialect.name != "sqlite":
         return
@@ -2633,7 +2773,20 @@ def apply_schema_upgrades(connection: Connection) -> None:
     with connection.begin():
         _verify_resource_schema(connection)
 
-        if version < CURRENT_DATABASE_SCHEMA_VERSION:
+        if version < RESOURCE_DATABASE_SCHEMA_VERSION:
             connection.exec_driver_sql(
-                f"PRAGMA user_version = {CURRENT_DATABASE_SCHEMA_VERSION}"
+                "PRAGMA user_version = "
+                f"{RESOURCE_DATABASE_SCHEMA_VERSION}"
+            )
+            version = RESOURCE_DATABASE_SCHEMA_VERSION
+
+    _ensure_calendar_tables(connection)
+
+    with connection.begin():
+        _verify_calendar_schema(connection)
+
+        if version < CALENDAR_DATABASE_SCHEMA_VERSION:
+            connection.exec_driver_sql(
+                "PRAGMA user_version = "
+                f"{CALENDAR_DATABASE_SCHEMA_VERSION}"
             )
