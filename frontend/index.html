@@ -440,10 +440,308 @@
                     <h2>Calendar</h2>
 
                     <p>
-                        Calendar capabilities are planned for a future
-                        release.
+                        Record commitments, events, routines, and explicit
+                        availability. Calendar does not decide Work feasibility.
                     </p>
                 </section>
+
+                <section class="resource-workspace">
+                    <div class="resource-workspace-heading">
+                        <div>
+                            <h3>Agenda</h3>
+                            <p id="calendar-timezone">
+                                Loading Calendar timezone…
+                            </p>
+                        </div>
+
+                        <button
+                            id="add-calendar-entry"
+                            class="primary-button"
+                            type="button"
+                        >
+                            + Add Entry
+                        </button>
+                    </div>
+
+                    <p
+                        id="calendar-page-message"
+                        class="resource-page-message"
+                        role="status"
+                        aria-live="polite"
+                    ></p>
+
+                    <div
+                        class="resource-toolbar"
+                        aria-label="Calendar controls"
+                    >
+                        <button
+                            id="calendar-previous"
+                            class="secondary-button"
+                            type="button"
+                        >
+                            Previous
+                        </button>
+
+                        <button
+                            id="calendar-today"
+                            class="secondary-button"
+                            type="button"
+                        >
+                            Today
+                        </button>
+
+                        <button
+                            id="calendar-next"
+                            class="secondary-button"
+                            type="button"
+                        >
+                            Next
+                        </button>
+
+                        <input
+                            id="calendar-date"
+                            type="date"
+                            aria-label="Calendar date"
+                        >
+
+                        <select
+                            id="calendar-member-filter"
+                            aria-label="Filter Calendar by Member"
+                        >
+                            <option value="all">All Members</option>
+                        </select>
+                    </div>
+
+                    <div class="resource-table-wrapper">
+                        <table class="resource-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">When</th>
+                                    <th scope="col">Entry</th>
+                                    <th scope="col">Type</th>
+                                    <th scope="col">Member</th>
+                                    <th scope="col">Location</th>
+                                    <th scope="col">Actions</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="calendar-table-body"></tbody>
+                        </table>
+
+                        <div
+                            id="calendar-empty-state"
+                            class="resource-empty-state"
+                            hidden
+                        >
+                            <div>
+                                <h3>No Calendar entries</h3>
+                                <p>
+                                    No commitments, events, routines, or
+                                    explicit availability occur on this date.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div
+                    id="calendar-entry-dialog-backdrop"
+                    class="dialog-backdrop"
+                    hidden
+                >
+                    <section
+                        class="inventory-dialog resource-dialog"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="calendar-entry-dialog-title"
+                    >
+                        <header class="dialog-header">
+                            <div>
+                                <p class="section-eyebrow">
+                                    Calendar Fact
+                                </p>
+
+                                <h2 id="calendar-entry-dialog-title">
+                                    Add Calendar Entry
+                                </h2>
+                            </div>
+
+                            <button
+                                id="close-calendar-entry-dialog"
+                                class="icon-button"
+                                type="button"
+                                aria-label="Close Calendar editor"
+                            >
+                                ×
+                            </button>
+                        </header>
+
+                        <form
+                            id="calendar-entry-form"
+                            class="inventory-form resource-form"
+                        >
+                            <div class="form-field form-field-wide">
+                                <label for="calendar-entry-title">
+                                    Title
+                                </label>
+
+                                <input
+                                    id="calendar-entry-title"
+                                    name="title"
+                                    type="text"
+                                    maxlength="160"
+                                    required
+                                >
+                            </div>
+
+                            <div class="form-field">
+                                <label for="calendar-entry-kind">
+                                    Type
+                                </label>
+
+                                <select
+                                    id="calendar-entry-kind"
+                                    name="kind"
+                                    required
+                                >
+                                    <option value="commitment">
+                                        Commitment
+                                    </option>
+                                    <option value="event">
+                                        Event
+                                    </option>
+                                    <option value="availability">
+                                        Availability
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="calendar-entry-member">
+                                    Member
+                                </label>
+
+                                <select
+                                    id="calendar-entry-member"
+                                    name="memberId"
+                                >
+                                    <option value="">Unassigned</option>
+                                </select>
+                            </div>
+
+                            <div class="form-field form-field-wide">
+                                <label>
+                                    <input
+                                        id="calendar-entry-all-day"
+                                        name="allDay"
+                                        type="checkbox"
+                                    >
+                                    All day
+                                </label>
+                            </div>
+
+                            <div
+                                id="calendar-entry-timed-fields"
+                                class="form-field form-field-wide"
+                            >
+                                <label for="calendar-entry-start-at">
+                                    Start
+                                </label>
+
+                                <input
+                                    id="calendar-entry-start-at"
+                                    name="startAt"
+                                    type="datetime-local"
+                                >
+
+                                <label for="calendar-entry-end-at">
+                                    End
+                                </label>
+
+                                <input
+                                    id="calendar-entry-end-at"
+                                    name="endAt"
+                                    type="datetime-local"
+                                >
+                            </div>
+
+                            <div
+                                id="calendar-entry-all-day-fields"
+                                class="form-field form-field-wide"
+                                hidden
+                            >
+                                <label for="calendar-entry-start-date">
+                                    Start date
+                                </label>
+
+                                <input
+                                    id="calendar-entry-start-date"
+                                    name="startDate"
+                                    type="date"
+                                >
+
+                                <label for="calendar-entry-end-date">
+                                    End date
+                                </label>
+
+                                <input
+                                    id="calendar-entry-end-date"
+                                    name="endDate"
+                                    type="date"
+                                >
+                            </div>
+
+                            <div class="form-field form-field-wide">
+                                <label for="calendar-entry-location">
+                                    Location
+                                </label>
+
+                                <input
+                                    id="calendar-entry-location"
+                                    name="location"
+                                    type="text"
+                                    maxlength="200"
+                                >
+                            </div>
+
+                            <div class="form-field form-field-wide">
+                                <label for="calendar-entry-notes">
+                                    Notes
+                                </label>
+
+                                <textarea
+                                    id="calendar-entry-notes"
+                                    name="notes"
+                                    rows="4"
+                                    maxlength="1000"
+                                ></textarea>
+                            </div>
+
+                            <p
+                                id="calendar-entry-form-error"
+                                class="form-error"
+                                role="alert"
+                            ></p>
+
+                            <div class="dialog-actions">
+                                <button
+                                    id="cancel-calendar-entry"
+                                    class="secondary-button"
+                                    type="button"
+                                >
+                                    Cancel
+                                </button>
+
+                                <button
+                                    class="primary-button"
+                                    type="submit"
+                                >
+                                    Save Entry
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+                </div>
             </main>
 
             <!-- Work page -->

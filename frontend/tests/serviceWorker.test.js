@@ -18,6 +18,7 @@ const expectedShellAssets = [
     "/styles.css",
     "/app.js",
     "/pages/dashboard.js",
+    "/pages/calendar.js",
     "/pages/care.js",
     "/pages/inventory.js",
     "/pages/projects.js",
@@ -28,6 +29,7 @@ const expectedShellAssets = [
     "/pages/tools.js",
     "/pages/work.js",
     "/utils/api.js",
+    "/utils/calendarApi.js",
     "/utils/careApi.js",
     "/utils/connectionState.js",
     "/utils/spaceApi.js",
@@ -163,7 +165,7 @@ test("install atomically precaches the exact versioned shell", async () => {
 
     await install.waitPromise;
 
-    assert.equal(expectedShellAssets.length, 47);
+    assert.equal(expectedShellAssets.length, 49);
     assert.equal(
         expectedShellAssets.includes("/utils/operationsApi.js"),
         true

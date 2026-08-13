@@ -1,6 +1,7 @@
 import { initializeRouter } from "./utils/router.js";
 import { initializeSystemStatus } from "./utils/api.js";
 import { initializeDashboard } from "./pages/dashboard.js";
+import { initializeCalendarPage } from "./pages/calendar.js";
 import { initializeWorkPage } from "./pages/work.js";
 import {
     initializeTasksPage,
@@ -68,6 +69,7 @@ async function initializeOperationalApplication() {
     initializeRouter();
 
     const initializers = [
+        initializeCalendarPage(),
         initializeDashboard({
             workEnabled,
             inventoryEnabled
