@@ -7,6 +7,12 @@ from app.models.calendar_setting import CalendarSetting
 from app.models.inventory import InventoryItem
 from app.models.inventory_migration import InventoryMigration
 from app.models.member import Member
+from app.models.money_account import MoneyAccount
+from app.models.money_budget import MoneyBudget
+from app.models.money_category import MoneyCategory
+from app.models.money_obligation import MoneyObligation
+from app.models.money_relationship import MoneyRelationship
+from app.models.money_transaction import MoneyTransaction
 from app.models.module_state import ModuleState
 from app.models.organization import Organization
 from app.models.organization_space_relationship import (
@@ -36,6 +42,12 @@ __all__ = [
     "InventoryItem",
     "InventoryMigration",
     "Member",
+    "MoneyAccount",
+    "MoneyBudget",
+    "MoneyCategory",
+    "MoneyObligation",
+    "MoneyRelationship",
+    "MoneyTransaction",
     "ModuleState",
     "Organization",
     "OrganizationSpaceRelationship",

@@ -803,6 +803,27 @@ CREATE TABLE work_calendar_relationships (
 );
 """
 
+CURRENT_MONEY_TABLE_SCHEMA = """
+CREATE TABLE money_accounts (
+    id TEXT PRIMARY KEY
+);
+CREATE TABLE money_budgets (
+    id TEXT PRIMARY KEY
+);
+CREATE TABLE money_categories (
+    id TEXT PRIMARY KEY
+);
+CREATE TABLE money_obligations (
+    id TEXT PRIMARY KEY
+);
+CREATE TABLE money_relationships (
+    id TEXT PRIMARY KEY
+);
+CREATE TABLE money_transactions (
+    id TEXT PRIMARY KEY
+);
+"""
+
 
 class BackupPackageTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -901,6 +922,9 @@ class BackupPackageTests(unittest.TestCase):
             if user_version >= CURRENT_DATABASE_SCHEMA_VERSION:
                 connection.executescript(
                     CURRENT_CALENDAR_TABLE_SCHEMA
+                )
+                connection.executescript(
+                    CURRENT_MONEY_TABLE_SCHEMA
                 )
 
             connection.execute(
@@ -2459,6 +2483,9 @@ class PreRestoreSafetyBackupTests(unittest.TestCase):
             )
             connection.executescript(
                 CURRENT_CALENDAR_TABLE_SCHEMA
+            )
+            connection.executescript(
+                CURRENT_MONEY_TABLE_SCHEMA
             )
             connection.execute(
                 f"PRAGMA user_version = {CURRENT_DATABASE_SCHEMA_VERSION}"

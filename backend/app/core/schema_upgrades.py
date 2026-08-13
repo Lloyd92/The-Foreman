@@ -19,7 +19,8 @@ SPACE_SCOPE_DATABASE_SCHEMA_VERSION = 4
 UNIVERSAL_WORK_DATABASE_SCHEMA_VERSION = 5
 RESOURCE_DATABASE_SCHEMA_VERSION = 6
 CALENDAR_DATABASE_SCHEMA_VERSION = 7
-CURRENT_DATABASE_SCHEMA_VERSION = CALENDAR_DATABASE_SCHEMA_VERSION
+MONEY_DATABASE_SCHEMA_VERSION = 8
+CURRENT_DATABASE_SCHEMA_VERSION = MONEY_DATABASE_SCHEMA_VERSION
 SPACE_SCOPE_JOURNAL_TABLE = "__foreman_v4_space_scope_journal"
 
 RESOURCE_TABLES = (
@@ -35,6 +36,15 @@ CALENDAR_TABLES = (
     "calendar_series",
     "calendar_series_exclusions",
     "work_calendar_relationships",
+)
+
+MONEY_TABLES = (
+    "money_accounts",
+    "money_categories",
+    "money_transactions",
+    "money_budgets",
+    "money_obligations",
+    "money_relationships",
 )
 
 UNIVERSAL_WORK_COLUMN_UPGRADES = (
@@ -166,6 +176,95 @@ CALENDAR_CHECK_CONSTRAINTS = {
         ),
         "ck_work_calendar_relationships_calendar_type": (
             "calendar_type IN ('entry', 'series')"
+        ),
+    },
+}
+
+
+MONEY_CHECK_CONSTRAINTS = {
+    "money_accounts": {
+        "ck_money_accounts_kind": (
+            "kind IN ('cash', 'checking', 'savings', 'credit', 'loan', 'other')"
+        ),
+        "ck_money_accounts_name_not_blank": (
+            "length(trim(name)) > 0"
+        ),
+        "ck_money_accounts_currency_code": (
+            "length(currency_code) = 3 "
+            "AND currency_code = upper(currency_code) "
+            "AND currency_code NOT GLOB '*[^A-Z]*'"
+        ),
+    },
+    "money_categories": {
+        "ck_money_categories_kind": (
+            "kind IN ('income', 'expense')"
+        ),
+        "ck_money_categories_name_not_blank": (
+            "length(trim(name)) > 0"
+        ),
+    },
+    "money_transactions": {
+        "ck_money_transactions_kind": (
+            "kind IN ('income', 'expense')"
+        ),
+        "ck_money_transactions_amount_positive": (
+            "amount_minor > 0"
+        ),
+        "ck_money_transactions_currency_code": (
+            "length(currency_code) = 3 "
+            "AND currency_code = upper(currency_code) "
+            "AND currency_code NOT GLOB '*[^A-Z]*'"
+        ),
+        "ck_money_transactions_description_not_blank": (
+            "length(trim(description)) > 0"
+        ),
+    },
+    "money_budgets": {
+        "ck_money_budgets_name_not_blank": (
+            "length(trim(name)) > 0"
+        ),
+        "ck_money_budgets_amount_positive": (
+            "amount_minor > 0"
+        ),
+        "ck_money_budgets_currency_code": (
+            "length(currency_code) = 3 "
+            "AND currency_code = upper(currency_code) "
+            "AND currency_code NOT GLOB '*[^A-Z]*'"
+        ),
+        "ck_money_budgets_date_range": (
+            "end_date >= start_date"
+        ),
+    },
+    "money_obligations": {
+        "ck_money_obligations_name_not_blank": (
+            "length(trim(name)) > 0"
+        ),
+        "ck_money_obligations_amount_positive": (
+            "amount_minor > 0"
+        ),
+        "ck_money_obligations_frequency": (
+            "frequency IN ('once', 'weekly', 'monthly', 'yearly')"
+        ),
+        "ck_money_obligations_interval_positive": (
+            "interval_value > 0"
+        ),
+        "ck_money_obligations_date_range": (
+            "end_date IS NULL OR end_date >= start_date"
+        ),
+        "ck_money_obligations_currency_code": (
+            "length(currency_code) = 3 "
+            "AND currency_code = upper(currency_code) "
+            "AND currency_code NOT GLOB '*[^A-Z]*'"
+        ),
+    },
+    "money_relationships": {
+        "ck_money_relationships_money_type": (
+            "money_type IN "
+            "('account', 'category', 'transaction', 'budget', 'obligation')"
+        ),
+        "ck_money_relationships_target_type": (
+            "target_type IN "
+            "('task', 'project', 'tool', 'inventory', 'person', 'organization')"
         ),
     },
 }
@@ -2663,6 +2762,63 @@ def _verify_calendar_schema(
         )
 
 
+
+def _ensure_money_tables(
+    connection: Connection,
+) -> None:
+    with connection.begin():
+        for table_name in MONEY_TABLES:
+            Base.metadata.tables[table_name].create(
+                bind=connection,
+                checkfirst=True,
+            )
+            _repair_scoped_indexes(connection, table_name)
+
+
+def _verify_money_schema(
+    connection: Connection,
+) -> None:
+    database_inspector = inspect(connection)
+
+    for table_name in MONEY_TABLES:
+        if not _table_has_final_structure(
+            connection,
+            table_name,
+        ):
+            raise RuntimeError(
+                f"{table_name} does not match the version 8 schema."
+            )
+
+        _verify_scoped_indexes(connection, table_name)
+
+    for table_name, expected in MONEY_CHECK_CONSTRAINTS.items():
+        actual = {
+            constraint.get("name"): _canonical_sql(
+                constraint["sqltext"]
+            )
+            for constraint
+            in database_inspector.get_check_constraints(table_name)
+        }
+        expected_canonical = {
+            name: _canonical_sql(expression)
+            for name, expression in expected.items()
+        }
+
+        if actual != expected_canonical:
+            raise RuntimeError(
+                f"{table_name} check constraints are incomplete."
+            )
+
+    foreign_key_violations = list(
+        connection.exec_driver_sql("PRAGMA foreign_key_check")
+    )
+
+    if foreign_key_violations:
+        raise RuntimeError(
+            "The version 8 schema contains foreign-key violations."
+        )
+
+
 def apply_schema_upgrades(connection: Connection) -> None:
     if connection.dialect.name != "sqlite":
         return
@@ -2789,4 +2945,16 @@ def apply_schema_upgrades(connection: Connection) -> None:
             connection.exec_driver_sql(
                 "PRAGMA user_version = "
                 f"{CALENDAR_DATABASE_SCHEMA_VERSION}"
+            )
+            version = CALENDAR_DATABASE_SCHEMA_VERSION
+
+    _ensure_money_tables(connection)
+
+    with connection.begin():
+        _verify_money_schema(connection)
+
+        if version < MONEY_DATABASE_SCHEMA_VERSION:
+            connection.exec_driver_sql(
+                "PRAGMA user_version = "
+                f"{MONEY_DATABASE_SCHEMA_VERSION}"
             )

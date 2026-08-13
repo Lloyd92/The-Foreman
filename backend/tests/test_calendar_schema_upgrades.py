@@ -86,9 +86,9 @@ class CalendarSchemaUpgradeTests(unittest.TestCase):
         with self.engine.connect() as connection:
             self.assertEqual(
                 get_database_schema_version(connection),
-                CALENDAR_DATABASE_SCHEMA_VERSION,
+                CURRENT_DATABASE_SCHEMA_VERSION,
             )
-            self.assertEqual(
+            self.assertGreaterEqual(
                 CURRENT_DATABASE_SCHEMA_VERSION,
                 CALENDAR_DATABASE_SCHEMA_VERSION,
             )
@@ -147,7 +147,7 @@ class CalendarSchemaUpgradeTests(unittest.TestCase):
         with self.engine.connect() as connection:
             self.assertEqual(
                 get_database_schema_version(connection),
-                7,
+                CURRENT_DATABASE_SCHEMA_VERSION,
             )
 
             preserved = connection.execute(
@@ -204,7 +204,7 @@ class CalendarSchemaUpgradeTests(unittest.TestCase):
         with self.engine.connect() as connection:
             self.assertEqual(
                 get_database_schema_version(connection),
-                7,
+                CURRENT_DATABASE_SCHEMA_VERSION,
             )
 
         self.run_upgrade()
