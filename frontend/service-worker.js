@@ -1,4 +1,4 @@
-const SHELL_CACHE_NAME = "foreman-shell-v0.8.2-c1";
+const SHELL_CACHE_NAME = "foreman-shell-v0.8.3-c1";
 const FOREMAN_CACHE_PREFIX = "foreman-shell-";
 
 // This exact, atomic set keeps one frontend release coherent. Runtime fetches

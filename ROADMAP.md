@@ -560,9 +560,9 @@ Explicitly excluded:
 - Automatic recommendations
 - Morning Briefing decision logic
 
-## v0.8.3 — Calendar & Scheduling
+## v0.8.3 — Calendar & Scheduling ✅
 
-Status: In Progress — architecture reconciled
+Status: Complete
 
 Purpose:
 

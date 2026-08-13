@@ -151,9 +151,9 @@ Care Plans:
 
 Calendar:
 
-- Is already a permanent primary navigation destination but remains a
-  placeholder in the released v0.8.2 runtime.
-- v0.8.3 architecture assigns backend-authoritative selected-Space ownership
+- Is a permanent primary navigation destination with a released
+  selected-Space Calendar frontend in v0.8.3.
+- Uses backend-authoritative selected-Space ownership
   for commitments, events, routines, recurrence, and explicitly recorded
   availability.
 - The selected Space owns a configured IANA timezone. Recurring records preserve
@@ -410,7 +410,7 @@ The manifest and installation assets define the PWA identity and installation
 boundary. Standalone display, Apple installation metadata, and dynamic
 safe-area insets support the installed iPhone experience.
 
-The v0.8.2 service worker atomically precaches exactly 47 static-shell resources.
+The v0.8.3 service worker atomically precaches exactly 49 static-shell resources.
 Only exact allowlisted shell resources and navigation fallback are handled by
 that cache. APIs, migrations, mutations, non-GET requests, the worker itself,
 unknown static resources, and cross-origin requests remain network-owned.

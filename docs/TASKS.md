@@ -157,7 +157,7 @@ the milestone with v0.8.0 release identity and documentation reconciliation.
 - [x] v0.8.0 — Universal Navigation & Spaces
 - [x] v0.8.1 — Universal Work System
 - [x] v0.8.2 — Tools, Inventory & Care
-- [ ] v0.8.3 — Calendar & Scheduling
+- [x] v0.8.3 — Calendar & Scheduling
 - [ ] v0.8.4 — Money
 - [ ] v0.8.5 — Library, Records & Search
 - [ ] v0.8.6 — Today Workspace & Household Proving Ground
@@ -268,7 +268,7 @@ Commit 1 is documentation-only. It does not change the SQLite schema,
 application version, PWA cache identity, APIs, frontend runtime behavior,
 migration behavior, Docker deployment, or live data.
 
-## v0.8.3 — Calendar & Scheduling
+## Completed v0.8.3 — Calendar & Scheduling
 
 Architecture review:
 
@@ -301,20 +301,20 @@ Architecture review:
 Planned implementation sequence:
 
 1. [x] Reconcile v0.8.3 architecture and current-state documentation.
-2. [ ] Add Calendar persistence with a safe SQLite schema-v7 upgrade and
+2. [x] Add Calendar persistence with a safe SQLite schema-v7 upgrade and
        recovery contract.
-3. [ ] Add Calendar settings, fixed commitments/events/availability, active-
+3. [x] Add Calendar settings, fixed commitments/events/availability, active-
        Space isolation, and optional same-Space Member association.
-4. [ ] Add deterministic recurring Calendar series, exclusions, timezone/DST
+4. [x] Add deterministic recurring Calendar series, exclusions, timezone/DST
        behavior, and bounded occurrence expansion.
-5. [ ] Add concrete Work-to-Calendar relationships with retained missing-target
+5. [x] Add concrete Work-to-Calendar relationships with retained missing-target
        evidence and Work-owned lifecycle behavior.
-6. [ ] Replace the Calendar placeholder with the selected-Space Calendar
+6. [x] Replace the Calendar placeholder with the selected-Space Calendar
        frontend and fixed-record workflows.
-7. [ ] Converge recurring routines, Member filtering, and Calendar module
+7. [x] Converge recurring routines, Member filtering, and Calendar module
        behavior without introducing Capacity.
-8. [ ] Complete isolated disposable browser compatibility acceptance.
-9. [ ] Reconcile v0.8.3 release identity, documentation, and Green Build.
+8. [x] Complete isolated disposable browser compatibility acceptance.
+9. [x] Reconcile v0.8.3 release identity, documentation, and Green Build.
 
 Commit 1 remains documentation-only. It does not change SQLite schema version 6,
 application version 0.8.2, PWA cache identity, APIs, frontend runtime behavior,

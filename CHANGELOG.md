@@ -14,6 +14,52 @@ No unreleased changes are recorded yet.
 
 ---
 
+# v0.8.3 — 2026-08-13
+
+## Added
+
+- Added backend-authoritative selected-Space Calendar settings with configured
+  IANA timezone validation.
+- Added fixed commitments, events, availability, and all-day Calendar records.
+- Added deterministic daily and weekly routines with local wall-clock
+  recurrence, bounded occurrence expansion, and explicit occurrence exclusions.
+- Added Work-to-Calendar relationships while preserving missing referenced
+  Calendar evidence.
+- Added the selected-Space Calendar frontend with fixed-record and recurring
+  routine workflows, Member filtering, and factual agenda presentation.
+- Added isolated Firefox Calendar acceptance.
+
+## Changed
+
+- Advanced the internal SQLite schema from version 6 to version 7 with additive
+  Calendar persistence and recovery compatibility.
+- Updated application release identity to 0.8.3 and finalized the exact
+  49-resource PWA shell as `foreman-shell-v0.8.3-c1`.
+
+## Reliability
+
+- Preserved backend-authoritative active-Space isolation.
+- Preserved recurring local wall-clock meaning across timezone offset and
+  daylight-saving changes.
+- Kept operational-fact schema version 1 and portable export format version 1.
+- Kept Calendar factual and separate from Capacity, Priority, recommendations,
+  free-time inference, and automatic optional-Work placement.
+
+## Validation
+
+- Completed final full backend acceptance with 344 tests passing.
+- Completed final full frontend acceptance with 193 tests passing.
+- Completed isolated disposable Firefox acceptance with 45 tests passing.
+
+## Documentation
+
+- Completed the v0.8.3 Calendar & Scheduling milestone.
+- Preserved Capacity for v0.9.0, Priority for v0.9.1, and Morning Briefing for
+  v0.9.2.
+- Set v0.8.4 Money as the next approved milestone.
+
+---
+
 # v0.8.2 — 2026-08-10
 
 ## Added

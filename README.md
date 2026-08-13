@@ -26,11 +26,11 @@ rather than replace it.
 
 **Current Version**
 
-v0.8.2 — Tools, Inventory & Care
+v0.8.3 — Calendar & Scheduling
 
 Current focus:
 
-- Build v0.8.3 Calendar & Scheduling from the released v0.8.2 Green Build
+- Begin v0.8.4 Money from the released v0.8.3 Green Build
 - Keep Calendar authoritative for commitments, events, routines, recurrence,
   and explicitly recorded availability
 - Use backend-authoritative selected-Space Calendar data and a configured IANA
@@ -318,8 +318,11 @@ v0.8.2 adds separate Tools and Care authorities beneath Resources, SQLite
 schema version 6, factual Tool maintenance history, concrete Work-to-Tool
 requirements, and the Resources Overview, Tools, Inventory, and Care frontend
 surfaces. Operational-fact schema version 1 remains unchanged. Capacity,
-Priority, Calendar scheduling behavior, next-action selection, Morning
-Briefing narration, and AI remain future capabilities.
+v0.8.3 adds backend-authoritative Calendar settings, commitments, events,
+availability, deterministic daily/weekly routines, occurrence exclusions,
+Work-to-Calendar relationships, and the selected-Space Calendar frontend.
+Capacity, Priority, next-action selection, Morning Briefing narration, and AI
+remain future capabilities.
 
 ---
 
@@ -333,8 +336,8 @@ iPhone Home Screen installation. Trusted HTTPS installation, standalone
 launch, backend-authoritative startup, and safe-area behavior have been
 accepted on a physical iPhone.
 
-The current v0.8.2 service worker atomically precaches an exact 47-resource
-static shell as `foreman-shell-v0.8.2-c1`. It does not cache API responses,
+The current v0.8.3 service worker atomically precaches an exact 49-resource
+static shell as `foreman-shell-v0.8.3-c1`. It does not cache API responses,
 business records, migrations, or mutations and does not queue, replay, or
 synchronize writes. A cached shell can therefore remain available when
 HardHead is unavailable, but shell availability does not mean operational
@@ -393,8 +396,9 @@ Backup, export, restore, and verification are implemented in v0.7.4.
 Frontend hardening and the isolated browser-E2E foundation are implemented in
 v0.7.5. Universal Navigation & Spaces is implemented in v0.8.0. Universal
 Work is implemented in v0.8.1. Tools, Inventory & Care is implemented in
-v0.8.2. Next-action identification and Morning Briefing narration remain
-future capabilities. AI is not part of v0.8.2.
+v0.8.2. Calendar & Scheduling is implemented in v0.8.3. Next-action
+identification and Morning Briefing narration remain future capabilities.
+AI is not part of v0.8.3.
 
 See `ROADMAP.md` for additional details.
 
