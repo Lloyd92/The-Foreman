@@ -9,6 +9,7 @@ from app.api.data_export import router as data_export_router
 from app.api.inventory import router as inventory_router
 from app.api.inventory_migrations import router as inventory_migrations_router
 from app.api.members import router as members_router
+from app.api.money import router as money_router
 from app.api.modules import router as modules_router
 from app.api.organization_relationships import (
     router as organization_relationships_router,
@@ -79,6 +80,7 @@ app.include_router(members_router)
 app.include_router(organization_relationships_router)
 app.include_router(modules_router)
 app.include_router(data_export_router)
+app.include_router(money_router)
 app.include_router(inventory_router)
 app.include_router(inventory_migrations_router)
 app.include_router(projects_router)

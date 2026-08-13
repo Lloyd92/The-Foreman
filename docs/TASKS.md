@@ -352,9 +352,9 @@ Architecture review:
 Planned implementation sequence:
 
 1. [x] Reconcile v0.8.4 architecture and current-state documentation.
-2. [ ] Add Money persistence with a safe SQLite schema-v8 upgrade and recovery
+2. [x] Add Money persistence with a safe SQLite schema-v8 upgrade and recovery
        compatibility.
-3. [ ] Add Space-authoritative Accounts and Categories.
+3. [x] Add Space-authoritative Accounts and Categories.
 4. [ ] Add factual Transactions for income, revenue, and expenses.
 5. [ ] Add Budgets, Obligations, and recurring-cost records without Capacity or
        recommendation behavior.
