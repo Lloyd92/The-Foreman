@@ -191,10 +191,12 @@ Projects:
 - Estimated completion, Project templates, and deeper module integrations are
   not yet implemented.
 
-Budget and Mealworms:
+Money and Mealworms:
 
-- Exist as placeholder workspaces.
-- Their operational modules are not yet implemented.
+- Money exists as a permanent primary navigation category; its retained Budget
+  child route remains a compatibility placeholder until v0.8.4 implementation.
+- Mealworms remains an independent placeholder workspace.
+- Neither operational domain is implemented in the current v0.8.3 runtime.
 
 ## 2.3 Layers and Capabilities Not Yet Implemented
 
@@ -780,7 +782,9 @@ Examples include:
 - Calendar owns fixed commitments, events, routines, recurrence, and
   availability.
 - Care Plans owns maintenance and care definitions.
-- Money owns financial records.
+- Money owns accounts or funding sources, financial categories,
+  transactions, budgets, obligations, recurring costs, and Money-owned
+  relationship evidence.
 - Library owns stored records and reference material.
 
 Modules communicate through stable identifiers, relationships, services, APIs,

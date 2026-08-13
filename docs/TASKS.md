@@ -320,6 +320,56 @@ Commit 1 remains documentation-only. It does not change SQLite schema version 6,
 application version 0.8.2, PWA cache identity, APIs, frontend runtime behavior,
 migration behavior, Docker deployment, or live household data.
 
+## Planned v0.8.4 — Money
+
+Architecture review:
+
+- [x] Preserve Money as the authority for financial records and explicit
+      user-entered financial plans.
+- [x] Use Space-authoritative Accounts, Categories, Transactions, Budgets, and
+      Obligations as the v0.8.4 factual core.
+- [x] Represent income, revenue, and expenses through factual Transactions
+      rather than separate competing ledgers.
+- [x] Treat recurring costs as Money-owned obligations without introducing
+      scheduling, Capacity, or recommendation authority.
+- [x] Use explicit Money relationship evidence for approved links to Work,
+      Resources, People, and Organizations without transferring ownership.
+- [x] Preserve the permanent Money primary-navigation destination and treat the
+      retained Budget child route as compatibility surface during convergence.
+- [x] Advance SQLite schema version 7 to version 8 through an additive,
+      idempotent, verified upgrade.
+- [x] Keep backup format version 1 unchanged; full database snapshots include
+      new Money tables automatically.
+- [x] Keep portable export format version 1 unchanged and deliberately outside
+      the v0.8.4 Money contract.
+- [x] Keep operational-fact schema version 1 unchanged unless a later reviewed
+      Money fact contribution explicitly requires a contract change.
+- [x] Keep affordability inference, Capacity, Priority, Morning Briefing
+      recommendations, AI interpretation, forecasting, full accounting, tax
+      accounting, commercialization, billing, subscriptions, and entitlement
+      architecture deferred.
+
+Planned implementation sequence:
+
+1. [x] Reconcile v0.8.4 architecture and current-state documentation.
+2. [ ] Add Money persistence with a safe SQLite schema-v8 upgrade and recovery
+       compatibility.
+3. [ ] Add Space-authoritative Accounts and Categories.
+4. [ ] Add factual Transactions for income, revenue, and expenses.
+5. [ ] Add Budgets, Obligations, and recurring-cost records without Capacity or
+       recommendation behavior.
+6. [ ] Add explicit cross-domain Money relationships with retained evidence
+       where required by the approved relationship contract.
+7. [ ] Replace the Money/Budget placeholder experience with the selected-Space
+       Money frontend while preserving compatible navigation.
+8. [ ] Complete isolated disposable browser compatibility acceptance.
+9. [ ] Reconcile v0.8.4 release identity, documentation, and Green Build.
+
+Commit 1 is documentation-only. It does not change SQLite schema version 7,
+application version 0.8.3, PWA cache identity, APIs, frontend runtime behavior,
+migration behavior, Docker deployment, portable export format, backup format,
+operational-fact schema, or live household data.
+
 ## v0.8.0 Architecture Boundaries
 
 - Ordinary workflows use one clearly selected active Space.

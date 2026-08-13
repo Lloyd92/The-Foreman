@@ -471,22 +471,33 @@ authority.
 
 Money uses universal concepts that can support household and business use.
 
-Later Money capabilities may include:
+v0.8.4 establishes these authoritative Money record types:
 
-- Income
-- Revenue
-- Expenses
 - Accounts or funding sources
-- Budgets
-- Obligations
-- Recurring costs
-- Transaction categorization
+- Financial categories
+- Transactions representing factual income, revenue, and expenses
+- Budgets representing user-defined plans or limits
+- Obligations and recurring costs
+- Explicit Money relationship evidence to approved records owned by Work,
+  Resources, People, and Organizations
+
+Every Money record is authoritative within one Space. Cross-domain
+relationships use stable identifiers and must not duplicate or transfer
+another module's authority. Relationship evidence may remain visible when a
+referenced target disappears where the approved relationship contract requires
+that history to be retained.
 
 The interface may show household or business terminology contextually while
 preserving one understandable architecture.
 
-Money is operational financial decision support. It is not intended to replace
-complete accounting software.
+Money records financial facts and explicit user-entered financial plans. It
+does not infer free funds, determine affordability, perform Capacity logic,
+rank Work, recommend spending, forecast financial outcomes, perform AI
+interpretation, or replace complete accounting software.
+
+v0.8.4 advances SQLite schema version 7 to version 8 while preserving backup
+format version 1, portable export format version 1, and operational-fact schema
+version 1.
 
 ---
 

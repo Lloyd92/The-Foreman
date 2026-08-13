@@ -638,17 +638,23 @@ permanent Money category.
 
 Scope:
 
-- Income and revenue
-- Expenses
-- Accounts or funding sources
-- Budgets
+- Space-authoritative financial accounts or funding sources
+- Financial categories
+- Transactions representing factual income, revenue, and expenses
+- Budgets representing user-defined financial plans or limits
 - Obligations and recurring costs
-- Transaction categorization
+- Explicit relationships from Money records to Work, Resources, People, and
+  Organizations without transferring authority
 - Contextual household and business terminology
-- Relationships to Spaces, Work, Resources, People, and Organizations
 
-Money provides operational financial decision support and does not replace
-complete accounting software.
+Money records financial reality and user-entered financial plans. It does not
+infer affordability, determine whether Work fits available funds, rank Work,
+recommend spending, forecast outcomes, or replace complete accounting software.
+
+v0.8.4 preserves operational-fact schema version 1, portable export format
+version 1, and backup format version 1. New Money persistence advances the
+SQLite schema from version 7 to version 8. Full Backup & Recovery protects the
+new application tables through the existing database-snapshot contract.
 
 ## v0.8.5 — Library, Records & Search
 
