@@ -454,13 +454,23 @@
                             </p>
                         </div>
 
-                        <button
-                            id="add-calendar-entry"
-                            class="primary-button"
-                            type="button"
-                        >
-                            + Add Entry
-                        </button>
+                        <div class="resource-row-actions">
+                            <button
+                                id="add-calendar-routine"
+                                class="secondary-button"
+                                type="button"
+                            >
+                                + Add Routine
+                            </button>
+
+                            <button
+                                id="add-calendar-entry"
+                                class="primary-button"
+                                type="button"
+                            >
+                                + Add Entry
+                            </button>
+                        </div>
                     </div>
 
                     <p
@@ -737,6 +747,235 @@
                                     type="submit"
                                 >
                                     Save Entry
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+                </div>
+                <div
+                    id="calendar-routine-dialog-backdrop"
+                    class="dialog-backdrop"
+                    hidden
+                >
+                    <section
+                        class="inventory-dialog resource-dialog"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="calendar-routine-dialog-title"
+                    >
+                        <header class="dialog-header">
+                            <div>
+                                <p class="section-eyebrow">
+                                    Recurring Calendar Fact
+                                </p>
+
+                                <h2 id="calendar-routine-dialog-title">
+                                    Add Routine
+                                </h2>
+                            </div>
+
+                            <button
+                                id="close-calendar-routine-dialog"
+                                class="icon-button"
+                                type="button"
+                                aria-label="Close Routine editor"
+                            >
+                                ×
+                            </button>
+                        </header>
+
+                        <form
+                            id="calendar-routine-form"
+                            class="inventory-form resource-form"
+                        >
+                            <div class="form-field form-field-wide">
+                                <label for="calendar-routine-title">
+                                    Title
+                                </label>
+
+                                <input
+                                    id="calendar-routine-title"
+                                    name="title"
+                                    type="text"
+                                    maxlength="160"
+                                    required
+                                >
+                            </div>
+
+                            <div class="form-field">
+                                <label for="calendar-routine-kind">
+                                    Type
+                                </label>
+
+                                <select
+                                    id="calendar-routine-kind"
+                                    name="kind"
+                                    required
+                                >
+                                    <option value="commitment">Commitment</option>
+                                    <option value="event">Event</option>
+                                    <option value="availability">Availability</option>
+                                </select>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="calendar-routine-member">
+                                    Member
+                                </label>
+
+                                <select
+                                    id="calendar-routine-member"
+                                    name="memberId"
+                                >
+                                    <option value="">Unassigned</option>
+                                </select>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="calendar-routine-frequency">
+                                    Repeats
+                                </label>
+
+                                <select
+                                    id="calendar-routine-frequency"
+                                    name="frequency"
+                                    required
+                                >
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                </select>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="calendar-routine-interval">
+                                    Every
+                                </label>
+
+                                <input
+                                    id="calendar-routine-interval"
+                                    name="intervalValue"
+                                    type="number"
+                                    min="1"
+                                    value="1"
+                                    required
+                                >
+                            </div>
+
+                            <fieldset
+                                id="calendar-routine-weekdays"
+                                class="form-field form-field-wide"
+                                hidden
+                            >
+                                <legend>Weekdays</legend>
+
+                                <label><input type="checkbox" name="weekdays" value="monday"> Monday</label>
+                                <label><input type="checkbox" name="weekdays" value="tuesday"> Tuesday</label>
+                                <label><input type="checkbox" name="weekdays" value="wednesday"> Wednesday</label>
+                                <label><input type="checkbox" name="weekdays" value="thursday"> Thursday</label>
+                                <label><input type="checkbox" name="weekdays" value="friday"> Friday</label>
+                                <label><input type="checkbox" name="weekdays" value="saturday"> Saturday</label>
+                                <label><input type="checkbox" name="weekdays" value="sunday"> Sunday</label>
+                            </fieldset>
+
+                            <div class="form-field">
+                                <label for="calendar-routine-anchor-date">
+                                    Starts
+                                </label>
+
+                                <input
+                                    id="calendar-routine-anchor-date"
+                                    name="anchorDate"
+                                    type="date"
+                                    required
+                                >
+                            </div>
+
+                            <div class="form-field">
+                                <label for="calendar-routine-end-date">
+                                    Ends
+                                </label>
+
+                                <input
+                                    id="calendar-routine-end-date"
+                                    name="endDate"
+                                    type="date"
+                                >
+                            </div>
+
+                            <div class="form-field">
+                                <label for="calendar-routine-start-time">
+                                    Start time
+                                </label>
+
+                                <input
+                                    id="calendar-routine-start-time"
+                                    name="localStartTime"
+                                    type="time"
+                                    required
+                                >
+                            </div>
+
+                            <div class="form-field">
+                                <label for="calendar-routine-duration">
+                                    Duration (minutes)
+                                </label>
+
+                                <input
+                                    id="calendar-routine-duration"
+                                    name="durationMinutes"
+                                    type="number"
+                                    min="1"
+                                    value="60"
+                                    required
+                                >
+                            </div>
+
+                            <div class="form-field form-field-wide">
+                                <label for="calendar-routine-location">
+                                    Location
+                                </label>
+
+                                <input
+                                    id="calendar-routine-location"
+                                    name="location"
+                                    type="text"
+                                    maxlength="200"
+                                >
+                            </div>
+
+                            <div class="form-field form-field-wide">
+                                <label for="calendar-routine-notes">
+                                    Notes
+                                </label>
+
+                                <textarea
+                                    id="calendar-routine-notes"
+                                    name="notes"
+                                    rows="4"
+                                    maxlength="1000"
+                                ></textarea>
+                            </div>
+
+                            <p
+                                id="calendar-routine-form-error"
+                                class="form-error"
+                                role="alert"
+                            ></p>
+
+                            <div class="dialog-actions">
+                                <button
+                                    id="cancel-calendar-routine"
+                                    class="secondary-button"
+                                    type="button"
+                                >
+                                    Cancel
+                                </button>
+
+                                <button
+                                    class="primary-button"
+                                    type="submit"
+                                >
+                                    Save Routine
                                 </button>
                             </div>
                         </form>

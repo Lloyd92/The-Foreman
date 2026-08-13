@@ -114,3 +114,25 @@ export function listMembers() {
 export function listPeople() {
     return apiRequest("/api/people");
 }
+
+
+export function createCalendarSeriesExclusion(seriesId, excludedDate) {
+    return spaceApiRequest(
+        `/api/calendar/series/${encodeURIComponent(seriesId)}/exclusions`,
+        {
+            method: "POST",
+            body: JSON.stringify({
+                excludedDate
+            })
+        }
+    );
+}
+
+
+export function deleteCalendarSeriesExclusion(seriesId, excludedDate) {
+    return spaceApiRequest(
+        `/api/calendar/series/${encodeURIComponent(seriesId)}/exclusions/` +
+        encodeURIComponent(excludedDate),
+        { method: "DELETE" }
+    );
+}

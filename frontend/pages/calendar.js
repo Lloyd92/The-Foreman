@@ -1,20 +1,27 @@
 import {
     createCalendarEntry,
+    createCalendarSeries,
+    createCalendarSeriesExclusion,
     deleteCalendarEntry,
+    deleteCalendarSeries,
     getCalendarSettings,
     listCalendarOccurrences,
+    listCalendarSeries,
     listMembers,
     listPeople,
-    updateCalendarEntry
+    updateCalendarEntry,
+    updateCalendarSeries
 } from "../utils/calendarApi.js";
 
 
 let selectedDate = "";
 let calendarTimezone = "";
 let occurrences = [];
+let seriesRecords = [];
 let members = [];
 let people = [];
 let editingEntryId = null;
+let editingRoutineId = null;
 let calendarInitialized = false;
 
 
@@ -120,7 +127,8 @@ function setMessage(message, isError = false) {
 function updateMemberOptions() {
     for (const id of [
         "calendar-member-filter",
-        "calendar-entry-member"
+        "calendar-entry-member",
+        "calendar-routine-member"
     ]) {
         const select = document.getElementById(id);
 
@@ -128,12 +136,11 @@ function updateMemberOptions() {
             continue;
         }
 
-        const firstLabel = id === "calendar-member-filter"
+        const isFilter = id === "calendar-member-filter";
+        const firstLabel = isFilter
             ? "All Members"
             : "Unassigned";
-        const firstValue = id === "calendar-member-filter"
-            ? "all"
-            : "";
+        const firstValue = isFilter ? "all" : "";
         const previous = select.value;
 
         select.replaceChildren();
@@ -252,7 +259,53 @@ function renderOccurrences() {
 
             actions.append(edit, remove);
         } else {
-            actions.textContent = "Recurring";
+            const edit = document.createElement("button");
+            edit.type = "button";
+            edit.className = "secondary-button";
+            edit.textContent = "Edit Routine";
+            edit.addEventListener("click", () => {
+                openRoutineDialog(occurrence);
+            });
+
+            const skip = document.createElement("button");
+            skip.type = "button";
+            skip.className = "secondary-button";
+            skip.textContent = "Skip This Date";
+            skip.addEventListener("click", async () => {
+                try {
+                    await createCalendarSeriesExclusion(
+                        occurrence.sourceId,
+                        selectedDate
+                    );
+                    await loadOccurrences();
+                    setMessage("Routine occurrence excluded.");
+                } catch (error) {
+                    setMessage(error.message, true);
+                }
+            });
+
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.className =
+                "secondary-button resource-delete-button";
+            remove.textContent = "Delete Routine";
+            remove.addEventListener("click", async () => {
+                if (!window.confirm(
+                    `Delete recurring routine "${occurrence.title}"?`
+                )) {
+                    return;
+                }
+
+                try {
+                    await deleteCalendarSeries(occurrence.sourceId);
+                    await loadOccurrences();
+                    setMessage("Calendar routine deleted.");
+                } catch (error) {
+                    setMessage(error.message, true);
+                }
+            });
+
+            actions.append(edit, skip, remove);
         }
 
         row.append(
@@ -269,10 +322,13 @@ function renderOccurrences() {
 
 
 async function loadOccurrences() {
-    occurrences = await listCalendarOccurrences(
-        selectedDate,
-        addDays(selectedDate, 1)
-    );
+    [occurrences, seriesRecords] = await Promise.all([
+        listCalendarOccurrences(
+            selectedDate,
+            addDays(selectedDate, 1)
+        ),
+        listCalendarSeries()
+    ]);
     renderOccurrences();
 }
 
@@ -409,6 +465,141 @@ async function saveEntry(event) {
 }
 
 
+function closeRoutineDialog() {
+    const backdrop = document.getElementById(
+        "calendar-routine-dialog-backdrop"
+    );
+
+    if (backdrop) {
+        backdrop.hidden = true;
+    }
+
+    editingRoutineId = null;
+}
+
+
+function toggleRoutineWeekdays(frequency) {
+    const weekdays = document.getElementById(
+        "calendar-routine-weekdays"
+    );
+
+    if (weekdays) {
+        weekdays.hidden = frequency !== "weekly";
+    }
+}
+
+
+function openRoutineDialog(occurrence = null) {
+    const form = document.getElementById("calendar-routine-form");
+    const backdrop = document.getElementById(
+        "calendar-routine-dialog-backdrop"
+    );
+
+    if (!form || !backdrop) {
+        return;
+    }
+
+    form.reset();
+
+    const series = occurrence
+        ? seriesRecords.find(
+            value => value.id === occurrence.sourceId
+        )
+        : null;
+
+    editingRoutineId = series?.id || null;
+
+    document.getElementById("calendar-routine-dialog-title").textContent =
+        editingRoutineId ? "Edit Routine" : "Add Routine";
+
+    document.getElementById("calendar-routine-title").value =
+        series?.title || "";
+    document.getElementById("calendar-routine-kind").value =
+        series?.kind || "commitment";
+    document.getElementById("calendar-routine-member").value =
+        series?.memberId || "";
+    document.getElementById("calendar-routine-frequency").value =
+        series?.frequency || "daily";
+    document.getElementById("calendar-routine-interval").value =
+        series?.intervalValue || 1;
+    document.getElementById("calendar-routine-anchor-date").value =
+        series?.anchorDate || selectedDate;
+    document.getElementById("calendar-routine-end-date").value =
+        series?.endDate || "";
+    document.getElementById("calendar-routine-start-time").value =
+        series?.localStartTime?.slice(0, 5) || "09:00";
+    document.getElementById("calendar-routine-duration").value =
+        series?.durationMinutes || 60;
+    document.getElementById("calendar-routine-location").value =
+        series?.location || "";
+    document.getElementById("calendar-routine-notes").value =
+        series?.notes || "";
+
+    const selectedWeekdays = new Set(series?.weekdays || []);
+
+    form.querySelectorAll(
+        'input[name="weekdays"]'
+    ).forEach(input => {
+        input.checked = selectedWeekdays.has(input.value);
+    });
+
+    toggleRoutineWeekdays(
+        document.getElementById("calendar-routine-frequency").value
+    );
+
+    document.getElementById(
+        "calendar-routine-form-error"
+    ).textContent = "";
+
+    backdrop.hidden = false;
+}
+
+
+async function saveRoutine(event) {
+    event.preventDefault();
+
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const frequency = clean(data.get("frequency"));
+
+    const payload = {
+        memberId: clean(data.get("memberId")) || null,
+        kind: clean(data.get("kind")),
+        title: clean(data.get("title")),
+        frequency,
+        intervalValue: Number(data.get("intervalValue")),
+        weekdays: frequency === "weekly"
+            ? data.getAll("weekdays")
+            : [],
+        anchorDate: clean(data.get("anchorDate")),
+        endDate: clean(data.get("endDate")) || null,
+        localStartTime: clean(data.get("localStartTime")),
+        durationMinutes: Number(data.get("durationMinutes")),
+        location: clean(data.get("location")),
+        notes: clean(data.get("notes"))
+    };
+
+    try {
+        if (editingRoutineId) {
+            await updateCalendarSeries(
+                editingRoutineId,
+                payload
+            );
+        } else {
+            await createCalendarSeries(payload);
+        }
+
+        closeRoutineDialog();
+        await loadOccurrences();
+        setMessage("Calendar routine saved.");
+    } catch (error) {
+        document.getElementById(
+            "calendar-routine-form-error"
+        ).textContent = error.message;
+    }
+}
+
+
 function setSelectedDate(value) {
     selectedDate = value;
     document.getElementById("calendar-date").value = value;
@@ -472,6 +663,25 @@ export async function initializeCalendarPage() {
 
         document.getElementById("add-calendar-entry")
             ?.addEventListener("click", () => openEntryDialog());
+
+        document.getElementById("add-calendar-routine")
+            ?.addEventListener("click", () => openRoutineDialog());
+
+        document.getElementById("calendar-routine-frequency")
+            ?.addEventListener("change", event => {
+                toggleRoutineWeekdays(event.target.value);
+            });
+
+        document.getElementById("calendar-routine-form")
+            ?.addEventListener("submit", saveRoutine);
+
+        for (const id of [
+            "close-calendar-routine-dialog",
+            "cancel-calendar-routine"
+        ]) {
+            document.getElementById(id)
+                ?.addEventListener("click", closeRoutineDialog);
+        }
 
         document.getElementById("calendar-entry-all-day")
             ?.addEventListener("change", event => {

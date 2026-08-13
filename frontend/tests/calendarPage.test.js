@@ -129,3 +129,51 @@ test(
         assert.match(workerSource, /"\/utils\/calendarApi\.js"/);
     }
 );
+
+
+test(
+    "Calendar frontend supports narrow daily and weekly routines",
+    () => {
+        for (const marker of [
+            "createCalendarSeries",
+            "updateCalendarSeries",
+            "deleteCalendarSeries",
+            "createCalendarSeriesExclusion",
+            "listCalendarSeries"
+        ]) {
+            assert.match(
+                calendarSource,
+                new RegExp(`\\b${marker}\\b`)
+            );
+        }
+
+        assert.match(html, /id="calendar-routine-form"/);
+        assert.match(html, /value="daily"/);
+        assert.match(html, /value="weekly"/);
+        assert.match(html, /name="weekdays"/);
+        assert.match(calendarSource, /Skip This Date/);
+    }
+);
+
+
+test(
+    "Calendar remains permanent rather than module-toggle owned",
+    async () => {
+        const modulePresentation = await readFile(
+            new URL(
+                "../utils/modulePresentation.js",
+                import.meta.url
+            ),
+            "utf8"
+        );
+
+        assert.doesNotMatch(
+            modulePresentation,
+            /calendar:\s*["']calendar["']/
+        );
+        assert.doesNotMatch(
+            html,
+            /data-module-contribution="calendar"/
+        );
+    }
+);
