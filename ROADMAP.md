@@ -681,6 +681,24 @@ Scope:
 Other modules may reference Library records without duplicating or owning
 their stored content.
 
+v0.8.5 treats Documents, Manuals, Receipts, Photos, and CAD references as
+durable Library metadata/reference records. Arbitrary binary-file ingestion
+and a general attachment store are deferred until Backup & Recovery is
+deliberately expanded beyond its database-only format-v1 contract.
+
+Universal Search is a derived read capability over authoritative records. It
+does not create a second persistence authority or browser-side copy of source
+data.
+
+Explicitly excluded:
+
+- Binary attachment storage
+- Semantic or AI search
+- Search-based recommendations or ranking
+- Capacity or Priority behavior
+- Morning Briefing decision logic
+- Full document-management or cloud-storage behavior
+
 ## v0.8.6 — Today Workspace & Household Proving Ground
 
 Status: Planned

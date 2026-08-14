@@ -785,7 +785,12 @@ Examples include:
 - Money owns accounts or funding sources, financial categories,
   transactions, budgets, obligations, recurring costs, and Money-owned
   relationship evidence.
-- Library owns stored records and reference material.
+- Library owns durable records and reference material. v0.8.5 uses
+  Space-authoritative Library records with explicit record types and factual
+  cross-domain relationships. Universal Search is derived backend state over
+  approved authoritative records and does not become a competing persistence
+  authority. Arbitrary binary-file storage remains deferred until Backup &
+  Recovery deliberately expands beyond its database-only format-v1 contract.
 
 Modules communicate through stable identifiers, relationships, services, APIs,
 and approved operational facts. They must not manipulate another module's

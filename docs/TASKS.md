@@ -371,6 +371,51 @@ application version 0.8.3, PWA cache identity, APIs, frontend runtime behavior,
 migration behavior, Docker deployment, portable export format, backup format,
 operational-fact schema, or live household data.
 
+## Planned v0.8.5 — Library, Records & Search
+
+Architecture review:
+
+- [x] Preserve Library as the authority for durable records and reference
+      material within one Space.
+- [x] Use one Library record authority with explicit record types for Notes,
+      Documents, Manuals, Receipts, Photos, Decisions, Measurements, and CAD
+      references.
+- [x] Use explicit Space-scoped Library relationship evidence for approved
+      cross-domain links without transferring ownership.
+- [x] Define Universal Search as a derived backend read capability over
+      authoritative records rather than a duplicate persistence authority.
+- [x] Keep semantic search, AI interpretation, recommendations, Capacity,
+      Priority, and Morning Briefing decision logic deferred.
+- [x] Defer arbitrary binary attachment storage until Backup & Recovery is
+      deliberately expanded beyond its database-only format-v1 contract.
+- [x] Advance SQLite schema version 8 to version 9 through an additive,
+      idempotent, verified upgrade.
+- [x] Keep backup format version 1 unchanged; database snapshots protect new
+      Library tables automatically.
+- [x] Keep portable export format version 1 and operational-fact schema
+      version 1 unchanged unless separately reviewed.
+
+Planned implementation sequence:
+
+1. [x] Reconcile v0.8.5 architecture and current-state documentation.
+2. [ ] Add Library persistence with a safe SQLite schema-v9 upgrade and
+       recovery compatibility.
+3. [ ] Add Space-authoritative Library record CRUD and validation.
+4. [ ] Add explicit factual Library relationships to approved same-Space
+       records.
+5. [ ] Add backend-authoritative Universal Search as a derived read service.
+6. [ ] Replace the Library placeholder with selected-Space record workflows
+       and search.
+7. [ ] Add cross-domain Universal Search presentation without duplicating
+       source ownership.
+8. [ ] Complete isolated disposable browser compatibility acceptance.
+9. [ ] Reconcile v0.8.5 release identity, documentation, and Green Build.
+
+Commit 1 is documentation-only. It does not change SQLite schema version 8,
+application version 0.8.4, PWA cache identity, APIs, frontend runtime behavior,
+migration behavior, Docker deployment, portable export format, backup format,
+operational-fact schema, or live household data.
+
 ## v0.8.0 Architecture Boundaries
 
 - Ordinary workflows use one clearly selected active Space.

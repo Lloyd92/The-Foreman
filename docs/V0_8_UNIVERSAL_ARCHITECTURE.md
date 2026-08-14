@@ -504,7 +504,10 @@ version 1.
 
 # 10. Library
 
-Library eventually contains:
+v0.8.5 establishes Library as the authority for durable records and
+reference material within one Space.
+
+The initial Library record types are:
 
 - Notes
 - Documents
@@ -514,12 +517,33 @@ Library eventually contains:
 - Decisions
 - Measurements
 - CAD references
-- Search
 
-Library owns stored records and document references.
+These record types share one Library authority rather than becoming separate
+competing modules. A Library record may contain factual descriptive content
+and an explicit reference location where appropriate.
 
 Other modules may link to Library records without duplicating or taking
 ownership of them.
+
+Library relationships are factual, Space-scoped edges using stable
+identifiers. They may connect Library records to approved records owned by
+Work, Resources, Calendar, Money, People, or Organizations without
+transferring authority.
+
+Universal Search is a derived backend read capability. It searches approved
+authoritative records and returns source identity and display information
+without creating a second persistence authority, browser-side truth, semantic
+ranking authority, or recommendation behavior.
+
+v0.8.5 does not create a general binary attachment store. Documents, Manuals,
+Receipts, Photos, and CAD references are metadata/reference records in this
+milestone. Durable binary-file ingestion remains deferred until Backup &
+Recovery deliberately expands beyond the database-only backup format version
+1 contract.
+
+v0.8.5 advances SQLite schema version 8 to version 9 while preserving backup
+format version 1, portable export format version 1, and operational-fact
+schema version 1 unless a separately reviewed contract change is required.
 
 ---
 
