@@ -2390,3 +2390,16 @@ footer {
         flex-direction: column;
     }
 }
+
+
+.library-toolbar {
+    grid-template-columns:
+        minmax(220px, 1fr)
+        minmax(180px, 240px);
+}
+
+@media (max-width: 650px) {
+    .library-toolbar {
+        grid-template-columns: 1fr;
+    }
+}

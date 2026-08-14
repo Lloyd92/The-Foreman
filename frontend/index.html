@@ -1528,7 +1528,7 @@
 
             <!-- Library page -->
             <main
-                class="content page-view category-page"
+                class="content page-view"
                 data-page="library"
                 hidden
             >
@@ -1540,9 +1540,127 @@
                     <h2>Library</h2>
 
                     <p>
-                        Library capabilities are planned for a future
-                        release.
+                        Store durable records and references for the active
+                        Space without transferring ownership from other
+                        Foreman domains.
                     </p>
+                </section>
+
+                <p
+                    id="library-page-message"
+                    class="module-settings-message"
+                    role="status"
+                    aria-live="polite"
+                ></p>
+
+                <section class="card">
+                    <div class="card-heading">
+                        <h3>Records</h3>
+                        <span>DURABLE REFERENCE</span>
+                    </div>
+
+                    <form id="library-record-form">
+                        <select name="kind" required>
+                            <option value="note" selected>Note</option>
+                            <option value="document">Document</option>
+                            <option value="manual">Manual</option>
+                            <option value="receipt">Receipt</option>
+                            <option value="photo">Photo</option>
+                            <option value="decision">Decision</option>
+                            <option value="measurement">Measurement</option>
+                            <option value="cad_reference">
+                                CAD Reference
+                            </option>
+                        </select>
+
+                        <input
+                            name="title"
+                            required
+                            maxlength="160"
+                            placeholder="Record title"
+                        >
+
+                        <input
+                            name="referenceLocation"
+                            maxlength="1000"
+                            placeholder="Reference location"
+                        >
+
+                        <textarea
+                            name="content"
+                            maxlength="10000"
+                            placeholder="Notes or reference content"
+                        ></textarea>
+
+                        <button class="primary-button" type="submit">
+                            Add Record
+                        </button>
+
+                        <button
+                            id="library-cancel-edit"
+                            class="table-action-button"
+                            type="button"
+                            hidden
+                        >
+                            Cancel Edit
+                        </button>
+                    </form>
+
+                    <div class="resource-toolbar library-toolbar">
+                        <input
+                            id="library-search"
+                            type="search"
+                            placeholder="Search Library records"
+                            aria-label="Search Library records"
+                        >
+
+                        <select
+                            id="library-kind-filter"
+                            aria-label="Filter Library records by type"
+                        >
+                            <option value="">All record types</option>
+                            <option value="note">Notes</option>
+                            <option value="document">Documents</option>
+                            <option value="manual">Manuals</option>
+                            <option value="receipt">Receipts</option>
+                            <option value="photo">Photos</option>
+                            <option value="decision">Decisions</option>
+                            <option value="measurement">Measurements</option>
+                            <option value="cad_reference">
+                                CAD References
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="resource-table-wrapper">
+                        <table class="resource-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Reference</th>
+                                    <th>Content</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="library-records-body"></tbody>
+                        </table>
+                    </div>
+
+                    <div
+                        id="library-empty-state"
+                        class="resource-empty-state"
+                        hidden
+                    >
+                        <div>
+                            <h3>No Library records yet</h3>
+                            <p>
+                                Add a note, manual, receipt, measurement,
+                                decision, or other durable reference for
+                                this Space.
+                            </p>
+                        </div>
+                    </div>
                 </section>
             </main>
 
