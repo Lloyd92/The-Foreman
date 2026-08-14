@@ -75,11 +75,11 @@ test(
 
 
 test(
-    "Resource empty states respect the hidden attribute",
+    "Frontend hidden state remains authoritative across page components",
     () => {
         assert.match(
             stylesSource,
-            /\.resource-empty-state\[hidden\]\s*\{[\s\S]*display:\s*none;[\s\S]*\}/
+            /\[hidden\]\s*\{[\s\S]*display:\s*none\s*!important;[\s\S]*\}/
         );
     }
 );

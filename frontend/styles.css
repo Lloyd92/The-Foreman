@@ -1,3 +1,7 @@
+[hidden] {
+    display: none !important;
+}
+
 :root {
     --background: #15171a;
     --sidebar: #1d2024;
@@ -2094,10 +2098,6 @@ footer {
     place-items: center;
     align-content: center;
     text-align: center;
-}
-
-.resource-empty-state[hidden] {
-    display: none;
 }
 
 .resource-empty-state h3 {
