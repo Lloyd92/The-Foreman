@@ -1,4 +1,4 @@
-const SHELL_CACHE_NAME = "foreman-shell-v0.8.4-c4";
+const SHELL_CACHE_NAME = "foreman-shell-v0.8.4-c5";
 const FOREMAN_CACHE_PREFIX = "foreman-shell-";
 
 // This exact, atomic set keeps one frontend release coherent. Runtime fetches
@@ -59,9 +59,16 @@ const SHELL_ASSETS = Object.freeze([
 const SHELL_ASSET_PATHS = new Set(SHELL_ASSETS);
 
 self.addEventListener("install", event => {
+    const shellRequests = SHELL_ASSETS.map(asset => (
+        new Request(
+            new URL(asset, self.location.origin),
+            { cache: "reload" }
+        )
+    ));
+
     event.waitUntil(
         caches.open(SHELL_CACHE_NAME).then(cache => (
-            cache.addAll(SHELL_ASSETS)
+            cache.addAll(shellRequests)
         ))
     );
 });

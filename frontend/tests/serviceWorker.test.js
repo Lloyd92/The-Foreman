@@ -95,6 +95,7 @@ function createWorkerHarness({
         }
     };
     const context = {
+        Request,
         URL,
         caches: {
             async delete(cacheName) {
@@ -187,11 +188,20 @@ test("install atomically precaches the exact versioned shell", async () => {
     assert.equal(expectedShellAssets.includes("/index.html"), true);
     assert.deepEqual(
         harness.calls.cacheOpens,
-        ["foreman-shell-v0.8.4-c4"]
+        ["foreman-shell-v0.8.4-c5"]
     );
+    assert.equal(harness.calls.addAll.length, 1);
     assert.deepEqual(
-        harness.calls.addAll,
-        [expectedShellAssets]
+        harness.calls.addAll[0].map(request => (
+            new URL(request.url).pathname
+        )),
+        expectedShellAssets
+    );
+    assert.equal(
+        harness.calls.addAll[0].every(
+            request => request.cache === "reload"
+        ),
+        true
     );
     assert.equal(
         expectedShellAssets.some(asset => asset.startsWith("/api/")),
@@ -349,10 +359,12 @@ test("v0.7.5 c1 shell updates to the current v0.8.4 release shell", async () => 
     assert.doesNotMatch(indexSource, /data-route="dashboard"/);
     assert.deepEqual(
         harness.calls.cacheOpens,
-        ["foreman-shell-v0.8.4-c4"]
+        ["foreman-shell-v0.8.4-c5"]
     );
     assert.equal(
-        harness.calls.addAll[0].includes("/pages/recovery.js"),
+        harness.calls.addAll[0].some(
+            request => new URL(request.url).pathname === "/pages/recovery.js"
+        ),
         true
     );
     assert.deepEqual(
@@ -420,7 +432,7 @@ test("exact shell assets are served only from the current cache", async () => {
     assert.equal(await fetchEvent.responsePromise, cachedResponse);
     assert.deepEqual(
         harness.calls.cacheOpens,
-        ["foreman-shell-v0.8.4-c4"]
+        ["foreman-shell-v0.8.4-c5"]
     );
     assert.deepEqual(harness.calls.cacheMatches, ["/app.js"]);
     assert.deepEqual(harness.calls.fetches, []);
