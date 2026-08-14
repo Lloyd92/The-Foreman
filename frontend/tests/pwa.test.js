@@ -91,17 +91,21 @@ function createPwaHarness({
             }
         }
     };
-    const documentRef = {
-        getElementById(id) {
-            return elements.get(id) || null;
-        },
-        querySelector() {
-            return activeDialog ? {} : null;
-        },
-        querySelectorAll(selector) {
-            return selector === "form" ? forms : [];
+    const documentRef = Object.assign(
+        new FakeEventTarget(),
+        {
+            visibilityState: "visible",
+            getElementById(id) {
+                return elements.get(id) || null;
+            },
+            querySelector() {
+                return activeDialog ? {} : null;
+            },
+            querySelectorAll(selector) {
+                return selector === "form" ? forms : [];
+            }
         }
-    };
+    );
     const logger = {
         errors: [],
         error(...args) {
@@ -168,6 +172,22 @@ test("registration uses the root worker with cache bypass", async () => {
     );
     assert.equal(harness.registration.updateCalls, 1);
 });
+
+test("returning to the foreground checks for a PWA update", async () => {
+    const harness = createPwaHarness({ waiting: false });
+    await initializePwa(harness);
+
+    assert.equal(harness.registration.updateCalls, 1);
+
+    harness.documentRef.visibilityState = "hidden";
+    harness.documentRef.dispatch("visibilitychange");
+    assert.equal(harness.registration.updateCalls, 1);
+
+    harness.documentRef.visibilityState = "visible";
+    harness.documentRef.dispatch("visibilitychange");
+    assert.equal(harness.registration.updateCalls, 2);
+});
+
 
 test("registration failure is reported without throwing", async () => {
     const failure = new Error("registration failed");

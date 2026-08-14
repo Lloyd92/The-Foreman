@@ -184,11 +184,23 @@ export async function initializePwa(options = {}) {
         }
     );
 
-    if (typeof registration.update === "function") {
+    const checkForUpdate = () => {
+        if (typeof registration.update !== "function") {
+            return;
+        }
+
         void registration.update().catch(error => {
             logger?.error("Unable to check for PWA update:", error);
         });
-    }
+    };
+
+    documentRef?.addEventListener?.("visibilitychange", () => {
+        if (documentRef.visibilityState === "visible") {
+            checkForUpdate();
+        }
+    });
+
+    checkForUpdate();
 
     return { status: "registered", registration };
 }
