@@ -355,7 +355,7 @@ Planned implementation sequence:
 2. [x] Add Money persistence with a safe SQLite schema-v8 upgrade and recovery
        compatibility.
 3. [x] Add Space-authoritative Accounts and Categories.
-4. [ ] Add factual Transactions for income, revenue, and expenses.
+4. [x] Add factual Transactions for income, revenue, and expenses.
 5. [ ] Add Budgets, Obligations, and recurring-cost records without Capacity or
        recommendation behavior.
 6. [ ] Add explicit cross-domain Money relationships with retained evidence

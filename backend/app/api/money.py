@@ -12,6 +12,9 @@ from app.schemas.money import (
     MoneyCategoryCreate,
     MoneyCategoryRead,
     MoneyCategoryUpdate,
+    MoneyTransactionCreate,
+    MoneyTransactionRead,
+    MoneyTransactionUpdate,
 )
 from app.services import money as money_service
 
@@ -214,6 +217,102 @@ def delete_category(
         money_service.MoneyNotFoundError,
         money_service.MoneyConflictError,
     ) as error:
+        raise money_error(error) from error
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+
+@router.get("/transactions", response_model=list[MoneyTransactionRead])
+def list_transactions(
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> list[MoneyTransactionRead]:
+    return money_service.list_transactions(session, active_space)
+
+
+@router.post(
+    "/transactions",
+    response_model=MoneyTransactionRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_transaction(
+    data: MoneyTransactionCreate,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> MoneyTransactionRead:
+    try:
+        return money_service.create_transaction(
+            session,
+            active_space,
+            data,
+        )
+    except (
+        money_service.MoneyNotFoundError,
+        money_service.MoneyConflictError,
+    ) as error:
+        raise money_error(error) from error
+
+
+@router.get(
+    "/transactions/{transaction_id}",
+    response_model=MoneyTransactionRead,
+)
+def read_transaction(
+    transaction_id: str,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> MoneyTransactionRead:
+    try:
+        return money_service.require_transaction(
+            session,
+            active_space,
+            transaction_id,
+        )
+    except money_service.MoneyNotFoundError as error:
+        raise money_error(error) from error
+
+
+@router.patch(
+    "/transactions/{transaction_id}",
+    response_model=MoneyTransactionRead,
+)
+def update_transaction(
+    transaction_id: str,
+    data: MoneyTransactionUpdate,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> MoneyTransactionRead:
+    try:
+        return money_service.update_transaction(
+            session,
+            active_space,
+            transaction_id,
+            data,
+        )
+    except (
+        money_service.MoneyNotFoundError,
+        money_service.MoneyConflictError,
+    ) as error:
+        raise money_error(error) from error
+
+
+@router.delete(
+    "/transactions/{transaction_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_transaction(
+    transaction_id: str,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> Response:
+    try:
+        money_service.delete_transaction(
+            session,
+            active_space,
+            transaction_id,
+        )
+    except money_service.MoneyNotFoundError as error:
         raise money_error(error) from error
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)

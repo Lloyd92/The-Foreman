@@ -238,3 +238,159 @@ class MoneyApiTests(ApiTestCase):
                 (await self.client.delete(path)).status_code,
                 404,
             )
+
+    async def test_transaction_crud(self) -> None:
+        account = (
+            await self.client.post(
+                "/api/money/accounts",
+                json={"name": "Checking", "kind": "checking"},
+            )
+        ).json()
+        category = (
+            await self.client.post(
+                "/api/money/categories",
+                json={"kind": "expense", "name": "Groceries"},
+            )
+        ).json()
+
+        created = await self.client.post(
+            "/api/money/transactions",
+            json={
+                "accountId": account["id"],
+                "categoryId": category["id"],
+                "kind": "expense",
+                "amountMinor": 4287,
+                "currencyCode": "USD",
+                "occurredOn": "2026-08-13",
+                "description": "Grocery purchase",
+                "counterparty": "Market",
+                "notes": "Weekly groceries",
+            },
+        )
+        self.assertEqual(created.status_code, 201)
+        transaction = created.json()
+
+        self.assertNotIn("spaceId", transaction)
+        self.assertEqual(transaction["amountMinor"], 4287)
+        self.assertEqual(transaction["occurredOn"], "2026-08-13")
+        self.assertEqual(transaction["categoryId"], category["id"])
+
+        updated = await self.client.patch(
+            f"/api/money/transactions/{transaction['id']}",
+            json={
+                "amountMinor": 4500,
+                "categoryId": None,
+                "description": "Corrected grocery purchase",
+            },
+        )
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual(updated.json()["amountMinor"], 4500)
+        self.assertIsNone(updated.json()["categoryId"])
+
+        read = await self.client.get(
+            f"/api/money/transactions/{transaction['id']}"
+        )
+        self.assertEqual(read.status_code, 200)
+
+        deleted = await self.client.delete(
+            f"/api/money/transactions/{transaction['id']}"
+        )
+        self.assertEqual(deleted.status_code, 204)
+
+    async def test_transaction_references_and_kind_are_validated(self) -> None:
+        account = (
+            await self.client.post(
+                "/api/money/accounts",
+                json={"name": "Checking"},
+            )
+        ).json()
+        expense = (
+            await self.client.post(
+                "/api/money/categories",
+                json={"kind": "expense", "name": "Fuel"},
+            )
+        ).json()
+        income = (
+            await self.client.post(
+                "/api/money/categories",
+                json={"kind": "income", "name": "Sales"},
+            )
+        ).json()
+
+        mismatch = await self.client.post(
+            "/api/money/transactions",
+            json={
+                "accountId": account["id"],
+                "categoryId": income["id"],
+                "kind": "expense",
+                "amountMinor": 1000,
+                "occurredOn": "2026-08-13",
+                "description": "Mismatch",
+            },
+        )
+        self.assertEqual(mismatch.status_code, 409)
+
+        missing_account = await self.client.post(
+            "/api/money/transactions",
+            json={
+                "accountId": "missing-account",
+                "categoryId": expense["id"],
+                "kind": "expense",
+                "amountMinor": 1000,
+                "occurredOn": "2026-08-13",
+                "description": "Missing account",
+            },
+        )
+        self.assertEqual(missing_account.status_code, 404)
+
+    async def test_transactions_are_isolated_by_active_space(self) -> None:
+        space = (
+            await self.client.post(
+                "/api/spaces",
+                json={"name": "Transaction Space"},
+            )
+        ).json()
+        headers = {"X-Foreman-Space-Id": space["id"]}
+
+        account = (
+            await self.client.post(
+                "/api/money/accounts",
+                headers=headers,
+                json={"name": "Remote Cash", "kind": "cash"},
+            )
+        ).json()
+
+        transaction = (
+            await self.client.post(
+                "/api/money/transactions",
+                headers=headers,
+                json={
+                    "accountId": account["id"],
+                    "kind": "income",
+                    "amountMinor": 2500,
+                    "occurredOn": "2026-08-13",
+                    "description": "Remote income",
+                },
+            )
+        ).json()
+
+        self.assertEqual(
+            (await self.client.get("/api/money/transactions")).json(),
+            [],
+        )
+
+        path = f"/api/money/transactions/{transaction['id']}"
+        self.assertEqual((await self.client.get(path)).status_code, 404)
+        self.assertEqual(
+            (
+                await self.client.patch(
+                    path,
+                    json={"description": "Leaked"},
+                )
+            ).status_code,
+            404,
+        )
+        self.assertEqual(
+            (await self.client.delete(path)).status_code,
+            404,
+        )

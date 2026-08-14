@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.models.money_account import MoneyAccount
 from app.models.money_category import MoneyCategory
+from app.models.money_transaction import MoneyTransaction
 
 
 def list_accounts(
@@ -104,3 +105,47 @@ def delete_category(
     category: MoneyCategory,
 ) -> None:
     session.delete(category)
+
+
+def list_transactions(
+    session: Session,
+    space_id: str,
+) -> list[MoneyTransaction]:
+    statement = (
+        select(MoneyTransaction)
+        .where(MoneyTransaction.space_id == space_id)
+        .order_by(
+            MoneyTransaction.occurred_on.desc(),
+            MoneyTransaction.created_at.desc(),
+            MoneyTransaction.id.asc(),
+        )
+    )
+    return list(session.scalars(statement))
+
+
+def get_transaction(
+    session: Session,
+    space_id: str,
+    transaction_id: str,
+) -> MoneyTransaction | None:
+    statement = select(MoneyTransaction).where(
+        MoneyTransaction.id == transaction_id,
+        MoneyTransaction.space_id == space_id,
+    )
+    return session.scalar(statement)
+
+
+def add_transaction(
+    session: Session,
+    transaction: MoneyTransaction,
+) -> MoneyTransaction:
+    session.add(transaction)
+    session.flush()
+    return transaction
+
+
+def delete_transaction(
+    session: Session,
+    transaction: MoneyTransaction,
+) -> None:
+    session.delete(transaction)
