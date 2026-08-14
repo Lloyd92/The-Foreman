@@ -65,7 +65,7 @@ The craftsman spends time building instead of searching.
 
 # The Morning Briefing
 
-Today is the target default daily workspace. Through v0.8.6, it presents
+Today is the target default daily workspace. Through v0.8.7, it presents
 authoritative factual current state without claiming feasibility, ranking
 Work, recommending next actions, or performing capacity-aware scheduling.
 

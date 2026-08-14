@@ -158,9 +158,10 @@ the milestone with v0.8.0 release identity and documentation reconciliation.
 - [x] v0.8.1 — Universal Work System
 - [x] v0.8.2 — Tools, Inventory & Care
 - [x] v0.8.3 — Calendar & Scheduling
-- [ ] v0.8.4 — Money
+- [x] v0.8.4 — Money
 - [ ] v0.8.5 — Library, Records & Search
 - [ ] v0.8.6 — Today Workspace & Household Proving Ground
+- [ ] v0.8.7 — Operational Refinement & UX Convergence
 - [ ] v0.9.0 — Capacity Engine
 - [ ] v0.9.1 — Priority Engine
 - [ ] v0.9.2 — Morning Briefing
@@ -363,7 +364,7 @@ Planned implementation sequence:
 7. [x] Replace the Money/Budget placeholder experience with the selected-Space
        Money frontend while preserving compatible navigation.
 8. [x] Complete isolated disposable browser compatibility acceptance.
-9. [ ] Reconcile v0.8.4 release identity, documentation, and Green Build.
+9. [x] Reconcile v0.8.4 release identity, documentation, and Green Build.
 
 Commit 1 is documentation-only. It does not change SQLite schema version 7,
 application version 0.8.3, PWA cache identity, APIs, frontend runtime behavior,
@@ -387,7 +388,7 @@ operational-fact schema, or live household data.
   and approved operational facts.
 - Modules must not manipulate another module's private tables or duplicate
   authority in the frontend.
-- Today presents factual current state through v0.8.6.
+- Today presents factual current state through v0.8.7.
 - Today must not claim feasibility, rank Work, or recommend next actions
   before Capacity and Priority are implemented.
 - Calendar may record commitments, events, routines, recurrence, and

@@ -39,7 +39,7 @@ The interface should reduce stress rather than increase it.
 The permanent navigation is Today, Calendar, Work, Resources, Money,
 and Library. Settings and Account remain below those categories.
 
-Today is the implemented default primary workspace. Through v0.8.6, it
+Today is the implemented default primary workspace. Through v0.8.7, it
 presents authoritative factual current state without making feasibility,
 ranking, recommendation, or capacity-aware scheduling claims.
 

@@ -627,9 +627,9 @@ Explicitly excluded:
 - Invitation, RSVP, or generalized attendee workflows
 - Generalized scheduling optimization or resource booking
 
-## v0.8.4 — Money
+## v0.8.4 — Money ✅
 
-Status: Planned
+Status: Complete
 
 Purpose:
 
@@ -712,6 +712,40 @@ Explicitly excluded:
 - Recommended next actions
 - Complete Morning Briefing narration
 - Hidden or AI-generated priority logic
+
+## v0.8.7 — Operational Refinement & UX Convergence
+
+Status: Planned
+
+Purpose:
+
+Use the complete six-destination v0.8 operational platform in real household
+work and refine the experience before Capacity begins consuming its
+authoritative facts.
+
+Scope:
+
+- Calendar presentation and interaction refinement
+- Mobile and responsive layout refinement
+- Navigation friction and screen-space efficiency
+- Terminology and labeling consistency
+- Forms, controls, validation presentation, and empty states
+- Cross-screen interaction consistency
+- Small workflow corrections discovered through household use
+- UX convergence across Today, Calendar, Work, Resources, Money, and Library
+
+Explicitly excluded:
+
+- New operational domains
+- Capacity eligibility
+- Priority ranking
+- Morning Briefing recommendations or decision logic
+- AI interpretation
+- Major architectural expansion
+
+Completion means all six permanent operational destinations are functional,
+usable, appropriately presented, and stable enough for Capacity to consume
+their authoritative facts.
 
 ## v0.9.0 — Capacity Engine
 

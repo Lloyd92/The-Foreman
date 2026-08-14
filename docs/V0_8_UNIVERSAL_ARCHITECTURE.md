@@ -26,9 +26,10 @@ The approved dependency sequence is:
 5. v0.8.4 — Money
 6. v0.8.5 — Library, Records & Search
 7. v0.8.6 — Today Workspace & Household Proving Ground
-8. v0.9.0 — Capacity Engine
-9. v0.9.1 — Priority Engine
-10. v0.9.2 — Morning Briefing
+8. v0.8.7 — Operational Refinement & UX Convergence
+9. v0.9.0 — Capacity Engine
+10. v0.9.1 — Priority Engine
+11. v0.9.2 — Morning Briefing
 
 The intended operational progression is:
 

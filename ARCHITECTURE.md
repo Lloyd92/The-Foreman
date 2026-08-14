@@ -648,7 +648,7 @@ The application shell provides the permanent navigation: Today, Calendar,
 Work, Resources, Money, and Library. Settings and Account remain separate
 below the primary navigation.
 
-Today is the default daily workspace. Through v0.8.6, it presents authoritative
+Today is the default daily workspace. Through v0.8.7, it presents authoritative
 factual current state without making capacity, priority, feasibility, or
 recommendation claims.
 

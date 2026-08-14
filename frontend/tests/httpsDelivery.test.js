@@ -389,16 +389,16 @@ test("release version and shell cache are finalized", async () => {
 
     assert.match(
         indexSource,
-        /id="footer-version">\s*0\.8\.3\s*<\/span>/
+        /id="footer-version">\s*0\.8\.4\s*<\/span>/
     );
-    assert.match(backendSource, /APPLICATION_VERSION = "0\.8\.3"/);
+    assert.match(backendSource, /APPLICATION_VERSION = "0\.8\.4"/);
     assert.match(
         workerSource,
-        /SHELL_CACHE_NAME = "foreman-shell-v0\.8\.3-c1"/
+        /SHELL_CACHE_NAME = "foreman-shell-v0\.8\.4-c1"/
     );
 });
 
-test("release documentation preserves history and v0.8.3 continuity", async () => {
+test("release documentation preserves history and v0.8.4 continuity", async () => {
     const [
         readme,
         architecture,
@@ -417,6 +417,10 @@ test("release documentation preserves history and v0.8.3 continuity", async () =
 
     assert.match(
         changelog,
+        /# v0\.8\.4 — 2026-08-14/
+    );
+    assert.match(
+        changelog,
         /# v0\.8\.3 — 2026-08-13/
     );
     assert.match(
@@ -433,13 +437,13 @@ test("release documentation preserves history and v0.8.3 continuity", async () =
     );
     assert.match(
         readme,
-        /v0\.8\.3 — Calendar & Scheduling/
+        /v0\.8\.4 — Money/
     );
     assert.match(
         readme,
         /external working\s+memory and continuity system/
     );
-    assert.match(readme, /AI is not part of v0\.8\.3/);
+    assert.match(readme, /AI is not part of v0\.8\.4/);
     assert.match(architecture, /continuity system/i);
     assert.match(
         architecture,
@@ -500,6 +504,7 @@ test("approved v0.8 and v0.9 architecture boundaries are documented", async () =
         "v0.8.4 — Money",
         "v0.8.5 — Library, Records & Search",
         "v0.8.6 — Today Workspace & Household Proving Ground",
+        "v0.8.7 — Operational Refinement & UX Convergence",
         "v0.9.0 — Capacity Engine",
         "v0.9.1 — Priority Engine",
         "v0.9.2 — Morning Briefing"
@@ -671,7 +676,7 @@ test("approved v0.8 and v0.9 architecture boundaries are documented", async () =
     ], "prohibited Module Registry scope");
 
     assert.ok(normalized.readme.includes(
-        "Today is the implemented default primary workspace. Through v0.8.6, " +
+        "Today is the implemented default primary workspace. Through v0.8.7, " +
         "Today presents authoritative factual current state only."
     ));
     assert.ok(normalized.readme.includes(

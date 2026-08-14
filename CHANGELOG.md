@@ -14,6 +14,60 @@ No unreleased changes are recorded yet.
 
 ---
 
+# v0.8.4 — 2026-08-14
+
+## Added
+
+- Added Space-authoritative Money Accounts and Financial Categories.
+- Added factual income, revenue, and expense Transactions using integer minor
+  currency units.
+- Added explicit user-entered Budgets and factual recurring or one-time
+  Obligations without forecasting or affordability inference.
+- Added explicit retained-evidence Money relationships to supported Work,
+  Resources, People, and Organization records.
+- Added the selected-Space Money frontend while retaining `#budget` as a
+  compatibility route.
+- Added isolated Firefox Money compatibility acceptance.
+
+## Changed
+
+- Advanced the internal SQLite schema from version 7 to version 8 with additive,
+  idempotent Money persistence and recovery compatibility.
+- Updated application release identity to 0.8.4.
+- Finalized the exact 51-resource PWA shell as
+  `foreman-shell-v0.8.4-c1`.
+- Preserved portable export format version 1, backup format version 1, and
+  operational-fact schema version 1.
+
+## Reliability
+
+- Preserved backend-authoritative selected-Space isolation for all Money CRUD.
+- Preserved retained cross-domain relationship evidence when referenced records
+  are later removed.
+- Kept Money factual and separate from Capacity, Priority, affordability
+  inference, forecasting, recommendations, and AI.
+- Hardened safe-reload editing detection so hidden inactive forms cannot block
+  connection recovery.
+- Hardened Calendar browser acceptance against transient stale-row references.
+
+## Validation
+
+- Completed full backend acceptance with 361 tests passing.
+- Completed full frontend acceptance with 193 tests passing.
+- Completed isolated disposable Firefox acceptance with 45 tests passing and
+  verified disposable cleanup.
+
+## Documentation
+
+- Completed the v0.8.4 Money milestone.
+- Added v0.8.7 Operational Refinement & UX Convergence between the household
+  proving ground and Capacity.
+- Preserved Capacity for v0.9.0, Priority for v0.9.1, and Morning Briefing for
+  v0.9.2.
+- Set v0.8.5 Library, Records & Search as the next implementation milestone.
+
+---
+
 # v0.8.3 — 2026-08-13
 
 ## Added
