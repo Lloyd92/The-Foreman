@@ -1662,6 +1662,64 @@
                         </div>
                     </div>
                 </section>
+
+                <section class="card universal-search-card">
+                    <div class="card-heading">
+                        <h3>Universal Search</h3>
+                        <span>ALL AUTHORITATIVE RECORDS</span>
+                    </div>
+
+                    <p class="search-description">
+                        Search records across Work, Resources, Calendar,
+                        Money, Library, People, and Organizations in the
+                        active Space.
+                    </p>
+
+                    <form
+                        id="universal-search-form"
+                        class="universal-search-form"
+                    >
+                        <input
+                            name="query"
+                            type="search"
+                            maxlength="160"
+                            required
+                            placeholder="Search The Foreman"
+                            aria-label="Search The Foreman"
+                        >
+
+                        <button class="primary-button" type="submit">
+                            Search
+                        </button>
+                    </form>
+
+                    <p
+                        id="universal-search-message"
+                        class="module-settings-message"
+                        role="status"
+                        aria-live="polite"
+                    ></p>
+
+                    <div
+                        id="universal-search-results"
+                        class="universal-search-results"
+                    ></div>
+
+                    <div
+                        id="universal-search-empty"
+                        class="resource-empty-state"
+                        hidden
+                    >
+                        <div>
+                            <h3>No matching records</h3>
+                            <p>
+                                Try another term. Search reads from the
+                                authoritative records owned by each Foreman
+                                domain.
+                            </p>
+                        </div>
+                    </div>
+                </section>
             </main>
 
             <!-- Settings page -->
