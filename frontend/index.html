@@ -1268,28 +1268,261 @@
 
             <!-- Money page -->
             <main
-                class="content page-view category-page"
+                class="content page-view"
                 data-page="money"
                 hidden
             >
                 <section class="page-heading">
-                    <p class="section-eyebrow">
-                        Financial Records
-                    </p>
-
+                    <p class="section-eyebrow">Financial Records</p>
                     <h2>Money</h2>
-
                     <p>
-                        Open the existing budget workspace. Broader Money
-                        capabilities are planned for a future release.
+                        Record accounts, categories, transactions, budgets,
+                        and obligations for the active Space.
                     </p>
-
                     <nav
                         class="secondary-navigation"
                         aria-label="Money sections"
                     >
                         <a href="#budget">Budget</a>
                     </nav>
+                </section>
+
+                <p
+                    id="money-page-message"
+                    class="module-settings-message"
+                    role="status"
+                    aria-live="polite"
+                ></p>
+
+                <section class="card">
+                    <div class="card-heading">
+                        <h3>Accounts</h3>
+                        <span>FUNDING SOURCES</span>
+                    </div>
+
+                    <form id="money-account-form">
+                        <input name="name" required placeholder="Account name">
+                        <select name="kind" required>
+                            <option value="checking">Checking</option>
+                            <option value="savings">Savings</option>
+                            <option value="cash">Cash</option>
+                            <option value="credit">Credit</option>
+                            <option value="loan">Loan</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <input
+                            name="openingBalance"
+                            type="number"
+                            step="0.01"
+                            value="0"
+                            required
+                            placeholder="Opening balance"
+                        >
+                        <input name="notes" placeholder="Notes">
+                        <button class="primary-button" type="submit">
+                            Add Account
+                        </button>
+                    </form>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Opening Balance</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="money-accounts-body"></tbody>
+                    </table>
+                </section>
+
+                <section class="card">
+                    <div class="card-heading">
+                        <h3>Categories</h3>
+                        <span>INCOME &amp; EXPENSE</span>
+                    </div>
+
+                    <form id="money-category-form">
+                        <input name="name" required placeholder="Category name">
+                        <select name="kind" required>
+                            <option value="expense">Expense</option>
+                            <option value="income">Income</option>
+                        </select>
+                        <button class="primary-button" type="submit">
+                            Add Category
+                        </button>
+                    </form>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="money-categories-body"></tbody>
+                    </table>
+                </section>
+
+                <section class="card">
+                    <div class="card-heading">
+                        <h3>Transactions</h3>
+                        <span>ACTUAL ACTIVITY</span>
+                    </div>
+
+                    <form id="money-transaction-form">
+                        <select
+                            id="money-transaction-account"
+                            name="accountId"
+                            required
+                        ></select>
+                        <select
+                            id="money-transaction-category"
+                            name="categoryId"
+                        ></select>
+                        <select name="kind" required>
+                            <option value="expense">Expense</option>
+                            <option value="income">Income</option>
+                        </select>
+                        <input
+                            name="amount"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            required
+                            placeholder="Amount"
+                        >
+                        <input name="occurredOn" type="date" required>
+                        <input
+                            name="description"
+                            required
+                            placeholder="Description"
+                        >
+                        <input name="counterparty" placeholder="Counterparty">
+                        <input name="notes" placeholder="Notes">
+                        <button class="primary-button" type="submit">
+                            Add Transaction
+                        </button>
+                    </form>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="money-transactions-body"></tbody>
+                    </table>
+                </section>
+
+                <section class="card">
+                    <div class="card-heading">
+                        <h3>Budgets</h3>
+                        <span>USER-ENTERED PLANS</span>
+                    </div>
+
+                    <form id="money-budget-form">
+                        <input name="name" required placeholder="Budget name">
+                        <select
+                            id="money-budget-category"
+                            name="categoryId"
+                        ></select>
+                        <input
+                            name="amount"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            required
+                            placeholder="Amount"
+                        >
+                        <input name="startDate" type="date" required>
+                        <input name="endDate" type="date" required>
+                        <input name="notes" placeholder="Notes">
+                        <button class="primary-button" type="submit">
+                            Add Budget
+                        </button>
+                    </form>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Amount</th>
+                                <th>Period</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="money-budgets-body"></tbody>
+                    </table>
+                </section>
+
+                <section class="card">
+                    <div class="card-heading">
+                        <h3>Obligations</h3>
+                        <span>RECURRING COSTS</span>
+                    </div>
+
+                    <form id="money-obligation-form">
+                        <input
+                            name="name"
+                            required
+                            placeholder="Obligation name"
+                        >
+                        <select
+                            id="money-obligation-account"
+                            name="accountId"
+                        ></select>
+                        <select
+                            id="money-obligation-category"
+                            name="categoryId"
+                        ></select>
+                        <input
+                            name="amount"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            required
+                            placeholder="Amount"
+                        >
+                        <select name="frequency" required>
+                            <option value="once">Once</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="yearly">Yearly</option>
+                        </select>
+                        <input
+                            name="intervalValue"
+                            type="number"
+                            min="1"
+                            value="1"
+                            required
+                        >
+                        <input name="startDate" type="date" required>
+                        <input name="endDate" type="date">
+                        <input name="notes" placeholder="Notes">
+                        <button class="primary-button" type="submit">
+                            Add Obligation
+                        </button>
+                    </form>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Amount</th>
+                                <th>Frequency</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="money-obligations-body"></tbody>
+                    </table>
                 </section>
             </main>
 
@@ -3456,23 +3689,25 @@
                 </section>
             </main>
 
-            <!-- Budget page -->
+            <!-- Budget compatibility page -->
             <main
-                class="content page-view"
+                class="content page-view category-page"
                 data-page="budget"
                 hidden
             >
                 <section class="page-heading">
-                    <p class="section-eyebrow">
-                        Business Finances
-                    </p>
-
-                    <h2>Budget</h2>
-
+                    <p class="section-eyebrow">Money</p>
+                    <h2>Budget has moved</h2>
                     <p>
-                        Business funds, expenses, revenue, purchasing, and
-                        project-cost tools will live here.
+                        Budget records are now part of the unified Money
+                        workspace.
                     </p>
+                    <nav
+                        class="secondary-navigation"
+                        aria-label="Budget compatibility"
+                    >
+                        <a href="#money">Open Money</a>
+                    </nav>
                 </section>
             </main>
 

@@ -16,6 +16,7 @@ import { initializeCarePage } from "./pages/care.js";
 import { initializeProjectsPage } from "./pages/projects.js";
 import { initializeRecoveryPage } from "./pages/recovery.js";
 import { initializeResourcesPage } from "./pages/resources.js";
+import { initializeMoneyPage } from "./pages/money.js";
 import { initializeModuleSettings } from "./pages/settings.js";
 import {
     migrateProjectsAfterInventory
@@ -70,6 +71,7 @@ async function initializeOperationalApplication() {
 
     const initializers = [
         initializeCalendarPage(),
+        initializeMoneyPage(),
         initializeDashboard({
             workEnabled,
             inventoryEnabled

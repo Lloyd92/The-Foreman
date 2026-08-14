@@ -360,7 +360,7 @@ Planned implementation sequence:
        recommendation behavior.
 6. [x] Add explicit cross-domain Money relationships with retained evidence
        where required by the approved relationship contract.
-7. [ ] Replace the Money/Budget placeholder experience with the selected-Space
+7. [x] Replace the Money/Budget placeholder experience with the selected-Space
        Money frontend while preserving compatible navigation.
 8. [ ] Complete isolated disposable browser compatibility acceptance.
 9. [ ] Reconcile v0.8.4 release identity, documentation, and Green Build.
