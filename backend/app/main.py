@@ -7,6 +7,7 @@ from app.api.calendar import router as calendar_router
 from app.api.care_plans import router as care_plans_router
 from app.api.data_export import router as data_export_router
 from app.api.inventory import router as inventory_router
+from app.api.library import router as library_router
 from app.api.inventory_migrations import router as inventory_migrations_router
 from app.api.members import router as members_router
 from app.api.money import router as money_router
@@ -82,6 +83,7 @@ app.include_router(modules_router)
 app.include_router(data_export_router)
 app.include_router(money_router)
 app.include_router(inventory_router)
+app.include_router(library_router)
 app.include_router(inventory_migrations_router)
 app.include_router(projects_router)
 app.include_router(project_migrations_router)
