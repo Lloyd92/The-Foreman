@@ -2096,6 +2096,10 @@ footer {
     text-align: center;
 }
 
+.resource-empty-state[hidden] {
+    display: none;
+}
+
 .resource-empty-state h3 {
     margin: 13px 0 7px;
 }

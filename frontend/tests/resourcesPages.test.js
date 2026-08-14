@@ -31,6 +31,11 @@ const [html, app, toolsSource, careSource] =
         )
     ]);
 
+const stylesSource = await readFile(
+    new URL("../styles.css", import.meta.url),
+    "utf8"
+);
+
 
 test(
     "Tools runtime exposes backend CRUD and factual maintenance history",
@@ -64,6 +69,17 @@ test(
         assert.doesNotMatch(
             toolsSource,
             /getOperationalFacts|operationsApi/
+        );
+    }
+);
+
+
+test(
+    "Resource empty states respect the hidden attribute",
+    () => {
+        assert.match(
+            stylesSource,
+            /\.resource-empty-state\[hidden\]\s*\{[\s\S]*display:\s*none;[\s\S]*\}/
         );
     }
 );
