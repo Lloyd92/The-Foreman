@@ -6,6 +6,8 @@ from app.models.calendar_series_exclusion import CalendarSeriesExclusion
 from app.models.calendar_setting import CalendarSetting
 from app.models.inventory import InventoryItem
 from app.models.inventory_migration import InventoryMigration
+from app.models.library_record import LibraryRecord
+from app.models.library_relationship import LibraryRelationship
 from app.models.member import Member
 from app.models.money_account import MoneyAccount
 from app.models.money_budget import MoneyBudget
@@ -41,6 +43,8 @@ __all__ = [
     "CalendarSetting",
     "InventoryItem",
     "InventoryMigration",
+    "LibraryRecord",
+    "LibraryRelationship",
     "Member",
     "MoneyAccount",
     "MoneyBudget",

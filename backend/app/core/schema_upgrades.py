@@ -20,7 +20,8 @@ UNIVERSAL_WORK_DATABASE_SCHEMA_VERSION = 5
 RESOURCE_DATABASE_SCHEMA_VERSION = 6
 CALENDAR_DATABASE_SCHEMA_VERSION = 7
 MONEY_DATABASE_SCHEMA_VERSION = 8
-CURRENT_DATABASE_SCHEMA_VERSION = MONEY_DATABASE_SCHEMA_VERSION
+LIBRARY_DATABASE_SCHEMA_VERSION = 9
+CURRENT_DATABASE_SCHEMA_VERSION = LIBRARY_DATABASE_SCHEMA_VERSION
 SPACE_SCOPE_JOURNAL_TABLE = "__foreman_v4_space_scope_journal"
 
 RESOURCE_TABLES = (
@@ -45,6 +46,11 @@ MONEY_TABLES = (
     "money_budgets",
     "money_obligations",
     "money_relationships",
+)
+
+LIBRARY_TABLES = (
+    "library_records",
+    "library_relationships",
 )
 
 UNIVERSAL_WORK_COLUMN_UPGRADES = (
@@ -265,6 +271,32 @@ MONEY_CHECK_CONSTRAINTS = {
         "ck_money_relationships_target_type": (
             "target_type IN "
             "('task', 'project', 'tool', 'inventory', 'person', 'organization')"
+        ),
+    },
+}
+
+
+LIBRARY_CHECK_CONSTRAINTS = {
+    "library_records": {
+        "ck_library_records_kind": (
+            "kind IN "
+            "('note', 'document', 'manual', 'receipt', 'photo', "
+            "'decision', 'measurement', 'cad_reference')"
+        ),
+        "ck_library_records_title_not_blank": (
+            "length(trim(title)) > 0"
+        ),
+    },
+    "library_relationships": {
+        "ck_library_relationships_target_type": (
+            "target_type IN ("
+            "'task', 'project', "
+            "'tool', 'inventory', 'care_plan', 'tool_maintenance_record', "
+            "'calendar_entry', 'calendar_series', "
+            "'money_account', 'money_category', 'money_transaction', "
+            "'money_budget', 'money_obligation', "
+            "'person', 'organization'"
+            ")"
         ),
     },
 }
@@ -2819,6 +2851,63 @@ def _verify_money_schema(
         )
 
 
+
+def _ensure_library_tables(
+    connection: Connection,
+) -> None:
+    with connection.begin():
+        for table_name in LIBRARY_TABLES:
+            Base.metadata.tables[table_name].create(
+                bind=connection,
+                checkfirst=True,
+            )
+            _repair_scoped_indexes(connection, table_name)
+
+
+def _verify_library_schema(
+    connection: Connection,
+) -> None:
+    database_inspector = inspect(connection)
+
+    for table_name in LIBRARY_TABLES:
+        if not _table_has_final_structure(
+            connection,
+            table_name,
+        ):
+            raise RuntimeError(
+                f"{table_name} does not match the version 9 schema."
+            )
+
+        _verify_scoped_indexes(connection, table_name)
+
+    for table_name, expected in LIBRARY_CHECK_CONSTRAINTS.items():
+        actual = {
+            constraint.get("name"): _canonical_sql(
+                constraint["sqltext"]
+            )
+            for constraint
+            in database_inspector.get_check_constraints(table_name)
+        }
+        expected_canonical = {
+            name: _canonical_sql(expression)
+            for name, expression in expected.items()
+        }
+
+        if actual != expected_canonical:
+            raise RuntimeError(
+                f"{table_name} check constraints are incomplete."
+            )
+
+    foreign_key_violations = list(
+        connection.exec_driver_sql("PRAGMA foreign_key_check")
+    )
+
+    if foreign_key_violations:
+        raise RuntimeError(
+            "The version 9 schema contains foreign-key violations."
+        )
+
+
 def apply_schema_upgrades(connection: Connection) -> None:
     if connection.dialect.name != "sqlite":
         return
@@ -2957,4 +3046,16 @@ def apply_schema_upgrades(connection: Connection) -> None:
             connection.exec_driver_sql(
                 "PRAGMA user_version = "
                 f"{MONEY_DATABASE_SCHEMA_VERSION}"
+            )
+            version = MONEY_DATABASE_SCHEMA_VERSION
+
+    _ensure_library_tables(connection)
+
+    with connection.begin():
+        _verify_library_schema(connection)
+
+        if version < LIBRARY_DATABASE_SCHEMA_VERSION:
+            connection.exec_driver_sql(
+                "PRAGMA user_version = "
+                f"{LIBRARY_DATABASE_SCHEMA_VERSION}"
             )

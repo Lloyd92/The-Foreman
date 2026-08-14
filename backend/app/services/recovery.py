@@ -61,6 +61,8 @@ CURRENT_REQUIRED_DATABASE_TABLES = frozenset(
         "care_plans",
         "inventory_items",
         "inventory_migrations",
+        "library_records",
+        "library_relationships",
         "members",
         "money_accounts",
         "money_budgets",

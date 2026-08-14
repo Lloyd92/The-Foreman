@@ -8,7 +8,7 @@ from sqlalchemy import create_engine, func, inspect, select
 from app.core.database import prepare_database_schema
 from app.core.schema_upgrades import (
     CURRENT_DATABASE_SCHEMA_VERSION,
-    MONEY_DATABASE_SCHEMA_VERSION,
+    LIBRARY_DATABASE_SCHEMA_VERSION,
     get_database_schema_version,
 )
 from app.models.base import Base
@@ -17,22 +17,18 @@ from app.services.recovery import CURRENT_REQUIRED_DATABASE_TABLES
 import app.models  # noqa: F401
 
 
-MONEY_TABLES = {
-    "money_accounts",
-    "money_budgets",
-    "money_categories",
-    "money_obligations",
-    "money_relationships",
-    "money_transactions",
+LIBRARY_TABLES = {
+    "library_records",
+    "library_relationships",
 }
 
 
-class MoneySchemaUpgradeTests(unittest.TestCase):
+class LibrarySchemaUpgradeTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_directory = tempfile.TemporaryDirectory()
         database_path = (
             Path(self.temp_directory.name)
-            / "money-schema.sqlite3"
+            / "library-schema.sqlite3"
         )
         self.engine = create_engine(
             f"sqlite:///{database_path}",
@@ -47,49 +43,41 @@ class MoneySchemaUpgradeTests(unittest.TestCase):
         with self.engine.connect() as connection:
             prepare_database_schema(connection)
 
-    def create_version_seven_database(self) -> None:
+    def create_version_eight_database(self) -> None:
         self.run_upgrade()
 
-        drop_order = (
-            "money_relationships",
-            "money_transactions",
-            "money_budgets",
-            "money_obligations",
-            "money_categories",
-            "money_accounts",
-        )
-
         with self.engine.begin() as connection:
-            for table_name in drop_order:
-                connection.exec_driver_sql(
-                    f'DROP TABLE "{table_name}"'
-                )
-
             connection.exec_driver_sql(
-                "PRAGMA user_version = 7"
+                'DROP TABLE "library_relationships"'
+            )
+            connection.exec_driver_sql(
+                'DROP TABLE "library_records"'
+            )
+            connection.exec_driver_sql(
+                "PRAGMA user_version = 8"
             )
 
         with self.engine.connect() as connection:
             self.assertEqual(
                 get_database_schema_version(connection),
-                7,
+                8,
             )
 
-    def test_fresh_database_includes_money_schema(self) -> None:
+    def test_fresh_database_reaches_schema_nine(self) -> None:
         self.run_upgrade()
 
         tables = set(inspect(self.engine).get_table_names())
 
-        self.assertTrue(MONEY_TABLES.issubset(tables))
+        self.assertTrue(LIBRARY_TABLES.issubset(tables))
 
         with self.engine.connect() as connection:
             self.assertEqual(
                 get_database_schema_version(connection),
-                CURRENT_DATABASE_SCHEMA_VERSION,
+                LIBRARY_DATABASE_SCHEMA_VERSION,
             )
             self.assertEqual(
-                MONEY_DATABASE_SCHEMA_VERSION,
-                8,
+                CURRENT_DATABASE_SCHEMA_VERSION,
+                LIBRARY_DATABASE_SCHEMA_VERSION,
             )
             self.assertEqual(
                 connection.exec_driver_sql(
@@ -98,13 +86,13 @@ class MoneySchemaUpgradeTests(unittest.TestCase):
                 [],
             )
 
-    def test_version_seven_preserves_data_through_money_upgrade(self) -> None:
-        self.create_version_seven_database()
+    def test_version_eight_adds_library_without_data_loss(self) -> None:
+        self.create_version_eight_database()
 
         timestamp = datetime(
             2026,
             8,
-            13,
+            14,
             16,
             0,
             tzinfo=timezone.utc,
@@ -114,15 +102,15 @@ class MoneySchemaUpgradeTests(unittest.TestCase):
             connection.execute(
                 Base.metadata.tables["spaces"].insert(),
                 {
-                    "id": "space-preserved-v7",
-                    "name": "Preserved v7 Space",
-                    "description": "Must survive v8 upgrade",
+                    "id": "space-preserved-v8",
+                    "name": "Preserved v8 Space",
+                    "description": "Must survive v9 upgrade",
                     "created_at": timestamp,
                     "updated_at": timestamp,
                 },
             )
 
-        prior_tables = set(Base.metadata.tables) - MONEY_TABLES
+        prior_tables = set(Base.metadata.tables) - LIBRARY_TABLES
 
         with self.engine.connect() as connection:
             before_counts = {
@@ -139,7 +127,7 @@ class MoneySchemaUpgradeTests(unittest.TestCase):
         with self.engine.connect() as connection:
             self.assertEqual(
                 get_database_schema_version(connection),
-                CURRENT_DATABASE_SCHEMA_VERSION,
+                9,
             )
 
             preserved = connection.execute(
@@ -147,13 +135,13 @@ class MoneySchemaUpgradeTests(unittest.TestCase):
                     Base.metadata.tables["spaces"].c.description
                 ).where(
                     Base.metadata.tables["spaces"].c.id
-                    == "space-preserved-v7"
+                    == "space-preserved-v8"
                 )
             ).scalar_one()
 
             self.assertEqual(
                 preserved,
-                "Must survive v8 upgrade",
+                "Must survive v9 upgrade",
             )
 
             after_counts = {
@@ -173,14 +161,14 @@ class MoneySchemaUpgradeTests(unittest.TestCase):
                 [],
             )
 
-    def test_money_schema_remains_valid_after_repeated_upgrade(self) -> None:
+    def test_schema_nine_upgrade_is_idempotent(self) -> None:
         self.run_upgrade()
         self.run_upgrade()
 
         with self.engine.connect() as connection:
             self.assertEqual(
                 get_database_schema_version(connection),
-                CURRENT_DATABASE_SCHEMA_VERSION,
+                9,
             )
             self.assertEqual(
                 connection.exec_driver_sql(
@@ -189,9 +177,9 @@ class MoneySchemaUpgradeTests(unittest.TestCase):
                 [],
             )
 
-    def test_recovery_requires_money_tables(self) -> None:
+    def test_recovery_requires_library_tables(self) -> None:
         self.assertTrue(
-            MONEY_TABLES.issubset(
+            LIBRARY_TABLES.issubset(
                 CURRENT_REQUIRED_DATABASE_TABLES
             )
         )

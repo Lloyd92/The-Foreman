@@ -803,6 +803,16 @@ CREATE TABLE work_calendar_relationships (
 );
 """
 
+CURRENT_LIBRARY_TABLE_SCHEMA = """
+CREATE TABLE library_records (
+    id TEXT PRIMARY KEY
+);
+CREATE TABLE library_relationships (
+    id TEXT PRIMARY KEY
+);
+"""
+
+
 CURRENT_MONEY_TABLE_SCHEMA = """
 CREATE TABLE money_accounts (
     id TEXT PRIMARY KEY
@@ -925,6 +935,9 @@ class BackupPackageTests(unittest.TestCase):
                 )
                 connection.executescript(
                     CURRENT_MONEY_TABLE_SCHEMA
+                )
+                connection.executescript(
+                    CURRENT_LIBRARY_TABLE_SCHEMA
                 )
 
             connection.execute(
@@ -2486,6 +2499,9 @@ class PreRestoreSafetyBackupTests(unittest.TestCase):
             )
             connection.executescript(
                 CURRENT_MONEY_TABLE_SCHEMA
+            )
+            connection.executescript(
+                CURRENT_LIBRARY_TABLE_SCHEMA
             )
             connection.execute(
                 f"PRAGMA user_version = {CURRENT_DATABASE_SCHEMA_VERSION}"
