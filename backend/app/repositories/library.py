@@ -2,6 +2,7 @@ from sqlalchemy import asc, desc, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.library_record import LibraryRecord
+from app.models.library_relationship import LibraryRelationship
 
 
 SORT_FIELDS = {
@@ -82,3 +83,57 @@ def delete_record(
     record: LibraryRecord,
 ) -> None:
     session.delete(record)
+
+
+
+def list_relationships(
+    session: Session,
+    space_id: str,
+    library_record_id: str,
+) -> list[LibraryRelationship]:
+    statement = (
+        select(LibraryRelationship)
+        .where(
+            LibraryRelationship.space_id == space_id,
+            LibraryRelationship.library_record_id
+            == library_record_id,
+        )
+        .order_by(
+            LibraryRelationship.created_at.asc(),
+            LibraryRelationship.id.asc(),
+        )
+    )
+    return list(session.scalars(statement))
+
+
+def get_relationship(
+    session: Session,
+    space_id: str,
+    library_record_id: str,
+    relationship_id: str,
+) -> LibraryRelationship | None:
+    return session.scalar(
+        select(LibraryRelationship).where(
+            LibraryRelationship.id == relationship_id,
+            LibraryRelationship.space_id == space_id,
+            LibraryRelationship.library_record_id
+            == library_record_id,
+        )
+    )
+
+
+def add_relationship(
+    session: Session,
+    relationship: LibraryRelationship,
+) -> LibraryRelationship:
+    session.add(relationship)
+    session.flush()
+    session.refresh(relationship)
+    return relationship
+
+
+def delete_relationship(
+    session: Session,
+    relationship: LibraryRelationship,
+) -> None:
+    session.delete(relationship)

@@ -131,6 +131,18 @@ def get_maintenance_record(
     return session.scalar(statement)
 
 
+def get_maintenance_record_by_id(
+    session: Session,
+    space_id: str,
+    record_id: str,
+) -> ToolMaintenanceRecord | None:
+    statement = select(ToolMaintenanceRecord).where(
+        ToolMaintenanceRecord.id == record_id,
+        ToolMaintenanceRecord.space_id == space_id,
+    )
+    return session.scalar(statement)
+
+
 def add_maintenance_record(
     session: Session,
     record: ToolMaintenanceRecord,
