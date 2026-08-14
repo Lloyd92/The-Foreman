@@ -21,6 +21,7 @@ from app.api.people import router as people_router
 from app.api.project_migrations import router as project_migrations_router
 from app.api.projects import router as projects_router
 from app.api.recovery import router as recovery_router
+from app.api.search import router as search_router
 from app.api.spaces import router as spaces_router
 from app.api.system import router as system_router
 from app.api.task_migrations import router as task_migrations_router
@@ -84,6 +85,7 @@ app.include_router(data_export_router)
 app.include_router(money_router)
 app.include_router(inventory_router)
 app.include_router(library_router)
+app.include_router(search_router)
 app.include_router(inventory_migrations_router)
 app.include_router(projects_router)
 app.include_router(project_migrations_router)
