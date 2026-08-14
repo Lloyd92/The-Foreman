@@ -24,7 +24,7 @@ SECONDARY_ROUTE_HEADINGS = {
     "tools": "Tools",
     "care": "Care Plans",
     "mealworms": "Mealworm Production",
-    "budget": "Budget",
+    "budget": "Budget has moved",
     "recovery": "Backup & Recovery",
 }
 

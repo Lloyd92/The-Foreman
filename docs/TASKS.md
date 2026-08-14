@@ -362,7 +362,7 @@ Planned implementation sequence:
        where required by the approved relationship contract.
 7. [x] Replace the Money/Budget placeholder experience with the selected-Space
        Money frontend while preserving compatible navigation.
-8. [ ] Complete isolated disposable browser compatibility acceptance.
+8. [x] Complete isolated disposable browser compatibility acceptance.
 9. [ ] Reconcile v0.8.4 release identity, documentation, and Green Build.
 
 Commit 1 is documentation-only. It does not change SQLite schema version 7,

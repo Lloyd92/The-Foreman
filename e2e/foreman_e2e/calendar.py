@@ -145,16 +145,23 @@ class CalendarPage:
         self.wait_for_row(title)
 
     def find_row(self, title: str) -> Any | None:
+        from selenium.common.exceptions import (
+            StaleElementReferenceException,
+        )
+
         for row in self.driver.find_elements(
             "css selector",
             "#calendar-table-body tr",
         ):
-            names = row.find_elements(
-                "css selector",
-                ".resource-record-name",
-            )
-            if names and names[0].text == title:
-                return row
+            try:
+                names = row.find_elements(
+                    "css selector",
+                    ".resource-record-name",
+                )
+                if names and names[0].text == title:
+                    return row
+            except StaleElementReferenceException:
+                continue
 
         return None
 

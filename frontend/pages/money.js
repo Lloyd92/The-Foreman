@@ -63,10 +63,12 @@ function setMessage(message, isError = false) {
 }
 
 
-function option(value, label) {
+function option(value, label, isDefault = false) {
     const element = document.createElement("option");
     element.value = value;
     element.textContent = label;
+    element.defaultSelected = isDefault;
+    element.selected = isDefault;
     return element;
 }
 
@@ -86,7 +88,7 @@ function refreshReferenceSelects() {
 
     if (accountSelect) {
         accountSelect.replaceChildren(
-            option("", "Choose account…"),
+            option("", "Choose account…", true),
             ...state.accounts.map(account => (
                 option(account.id, account.name)
             ))
@@ -95,7 +97,7 @@ function refreshReferenceSelects() {
 
     if (obligationAccount) {
         obligationAccount.replaceChildren(
-            option("", "No account"),
+            option("", "No account", true),
             ...state.accounts.map(account => (
                 option(account.id, account.name)
             ))
@@ -108,7 +110,7 @@ function refreshReferenceSelects() {
         }
 
         select.replaceChildren(
-            option("", "No category"),
+            option("", "No category", true),
             ...state.categories.map(category => (
                 option(
                     category.id,

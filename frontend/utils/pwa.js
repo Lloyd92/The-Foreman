@@ -45,7 +45,7 @@ export function hasActiveEditingState(documentRef = document) {
     return [...documentRef.querySelectorAll("form")].some(form => {
         const backdrop = form.closest?.(".dialog-backdrop");
 
-        if (backdrop?.hidden) {
+        if (backdrop?.hidden || form.closest?.("[hidden]")) {
             return false;
         }
 
