@@ -15,6 +15,9 @@ from app.schemas.money import (
     MoneyObligationCreate,
     MoneyObligationRead,
     MoneyObligationUpdate,
+    MoneyRelationshipCreate,
+    MoneyRelationshipRead,
+    MoneyRelationshipUpdate,
     MoneyCategoryCreate,
     MoneyCategoryRead,
     MoneyCategoryUpdate,
@@ -478,6 +481,107 @@ def delete_obligation(
     try:
         money_service.delete_obligation(
             session, active_space, obligation_id
+        )
+    except money_service.MoneyNotFoundError as error:
+        raise money_error(error) from error
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+
+@router.get(
+    "/relationships",
+    response_model=list[MoneyRelationshipRead],
+)
+def list_relationships(
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> list[MoneyRelationshipRead]:
+    return money_service.list_relationships(session, active_space)
+
+
+@router.post(
+    "/relationships",
+    response_model=MoneyRelationshipRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_relationship(
+    data: MoneyRelationshipCreate,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> MoneyRelationshipRead:
+    try:
+        return money_service.create_relationship(
+            session,
+            active_space,
+            data,
+        )
+    except (
+        money_service.MoneyNotFoundError,
+        money_service.MoneyConflictError,
+    ) as error:
+        raise money_error(error) from error
+
+
+@router.get(
+    "/relationships/{relationship_id}",
+    response_model=MoneyRelationshipRead,
+)
+def read_relationship(
+    relationship_id: str,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> MoneyRelationshipRead:
+    try:
+        value = money_service.require_relationship_model(
+            session,
+            active_space,
+            relationship_id,
+        )
+        return money_service.serialize_relationship(
+            session,
+            active_space,
+            value,
+        )
+    except money_service.MoneyNotFoundError as error:
+        raise money_error(error) from error
+
+
+@router.patch(
+    "/relationships/{relationship_id}",
+    response_model=MoneyRelationshipRead,
+)
+def update_relationship(
+    relationship_id: str,
+    data: MoneyRelationshipUpdate,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> MoneyRelationshipRead:
+    try:
+        return money_service.update_relationship(
+            session,
+            active_space,
+            relationship_id,
+            data,
+        )
+    except money_service.MoneyNotFoundError as error:
+        raise money_error(error) from error
+
+
+@router.delete(
+    "/relationships/{relationship_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_relationship(
+    relationship_id: str,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> Response:
+    try:
+        money_service.delete_relationship(
+            session,
+            active_space,
+            relationship_id,
         )
     except money_service.MoneyNotFoundError as error:
         raise money_error(error) from error

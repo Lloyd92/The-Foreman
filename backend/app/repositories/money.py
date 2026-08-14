@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.models.money_account import MoneyAccount
 from app.models.money_budget import MoneyBudget
 from app.models.money_obligation import MoneyObligation
+from app.models.money_relationship import MoneyRelationship
 from app.models.money_category import MoneyCategory
 from app.models.money_transaction import MoneyTransaction
 
@@ -225,3 +226,48 @@ def delete_obligation(
     obligation: MoneyObligation,
 ) -> None:
     session.delete(obligation)
+
+
+
+def list_relationships(
+    session: Session,
+    space_id: str,
+) -> list[MoneyRelationship]:
+    statement = (
+        select(MoneyRelationship)
+        .where(MoneyRelationship.space_id == space_id)
+        .order_by(
+            MoneyRelationship.created_at.asc(),
+            MoneyRelationship.id.asc(),
+        )
+    )
+    return list(session.scalars(statement))
+
+
+def get_relationship(
+    session: Session,
+    space_id: str,
+    relationship_id: str,
+) -> MoneyRelationship | None:
+    return session.scalar(
+        select(MoneyRelationship).where(
+            MoneyRelationship.id == relationship_id,
+            MoneyRelationship.space_id == space_id,
+        )
+    )
+
+
+def add_relationship(
+    session: Session,
+    relationship: MoneyRelationship,
+) -> MoneyRelationship:
+    session.add(relationship)
+    session.flush()
+    return relationship
+
+
+def delete_relationship(
+    session: Session,
+    relationship: MoneyRelationship,
+) -> None:
+    session.delete(relationship)

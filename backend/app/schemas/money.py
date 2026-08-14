@@ -291,3 +291,51 @@ class MoneyObligationRead(ApiModel):
     notes: str
     created_at: datetime
     updated_at: datetime
+
+
+
+MoneyRelationshipMoneyType = Literal[
+    "account",
+    "category",
+    "transaction",
+    "budget",
+    "obligation",
+]
+MoneyRelationshipTargetType = Literal[
+    "task",
+    "project",
+    "tool",
+    "inventory",
+    "person",
+    "organization",
+]
+
+
+class MoneyRelationshipCreate(ApiModel):
+    money_type: MoneyRelationshipMoneyType
+    money_id: StableId
+    target_type: MoneyRelationshipTargetType
+    target_id: StableId
+    note: str = Field(default="", max_length=500)
+
+
+class MoneyRelationshipUpdate(ApiModel):
+    note: str | None = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def require_change(self):
+        if not self.model_fields_set or self.note is None:
+            raise ValueError("Provide a non-null relationship field.")
+        return self
+
+
+class MoneyRelationshipRead(ApiModel):
+    id: str
+    money_type: MoneyRelationshipMoneyType
+    money_id: str
+    money_exists: bool
+    target_type: MoneyRelationshipTargetType
+    target_id: str
+    target_exists: bool
+    note: str
+    created_at: datetime

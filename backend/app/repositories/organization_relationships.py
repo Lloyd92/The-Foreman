@@ -62,3 +62,16 @@ def delete_organization_relationship(
     relationship: OrganizationSpaceRelationship,
 ) -> None:
     session.delete(relationship)
+
+
+
+def organization_has_relationship(
+    session: Session,
+    space_id: str,
+    organization_id: str,
+) -> bool:
+    statement = select(OrganizationSpaceRelationship.id).where(
+        OrganizationSpaceRelationship.space_id == space_id,
+        OrganizationSpaceRelationship.organization_id == organization_id,
+    )
+    return session.scalar(statement) is not None

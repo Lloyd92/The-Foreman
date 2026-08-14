@@ -4,16 +4,28 @@ from sqlalchemy.orm import Session
 from app.models.money_account import MoneyAccount
 from app.models.money_budget import MoneyBudget
 from app.models.money_obligation import MoneyObligation
+from app.models.money_relationship import MoneyRelationship
 from app.models.money_category import MoneyCategory
 from app.models.money_transaction import MoneyTransaction
 from app.models.space import Space
+from app.services.projects import require_project
+from app.services.tasks import require_task
+from app.services.tools import require_tool
+from app.repositories import inventory as inventory_repository
+from app.repositories import members as members_repository
 from app.repositories import money as money_repository
+from app.repositories import (
+    organization_relationships as organization_relationships_repository,
+)
 from app.schemas.money import (
     MoneyAccountCreate,
     MoneyBudgetCreate,
     MoneyBudgetUpdate,
     MoneyObligationCreate,
     MoneyObligationUpdate,
+    MoneyRelationshipCreate,
+    MoneyRelationshipRead,
+    MoneyRelationshipUpdate,
     MoneyAccountUpdate,
     MoneyCategoryCreate,
     MoneyCategoryUpdate,
@@ -614,6 +626,260 @@ def delete_obligation(
 
     try:
         money_repository.delete_obligation(session, obligation)
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+
+
+
+def _money_exists(
+    session: Session,
+    active_space: Space,
+    *,
+    money_type: str,
+    money_id: str,
+) -> bool:
+    if money_type == "account":
+        return (
+            money_repository.get_account(
+                session,
+                active_space.id,
+                money_id,
+            )
+            is not None
+        )
+
+    if money_type == "category":
+        return (
+            money_repository.get_category(
+                session,
+                active_space.id,
+                money_id,
+            )
+            is not None
+        )
+
+    if money_type == "transaction":
+        return (
+            money_repository.get_transaction(
+                session,
+                active_space.id,
+                money_id,
+            )
+            is not None
+        )
+
+    if money_type == "budget":
+        return (
+            money_repository.get_budget(
+                session,
+                active_space.id,
+                money_id,
+            )
+            is not None
+        )
+
+    return (
+        money_repository.get_obligation(
+            session,
+            active_space.id,
+            money_id,
+        )
+        is not None
+    )
+
+
+def _target_exists(
+    session: Session,
+    active_space: Space,
+    *,
+    target_type: str,
+    target_id: str,
+) -> bool:
+    if target_type == "task":
+        try:
+            require_task(session, active_space, target_id)
+            return True
+        except LookupError:
+            return False
+
+    if target_type == "project":
+        try:
+            require_project(session, active_space, target_id)
+            return True
+        except LookupError:
+            return False
+
+    if target_type == "tool":
+        try:
+            require_tool(session, active_space, target_id)
+            return True
+        except LookupError:
+            return False
+
+    if target_type == "inventory":
+        return (
+            inventory_repository.get_inventory_item(
+                session,
+                active_space.id,
+                target_id,
+            )
+            is not None
+        )
+
+    if target_type == "person":
+        return (
+            members_repository.get_member_for_person(
+                session,
+                active_space.id,
+                target_id,
+            )
+            is not None
+        )
+
+    return organization_relationships_repository.organization_has_relationship(
+        session,
+        active_space.id,
+        target_id,
+    )
+
+
+def serialize_relationship(
+    session: Session,
+    active_space: Space,
+    value: MoneyRelationship,
+) -> MoneyRelationshipRead:
+    return MoneyRelationshipRead(
+        id=value.id,
+        money_type=value.money_type,
+        money_id=value.money_id,
+        money_exists=_money_exists(
+            session,
+            active_space,
+            money_type=value.money_type,
+            money_id=value.money_id,
+        ),
+        target_type=value.target_type,
+        target_id=value.target_id,
+        target_exists=_target_exists(
+            session,
+            active_space,
+            target_type=value.target_type,
+            target_id=value.target_id,
+        ),
+        note=value.note,
+        created_at=value.created_at,
+    )
+
+
+def list_relationships(
+    session: Session,
+    active_space: Space,
+) -> list[MoneyRelationshipRead]:
+    return [
+        serialize_relationship(session, active_space, value)
+        for value in money_repository.list_relationships(
+            session,
+            active_space.id,
+        )
+    ]
+
+
+def require_relationship_model(
+    session: Session,
+    active_space: Space,
+    relationship_id: str,
+) -> MoneyRelationship:
+    value = money_repository.get_relationship(
+        session,
+        active_space.id,
+        relationship_id,
+    )
+    if value is None:
+        raise MoneyNotFoundError("Money Relationship not found.")
+    return value
+
+
+def create_relationship(
+    session: Session,
+    active_space: Space,
+    data: MoneyRelationshipCreate,
+) -> MoneyRelationshipRead:
+    if not _money_exists(
+        session,
+        active_space,
+        money_type=data.money_type,
+        money_id=data.money_id,
+    ):
+        raise MoneyNotFoundError(
+            "Referenced Money record does not exist in the active Space."
+        )
+
+    if not _target_exists(
+        session,
+        active_space,
+        target_type=data.target_type,
+        target_id=data.target_id,
+    ):
+        raise MoneyNotFoundError(
+            "Referenced target does not exist in the active Space."
+        )
+
+    value = MoneyRelationship(
+        space_id=active_space.id,
+        **data.model_dump(),
+    )
+
+    try:
+        money_repository.add_relationship(session, value)
+        session.commit()
+        session.refresh(value)
+    except IntegrityError as error:
+        session.rollback()
+        raise MoneyConflictError(
+            "That Money relationship already exists."
+        ) from error
+
+    return serialize_relationship(session, active_space, value)
+
+
+def update_relationship(
+    session: Session,
+    active_space: Space,
+    relationship_id: str,
+    data: MoneyRelationshipUpdate,
+) -> MoneyRelationshipRead:
+    value = require_relationship_model(
+        session,
+        active_space,
+        relationship_id,
+    )
+    value.note = data.note
+
+    try:
+        session.commit()
+        session.refresh(value)
+    except Exception:
+        session.rollback()
+        raise
+
+    return serialize_relationship(session, active_space, value)
+
+
+def delete_relationship(
+    session: Session,
+    active_space: Space,
+    relationship_id: str,
+) -> None:
+    value = require_relationship_model(
+        session,
+        active_space,
+        relationship_id,
+    )
+
+    try:
+        money_repository.delete_relationship(session, value)
         session.commit()
     except Exception:
         session.rollback()

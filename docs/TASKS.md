@@ -358,7 +358,7 @@ Planned implementation sequence:
 4. [x] Add factual Transactions for income, revenue, and expenses.
 5. [x] Add Budgets, Obligations, and recurring-cost records without Capacity or
        recommendation behavior.
-6. [ ] Add explicit cross-domain Money relationships with retained evidence
+6. [x] Add explicit cross-domain Money relationships with retained evidence
        where required by the approved relationship contract.
 7. [ ] Replace the Money/Budget placeholder experience with the selected-Space
        Money frontend while preserving compatible navigation.
