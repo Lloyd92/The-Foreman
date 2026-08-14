@@ -356,7 +356,7 @@ Planned implementation sequence:
        compatibility.
 3. [x] Add Space-authoritative Accounts and Categories.
 4. [x] Add factual Transactions for income, revenue, and expenses.
-5. [ ] Add Budgets, Obligations, and recurring-cost records without Capacity or
+5. [x] Add Budgets, Obligations, and recurring-cost records without Capacity or
        recommendation behavior.
 6. [ ] Add explicit cross-domain Money relationships with retained evidence
        where required by the approved relationship contract.

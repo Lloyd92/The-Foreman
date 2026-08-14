@@ -176,3 +176,118 @@ class MoneyTransactionRead(ApiModel):
     notes: str
     created_at: datetime
     updated_at: datetime
+
+
+MoneyObligationFrequency = Literal[
+    "once",
+    "weekly",
+    "monthly",
+    "yearly",
+]
+
+
+class MoneyBudgetCreate(ApiModel):
+    category_id: StableId | None = None
+    name: MoneyName
+    amount_minor: int = Field(gt=0)
+    currency_code: CurrencyCode = "USD"
+    start_date: date
+    end_date: date
+    notes: str = Field(default="", max_length=2000)
+
+    @model_validator(mode="after")
+    def require_valid_dates(self):
+        if self.end_date < self.start_date:
+            raise ValueError(
+                "Money Budget end date cannot be before start date."
+            )
+        return self
+
+
+class MoneyBudgetUpdate(ApiModel):
+    category_id: StableId | None = None
+    name: MoneyName | None = None
+    amount_minor: int | None = Field(default=None, gt=0)
+    currency_code: CurrencyCode | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    notes: str | None = Field(default=None, max_length=2000)
+
+    @model_validator(mode="after")
+    def require_valid_change(self):
+        if not self.model_fields_set:
+            raise ValueError(
+                "Provide at least one Money Budget field to update."
+            )
+        return self
+
+
+class MoneyBudgetRead(ApiModel):
+    id: str
+    category_id: str | None
+    name: str
+    amount_minor: int
+    currency_code: str
+    start_date: date
+    end_date: date
+    notes: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class MoneyObligationCreate(ApiModel):
+    account_id: StableId | None = None
+    category_id: StableId | None = None
+    name: MoneyName
+    amount_minor: int = Field(gt=0)
+    currency_code: CurrencyCode = "USD"
+    frequency: MoneyObligationFrequency
+    interval_value: int = Field(default=1, gt=0)
+    start_date: date
+    end_date: date | None = None
+    notes: str = Field(default="", max_length=2000)
+
+    @model_validator(mode="after")
+    def require_valid_dates(self):
+        if self.end_date is not None and self.end_date < self.start_date:
+            raise ValueError(
+                "Money Obligation end date cannot be before start date."
+            )
+        return self
+
+
+class MoneyObligationUpdate(ApiModel):
+    account_id: StableId | None = None
+    category_id: StableId | None = None
+    name: MoneyName | None = None
+    amount_minor: int | None = Field(default=None, gt=0)
+    currency_code: CurrencyCode | None = None
+    frequency: MoneyObligationFrequency | None = None
+    interval_value: int | None = Field(default=None, gt=0)
+    start_date: date | None = None
+    end_date: date | None = None
+    notes: str | None = Field(default=None, max_length=2000)
+
+    @model_validator(mode="after")
+    def require_valid_change(self):
+        if not self.model_fields_set:
+            raise ValueError(
+                "Provide at least one Money Obligation field to update."
+            )
+        return self
+
+
+class MoneyObligationRead(ApiModel):
+    id: str
+    account_id: str | None
+    category_id: str | None
+    name: str
+    amount_minor: int
+    currency_code: str
+    frequency: MoneyObligationFrequency
+    interval_value: int
+    start_date: date
+    end_date: date | None
+    notes: str
+    created_at: datetime
+    updated_at: datetime

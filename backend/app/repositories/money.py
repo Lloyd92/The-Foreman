@@ -2,6 +2,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.money_account import MoneyAccount
+from app.models.money_budget import MoneyBudget
+from app.models.money_obligation import MoneyObligation
 from app.models.money_category import MoneyCategory
 from app.models.money_transaction import MoneyTransaction
 
@@ -149,3 +151,77 @@ def delete_transaction(
     transaction: MoneyTransaction,
 ) -> None:
     session.delete(transaction)
+
+
+
+def list_budgets(session: Session, space_id: str) -> list[MoneyBudget]:
+    statement = (
+        select(MoneyBudget)
+        .where(MoneyBudget.space_id == space_id)
+        .order_by(MoneyBudget.start_date.desc(), MoneyBudget.id.asc())
+    )
+    return list(session.scalars(statement))
+
+
+def get_budget(
+    session: Session,
+    space_id: str,
+    budget_id: str,
+) -> MoneyBudget | None:
+    return session.scalar(
+        select(MoneyBudget).where(
+            MoneyBudget.id == budget_id,
+            MoneyBudget.space_id == space_id,
+        )
+    )
+
+
+def add_budget(session: Session, budget: MoneyBudget) -> MoneyBudget:
+    session.add(budget)
+    session.flush()
+    return budget
+
+
+def delete_budget(session: Session, budget: MoneyBudget) -> None:
+    session.delete(budget)
+
+
+def list_obligations(
+    session: Session,
+    space_id: str,
+) -> list[MoneyObligation]:
+    statement = (
+        select(MoneyObligation)
+        .where(MoneyObligation.space_id == space_id)
+        .order_by(MoneyObligation.start_date.asc(), MoneyObligation.id.asc())
+    )
+    return list(session.scalars(statement))
+
+
+def get_obligation(
+    session: Session,
+    space_id: str,
+    obligation_id: str,
+) -> MoneyObligation | None:
+    return session.scalar(
+        select(MoneyObligation).where(
+            MoneyObligation.id == obligation_id,
+            MoneyObligation.space_id == space_id,
+        )
+    )
+
+
+def add_obligation(
+    session: Session,
+    obligation: MoneyObligation,
+) -> MoneyObligation:
+    session.add(obligation)
+    session.flush()
+    return obligation
+
+
+def delete_obligation(
+    session: Session,
+    obligation: MoneyObligation,
+) -> None:
+    session.delete(obligation)

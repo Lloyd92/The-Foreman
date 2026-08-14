@@ -9,6 +9,12 @@ from app.schemas.money import (
     MoneyAccountCreate,
     MoneyAccountRead,
     MoneyAccountUpdate,
+    MoneyBudgetCreate,
+    MoneyBudgetRead,
+    MoneyBudgetUpdate,
+    MoneyObligationCreate,
+    MoneyObligationRead,
+    MoneyObligationUpdate,
     MoneyCategoryCreate,
     MoneyCategoryRead,
     MoneyCategoryUpdate,
@@ -311,6 +317,167 @@ def delete_transaction(
             session,
             active_space,
             transaction_id,
+        )
+    except money_service.MoneyNotFoundError as error:
+        raise money_error(error) from error
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+
+@router.get("/budgets", response_model=list[MoneyBudgetRead])
+def list_budgets(
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> list[MoneyBudgetRead]:
+    return money_service.list_budgets(session, active_space)
+
+
+@router.post(
+    "/budgets",
+    response_model=MoneyBudgetRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_budget(
+    data: MoneyBudgetCreate,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> MoneyBudgetRead:
+    try:
+        return money_service.create_budget(session, active_space, data)
+    except (
+        money_service.MoneyNotFoundError,
+        money_service.MoneyConflictError,
+    ) as error:
+        raise money_error(error) from error
+
+
+@router.get("/budgets/{budget_id}", response_model=MoneyBudgetRead)
+def read_budget(
+    budget_id: str,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> MoneyBudgetRead:
+    try:
+        return money_service.require_budget(session, active_space, budget_id)
+    except money_service.MoneyNotFoundError as error:
+        raise money_error(error) from error
+
+
+@router.patch("/budgets/{budget_id}", response_model=MoneyBudgetRead)
+def update_budget(
+    budget_id: str,
+    data: MoneyBudgetUpdate,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> MoneyBudgetRead:
+    try:
+        return money_service.update_budget(
+            session, active_space, budget_id, data
+        )
+    except (
+        money_service.MoneyNotFoundError,
+        money_service.MoneyConflictError,
+    ) as error:
+        raise money_error(error) from error
+
+
+@router.delete(
+    "/budgets/{budget_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_budget(
+    budget_id: str,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> Response:
+    try:
+        money_service.delete_budget(session, active_space, budget_id)
+    except money_service.MoneyNotFoundError as error:
+        raise money_error(error) from error
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/obligations", response_model=list[MoneyObligationRead])
+def list_obligations(
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> list[MoneyObligationRead]:
+    return money_service.list_obligations(session, active_space)
+
+
+@router.post(
+    "/obligations",
+    response_model=MoneyObligationRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_obligation(
+    data: MoneyObligationCreate,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> MoneyObligationRead:
+    try:
+        return money_service.create_obligation(
+            session, active_space, data
+        )
+    except (
+        money_service.MoneyNotFoundError,
+        money_service.MoneyConflictError,
+    ) as error:
+        raise money_error(error) from error
+
+
+@router.get(
+    "/obligations/{obligation_id}",
+    response_model=MoneyObligationRead,
+)
+def read_obligation(
+    obligation_id: str,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> MoneyObligationRead:
+    try:
+        return money_service.require_obligation(
+            session, active_space, obligation_id
+        )
+    except money_service.MoneyNotFoundError as error:
+        raise money_error(error) from error
+
+
+@router.patch(
+    "/obligations/{obligation_id}",
+    response_model=MoneyObligationRead,
+)
+def update_obligation(
+    obligation_id: str,
+    data: MoneyObligationUpdate,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> MoneyObligationRead:
+    try:
+        return money_service.update_obligation(
+            session, active_space, obligation_id, data
+        )
+    except (
+        money_service.MoneyNotFoundError,
+        money_service.MoneyConflictError,
+    ) as error:
+        raise money_error(error) from error
+
+
+@router.delete(
+    "/obligations/{obligation_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_obligation(
+    obligation_id: str,
+    session: SessionDependency,
+    active_space: ActiveSpaceDependency,
+) -> Response:
+    try:
+        money_service.delete_obligation(
+            session, active_space, obligation_id
         )
     except money_service.MoneyNotFoundError as error:
         raise money_error(error) from error

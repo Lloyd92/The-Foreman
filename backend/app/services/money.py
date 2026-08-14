@@ -2,12 +2,18 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.money_account import MoneyAccount
+from app.models.money_budget import MoneyBudget
+from app.models.money_obligation import MoneyObligation
 from app.models.money_category import MoneyCategory
 from app.models.money_transaction import MoneyTransaction
 from app.models.space import Space
 from app.repositories import money as money_repository
 from app.schemas.money import (
     MoneyAccountCreate,
+    MoneyBudgetCreate,
+    MoneyBudgetUpdate,
+    MoneyObligationCreate,
+    MoneyObligationUpdate,
     MoneyAccountUpdate,
     MoneyCategoryCreate,
     MoneyCategoryUpdate,
@@ -404,6 +410,210 @@ def delete_transaction(
             session,
             transaction,
         )
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+
+
+
+def list_budgets(
+    session: Session,
+    active_space: Space,
+) -> list[MoneyBudget]:
+    return money_repository.list_budgets(session, active_space.id)
+
+
+def require_budget(
+    session: Session,
+    active_space: Space,
+    budget_id: str,
+) -> MoneyBudget:
+    budget = money_repository.get_budget(
+        session,
+        active_space.id,
+        budget_id,
+    )
+    if budget is None:
+        raise MoneyNotFoundError("Money Budget not found.")
+    return budget
+
+
+def create_budget(
+    session: Session,
+    active_space: Space,
+    data: MoneyBudgetCreate,
+) -> MoneyBudget:
+    if data.category_id is not None:
+        require_category(session, active_space, data.category_id)
+
+    budget = MoneyBudget(
+        space_id=active_space.id,
+        **data.model_dump(),
+    )
+
+    try:
+        money_repository.add_budget(session, budget)
+        session.commit()
+        session.refresh(budget)
+    except Exception:
+        session.rollback()
+        raise
+
+    return budget
+
+
+def update_budget(
+    session: Session,
+    active_space: Space,
+    budget_id: str,
+    data: MoneyBudgetUpdate,
+) -> MoneyBudget:
+    budget = require_budget(session, active_space, budget_id)
+    changes = data.model_dump(exclude_unset=True)
+
+    category_id = changes.get("category_id", budget.category_id)
+    if category_id is not None:
+        require_category(session, active_space, category_id)
+
+    start_date = changes.get("start_date", budget.start_date)
+    end_date = changes.get("end_date", budget.end_date)
+    if end_date < start_date:
+        raise MoneyConflictError(
+            "Money Budget end date cannot be before start date."
+        )
+
+    for field, value in changes.items():
+        setattr(budget, field, value)
+
+    try:
+        session.commit()
+        session.refresh(budget)
+    except Exception:
+        session.rollback()
+        raise
+
+    return budget
+
+
+def delete_budget(
+    session: Session,
+    active_space: Space,
+    budget_id: str,
+) -> None:
+    budget = require_budget(session, active_space, budget_id)
+
+    try:
+        money_repository.delete_budget(session, budget)
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+
+
+
+def list_obligations(
+    session: Session,
+    active_space: Space,
+) -> list[MoneyObligation]:
+    return money_repository.list_obligations(session, active_space.id)
+
+
+def require_obligation(
+    session: Session,
+    active_space: Space,
+    obligation_id: str,
+) -> MoneyObligation:
+    obligation = money_repository.get_obligation(
+        session,
+        active_space.id,
+        obligation_id,
+    )
+    if obligation is None:
+        raise MoneyNotFoundError("Money Obligation not found.")
+    return obligation
+
+
+def create_obligation(
+    session: Session,
+    active_space: Space,
+    data: MoneyObligationCreate,
+) -> MoneyObligation:
+    if data.account_id is not None:
+        require_account(session, active_space, data.account_id)
+    if data.category_id is not None:
+        require_category(session, active_space, data.category_id)
+
+    obligation = MoneyObligation(
+        space_id=active_space.id,
+        **data.model_dump(),
+    )
+
+    try:
+        money_repository.add_obligation(session, obligation)
+        session.commit()
+        session.refresh(obligation)
+    except Exception:
+        session.rollback()
+        raise
+
+    return obligation
+
+
+def update_obligation(
+    session: Session,
+    active_space: Space,
+    obligation_id: str,
+    data: MoneyObligationUpdate,
+) -> MoneyObligation:
+    obligation = require_obligation(
+        session,
+        active_space,
+        obligation_id,
+    )
+    changes = data.model_dump(exclude_unset=True)
+
+    account_id = changes.get("account_id", obligation.account_id)
+    category_id = changes.get("category_id", obligation.category_id)
+
+    if account_id is not None:
+        require_account(session, active_space, account_id)
+    if category_id is not None:
+        require_category(session, active_space, category_id)
+
+    start_date = changes.get("start_date", obligation.start_date)
+    end_date = changes.get("end_date", obligation.end_date)
+    if end_date is not None and end_date < start_date:
+        raise MoneyConflictError(
+            "Money Obligation end date cannot be before start date."
+        )
+
+    for field, value in changes.items():
+        setattr(obligation, field, value)
+
+    try:
+        session.commit()
+        session.refresh(obligation)
+    except Exception:
+        session.rollback()
+        raise
+
+    return obligation
+
+
+def delete_obligation(
+    session: Session,
+    active_space: Space,
+    obligation_id: str,
+) -> None:
+    obligation = require_obligation(
+        session,
+        active_space,
+        obligation_id,
+    )
+
+    try:
+        money_repository.delete_obligation(session, obligation)
         session.commit()
     except Exception:
         session.rollback()
