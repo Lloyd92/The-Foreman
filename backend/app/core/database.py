@@ -42,6 +42,8 @@ SQLITE_DEFERRED_UPGRADE_TABLES = frozenset({
     "calendar_series_exclusions",
     "calendar_settings",
     "care_plans",
+    "library_records",
+    "library_relationships",
     "money_accounts",
     "money_budgets",
     "money_categories",

@@ -14,6 +14,59 @@ No unreleased changes are recorded yet.
 
 ---
 
+# v0.8.5 — 2026-08-14
+
+## Added
+
+- Added Space-authoritative Library records for Notes, Documents, Manuals,
+  Receipts, Photos, Decisions, Measurements, and CAD references.
+- Added explicit factual same-Space Library relationships to approved Work,
+  Resources, Calendar, Money, People, and Organization records.
+- Added backend-authoritative Universal Search as a derived read capability
+  across authoritative Foreman domains.
+- Added selected-Space Library CRUD, filtering, record search, and cross-domain
+  Universal Search presentation.
+- Added isolated browser compatibility acceptance for the completed Library
+  and Search startup graph.
+
+## Changed
+
+- Advanced the internal SQLite schema from version 8 to version 9 with additive,
+  idempotent Library persistence and recovery compatibility.
+- Updated application release identity to 0.8.5.
+- Finalized the exact 55-resource PWA shell as
+  `foreman-shell-v0.8.5-c1`.
+- Preserved portable export format version 1, backup format version 1, and
+  operational-fact schema version 1.
+
+## Reliability
+
+- Preserved backend-authoritative selected-Space isolation for Library CRUD and
+  Universal Search.
+- Preserved factual Library relationship evidence when referenced target
+  records are later removed.
+- Kept Universal Search derived and read-only without browser persistence,
+  duplicate search authority, semantic ranking, recommendations, or AI.
+- Deferred arbitrary binary attachment storage until Backup & Recovery is
+  deliberately expanded beyond its database-only format-v1 contract.
+
+## Validation
+
+- Completed full backend acceptance with 377 tests passing.
+- Completed full frontend acceptance with 202 tests passing.
+- Completed isolated disposable browser acceptance with 45 tests passing and
+  verified disposable cleanup.
+
+## Documentation
+
+- Completed the v0.8.5 Library, Records & Search milestone.
+- Preserved Capacity for v0.9.0, Priority for v0.9.1, and Morning Briefing for
+  v0.9.2.
+- Set v0.8.6 Today Workspace & Household Proving Ground as the next
+  implementation milestone.
+
+---
+
 # v0.8.4 — 2026-08-14
 
 ## Added

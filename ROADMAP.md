@@ -656,9 +656,9 @@ version 1, and backup format version 1. New Money persistence advances the
 SQLite schema from version 7 to version 8. Full Backup & Recovery protects the
 new application tables through the existing database-snapshot contract.
 
-## v0.8.5 — Library, Records & Search
+## v0.8.5 — Library, Records & Search ✅
 
-Status: Planned
+Status: Complete
 
 Purpose:
 

@@ -159,7 +159,7 @@ the milestone with v0.8.0 release identity and documentation reconciliation.
 - [x] v0.8.2 — Tools, Inventory & Care
 - [x] v0.8.3 — Calendar & Scheduling
 - [x] v0.8.4 — Money
-- [ ] v0.8.5 — Library, Records & Search
+- [x] v0.8.5 — Library, Records & Search
 - [ ] v0.8.6 — Today Workspace & Household Proving Ground
 - [ ] v0.8.7 — Operational Refinement & UX Convergence
 - [ ] v0.9.0 — Capacity Engine
@@ -398,18 +398,18 @@ Architecture review:
 Planned implementation sequence:
 
 1. [x] Reconcile v0.8.5 architecture and current-state documentation.
-2. [ ] Add Library persistence with a safe SQLite schema-v9 upgrade and
+2. [x] Add Library persistence with a safe SQLite schema-v9 upgrade and
        recovery compatibility.
-3. [ ] Add Space-authoritative Library record CRUD and validation.
-4. [ ] Add explicit factual Library relationships to approved same-Space
+3. [x] Add Space-authoritative Library record CRUD and validation.
+4. [x] Add explicit factual Library relationships to approved same-Space
        records.
-5. [ ] Add backend-authoritative Universal Search as a derived read service.
-6. [ ] Replace the Library placeholder with selected-Space record workflows
+5. [x] Add backend-authoritative Universal Search as a derived read service.
+6. [x] Replace the Library placeholder with selected-Space record workflows
        and search.
-7. [ ] Add cross-domain Universal Search presentation without duplicating
+7. [x] Add cross-domain Universal Search presentation without duplicating
        source ownership.
-8. [ ] Complete isolated disposable browser compatibility acceptance.
-9. [ ] Reconcile v0.8.5 release identity, documentation, and Green Build.
+8. [x] Complete isolated disposable browser compatibility acceptance.
+9. [x] Reconcile v0.8.5 release identity, documentation, and Green Build.
 
 Commit 1 is documentation-only. It does not change SQLite schema version 8,
 application version 0.8.4, PWA cache identity, APIs, frontend runtime behavior,

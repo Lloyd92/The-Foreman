@@ -26,17 +26,17 @@ rather than replace it.
 
 **Current Version**
 
-v0.8.4 — Money
+v0.8.5 — Library, Records & Search
 
 Current focus:
 
-- Begin v0.8.5 Library, Records & Search from the released v0.8.4 Green Build
-- Keep Money authoritative for factual financial records and explicit
-  user-entered financial plans
-- Preserve selected-Space Accounts, Categories, Transactions, Budgets,
-  Obligations, and explicit cross-domain relationship evidence
-- Do not infer affordability, forecast outcomes, rank Work, or recommend
-  spending before the approved Capacity and Priority milestones
+- Begin v0.8.6 Today Workspace & Household Proving Ground from the released
+  v0.8.5 Green Build
+- Keep Library authoritative for durable selected-Space records and references
+- Preserve explicit factual Library relationships without transferring
+  ownership from Work, Resources, Calendar, Money, People, or Organizations
+- Keep Universal Search a derived backend read capability over authoritative
+  records rather than a duplicate persistence or browser authority
 - Preserve operational-fact schema version 1, portable export format version 1,
   backup format version 1, and the Green Build
 
@@ -326,6 +326,13 @@ financial reality and explicit plans without inferring affordability,
 forecasting outcomes, ranking Work, or recommending spending. Capacity,
 Priority, Morning Briefing decision logic, and AI remain future capabilities.
 
+v0.8.5 adds Space-authoritative Library records for Notes, Documents, Manuals,
+Receipts, Photos, Decisions, Measurements, and CAD references; explicit
+same-Space factual relationship evidence; SQLite schema version 9; and
+backend-derived Universal Search across authoritative Foreman domains. Binary
+attachment storage, semantic or AI search, ranking, recommendations, Capacity,
+Priority, and Morning Briefing decision logic remain deferred.
+
 ---
 
 # PWA and Household Deployment
@@ -338,8 +345,8 @@ iPhone Home Screen installation. Trusted HTTPS installation, standalone
 launch, backend-authoritative startup, and safe-area behavior have been
 accepted on a physical iPhone.
 
-The current v0.8.4 service worker atomically precaches an exact 51-resource
-static shell as `foreman-shell-v0.8.4-c1`. It does not cache API responses,
+The current v0.8.5 service worker atomically precaches an exact 55-resource
+static shell as `foreman-shell-v0.8.5-c1`. It does not cache API responses,
 business records, migrations, or mutations and does not queue, replay, or
 synchronize writes. A cached shell can therefore remain available when
 HardHead is unavailable, but shell availability does not mean operational
@@ -399,8 +406,9 @@ Frontend hardening and the isolated browser-E2E foundation are implemented in
 v0.7.5. Universal Navigation & Spaces is implemented in v0.8.0. Universal
 Work is implemented in v0.8.1. Tools, Inventory & Care is implemented in
 v0.8.2. Calendar & Scheduling is implemented in v0.8.3. Money is
-implemented in v0.8.4. Next-action identification and Morning Briefing
-narration remain future capabilities. AI is not part of v0.8.4.
+implemented in v0.8.4. Library, Records & Search is implemented in v0.8.5.
+Next-action identification and Morning Briefing narration remain future
+capabilities. AI is not part of v0.8.5.
 
 See `ROADMAP.md` for additional details.
 
